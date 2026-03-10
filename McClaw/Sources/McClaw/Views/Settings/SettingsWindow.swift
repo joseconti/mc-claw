@@ -460,23 +460,30 @@ struct ChannelsSettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Native channels (direct connections without Gateway)
+            NativeChannelsSettingsTab()
+
+            Divider()
+                .padding(.vertical, 8)
+
+            // Gateway channels
+            Text("Gateway Channels")
+                .font(.headline)
+
             let ids = store.orderedChannelIds()
 
             if ids.isEmpty {
-                // No channels available - show placeholder
                 VStack(spacing: 12) {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .font(.system(size: 32))
                         .foregroundStyle(.tertiary)
-                    Text("Channels")
-                        .font(.headline)
-                    Text("WhatsApp, Telegram, and Slack integration coming soon.")
+                    Text("No Gateway channels available.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
+                .padding(.vertical, 20)
             } else {
                 // Show channels as a simple list
                 ForEach(ids, id: \.self) { id in

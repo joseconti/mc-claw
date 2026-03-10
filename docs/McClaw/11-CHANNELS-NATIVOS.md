@@ -1,6 +1,6 @@
 # 11 - Native Channels (Without Gateway)
 
-## Status: Planning
+## Status: Phase 1 (Telegram) ✅ | Phase 2 (Slack) ✅ | Phase 3 (Discord) Pending
 
 ## Goal
 
@@ -10,27 +10,27 @@ Implement messaging Channels directly from McClaw, without depending on the Gate
 
 ## Channels to Implement
 
-### Phase 1: Telegram
-- **Bot API** via HTTP
-- Long polling from McClaw (no server/webhook required)
-- The client initiates the connection — perfect for a desktop app
-- Auth: Bot Token
+### Phase 1: Telegram ✅ (Sprint 19)
+- **Bot API** via HTTP long polling (`/getUpdates` with offset tracking)
+- TelegramKit pure logic (McClawKit) + TelegramNativeService actor
+- Auth: Bot Token from existing Telegram ConnectorProvider
+- 48 tests
 
-### Phase 2: Slack
-- **Web API** + **Socket Mode**
-- Direct WebSocket connection from McClaw
-- No webhook server required
-- Auth: Bot Token + OAuth2 (Slack ConnectorProvider already exists)
+### Phase 2: Slack ✅ (Sprint 20)
+- **Web API** + **Socket Mode** (WebSocket)
+- SlackKit pure logic (McClawKit) + SlackNativeService actor
+- Dual tokens: Bot Token (xoxb- from ConnectorProvider) + App-Level Token (xapp- in config)
+- Flow: `apps.connections.open` → WebSocket → envelope ack → event processing → `chat.postMessage`
+- Features: DM-only mode, allowed channel IDs, threaded replies, mention stripping
+- 39 tests
 
-### Phase 3: Discord
+### Phase 3: Discord (Pending)
 - **Bot API** + **Gateway WebSocket**
 - Direct WebSocket connection from McClaw
 - Auth: Bot Token (Discord ConnectorProvider already exists)
 
-### Phase 4 (future): WhatsApp
-- More complex: Cloud API requires a webhook server
-- Pending evaluation of options (polling, local solution, or dropping it)
-- To be decided later
+### ~~Phase 4: WhatsApp~~ (Dropped)
+- Excluded: Cloud API requires webhook server, goes against WhatsApp TOS for automated bots
 
 ---
 

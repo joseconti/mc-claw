@@ -20,7 +20,9 @@ Complete documentation for McClaw, a native macOS application (Swift/SwiftUI) th
 | 08 | [PLUGIN-COMPATIBILITY.md](08-PLUGIN-COMPATIBILITY.md) | Plugin ecosystem compatibility: what guarantees compatibility, compatible plugin types, installation, configuration, SDK layer, scenarios, limitations, recommendations, migration |
 | 10 | [SCHEDULES.md](10-SCHEDULES.md) | Scheduled actions (Schedules): overview, hybrid architecture (Claude CLI task + Gateway cron), user interface (sidebar + list + detail), AI selector per provider, schedule types (at/every/cron), CRUD flows, Connectors integration |
 | 11 | [CHANNELS-NATIVOS.md](11-CHANNELS-NATIVOS.md) | Native Channels planning without Gateway: Telegram (Bot API + long polling), Slack (Socket Mode), Discord (Gateway WebSocket), WhatsApp (future) |
-| 12 | [APP-MOVIL.md](12-APP-MOVIL.md) | Mobile app study (iPhone and Android) for communicating with McClaw |
+| 12 | [CONNECTOR-WRITE-ACTIONS.md](12-CONNECTOR-WRITE-ACTIONS.md) | Connector write actions: create events, send emails, create tasks, post messages. OAuth scope upgrades, user confirmation flow, security model |
+| 13 | [LOCALIZACION.md](13-LOCALIZACION.md) | Multi-language localization: infrastructure, Localizable.strings, SPM integration, language tiers (Tier 1: EU, Tier 2: global, Tier 3: variants) |
+| 14 | [APP-MOVIL.md](14-APP-MOVIL.md) | Mobile app study (iPhone and Android) for communicating with McClaw |
 
 ---
 

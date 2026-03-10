@@ -114,6 +114,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
             // 7b. Start local scheduler for background schedule execution
             LocalScheduler.shared.start()
 
+            // 7c. Start native channels (Telegram, etc.)
+            NativeChannelsManager.shared.start()
+
             // 8. Attach floating chat panel to the status item (needs AppState)
             self.attachFloatingPanel()
 

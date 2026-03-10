@@ -3,7 +3,7 @@
 ## Proyecto
 App nativa macOS (Swift/SwiftUI) que wrappea CLIs de IA (Claude, ChatGPT, Gemini, Ollama) via CLI Bridge. Conecta a Gateway via WebSocket para channels, plugins y automation.
 
-## Estado: Sprint 1-10 COMPLETADO | Sprint 11 COMPLETADO | Sprint 12 COMPLETADO | Sprint 13 COMPLETADO | Sprint 14 COMPLETADO | Sprint 15 COMPLETADO | Sprint 16 COMPLETADO | Sprint 17 COMPLETADO | Sprint 18 COMPLETADO
+## Estado: Sprint 1-10 COMPLETADO | Sprint 11 COMPLETADO | Sprint 12 COMPLETADO | Sprint 13 COMPLETADO | Sprint 14 COMPLETADO | Sprint 15 COMPLETADO | Sprint 16 COMPLETADO | Sprint 17 COMPLETADO | Sprint 18 COMPLETADO | Sprint 19 COMPLETADO | Sprint 20 COMPLETADO
 
 ---
 
@@ -1080,4 +1080,180 @@ ConnectorExecutor
 ```bash
 cd McClaw && swift build   # ✅ OK
 swift test                  # ✅ 365/365 passing
+```
+
+---
+
+## Sprint 19: Telegram Native Channel ✅ COMPLETADO
+
+### Objetivo
+Implementar un canal nativo de Telegram que corre directamente desde McClaw sin Gateway. Bot que escucha mensajes via long polling y responde usando el CLI de IA activo.
+
+### 19.1 TelegramKit (McClawKit, pure logic) ✅
+- Modelos: `User`, `Chat`, `Message`, `Update`, `BotInfo`, `APIResponse<T>`
+- URL building: `getUpdatesURL`, `sendMessageURL`, `getMeURL`, `apiURL`
+- Parsing: `parseUpdates`, `parseBotInfo`, `parseSentMessage`
+- Helpers: `nextOffset`, `filterTextMessages`, `truncateForTelegram`, `escapeMarkdownV2`, `isValidBotToken`
+- Request body building: `sendMessageBody` (JSON con chat_id, text, parse_mode, reply_to_message_id)
+
+### 19.2 NativeChannel Protocol + TelegramNativeService ✅
+- **NativeChannelProtocol**: `start(config:)`, `stop()`, `setOnMessage()`, state/stats/botDisplayName
+- **NativeChannelModels**: `NativeChannelState`, `NativeChannelConfig`, `NativeChannelMessage`, `NativeChannelStats`, `NativeChannelDefinition`
+- **TelegramNativeService** actor:
+  - Long-polling loop con `getUpdates` (timeout 30s)
+  - Offset tracking para deduplicación de mensajes
+  - Rate limiting handling (429 + retry_after)
+  - Conflict detection (409 — otra instancia polling)
+  - Reconnection con backoff (max 10 errores consecutivos)
+  - Markdown fallback (si falla envío con Markdown, reintenta plain text)
+  - Carga credenciales del ConnectorProvider existente (`comm.telegram`) via KeychainService
+
+### 19.3 NativeChannelsManager (coordinator) ✅
+- Singleton `@MainActor @Observable`
+- Gestiona lifecycle de todos los native channels
+- Estado observable: `telegramState`, `telegramStats`, `telegramBotName`
+- Persistencia de configs en `~/.mcclaw/native-channels.json`
+- Se inicia desde `AppDelegate` al arrancar la app
+
+### 19.4 Message Routing (chat integration) ✅
+- Mensajes entrantes → CLIBridge con el provider de IA activo
+- System prompt con contexto del canal y sender
+- Soporte de `allowedChatIds` para restringir acceso
+- Respuesta enviada via `sendMessage` con reply_to_message_id
+- Configurable: `respondWithAI`, `aiProviderId`, `systemPrompt`
+
+### 19.5 UI: NativeChannelsSettingsTab ✅
+- Integrado dentro de ChannelsSettingsTab (sección "Native Channels" arriba, "Gateway Channels" abajo)
+- Card por canal con: estado (badge coloreado), nombre del bot, stats en tiempo real
+- Botones Start/Stop + gear para configuración
+- Sheet de configuración: enabled, auto-reconnect, AI provider, system prompt, allowed chat IDs
+- Stats: messages received/sent, uptime, last message time
+
+### 19.6 Tests ✅
+- 48 tests nuevos en `TelegramKitTests.swift`
+- Suites: URLBuilding, Parsing, Offset, Filtering, Formatting, TokenValidation, RequestBody, Models
+
+### Arquitectura
+
+```
+TelegramKit (McClawKit, pure logic, testable)
+  ├── Models: User, Chat, Message, Update, BotInfo, APIResponse<T>
+  ├── URL Building: getUpdatesURL, sendMessageURL, getMeURL
+  ├── Parsing: parseUpdates, parseBotInfo, parseSentMessage
+  └── Helpers: nextOffset, filterTextMessages, truncateForTelegram, isValidBotToken
+
+NativeChannelProtocol (actor protocol)
+  └── start/stop/setOnMessage/state/stats
+
+TelegramNativeService (actor, NativeChannel)
+  ├── Long-polling loop (getUpdates + offset tracking)
+  ├── Rate limiting + conflict detection + reconnection
+  ├── sendMessage with Markdown fallback
+  └── Credential loading via KeychainService (reuses comm.telegram)
+
+NativeChannelsManager (@MainActor @Observable singleton)
+  ├── Lifecycle: start/stop channels
+  ├── Message routing: incoming → CLIBridge → sendMessage
+  ├── Config persistence: ~/.mcclaw/native-channels.json
+  └── Observable state for UI
+
+NativeChannelsSettingsTab (SwiftUI)
+  ├── Channel cards with status badge + stats
+  ├── Start/Stop controls
+  └── Config sheet (AI provider, system prompt, allowed chats)
+```
+
+### Archivos creados/modificados
+- `Sources/McClawKit/TelegramKit.swift` — Pure logic: models, URL building, parsing, helpers
+- `Sources/McClaw/Models/NativeChannel/NativeChannelModels.swift` — State, config, message, stats models
+- `Sources/McClaw/Services/NativeChannels/NativeChannelProtocol.swift` — Actor protocol
+- `Sources/McClaw/Services/NativeChannels/TelegramNativeService.swift` — Telegram long-polling service
+- `Sources/McClaw/Services/NativeChannels/NativeChannelsManager.swift` — Coordinator singleton
+- `Sources/McClaw/Views/Settings/NativeChannelsSettingsTab.swift` — Settings UI + config sheet
+- `Sources/McClaw/Views/Settings/SettingsWindow.swift` — Integrated native channels into ChannelsSettingsTab
+- `Sources/McClaw/App/AppDelegate.swift` — Added NativeChannelsManager.shared.start()
+- `Tests/McClawKitTests/TelegramKitTests.swift` — 48 tests
+
+### Verificación Sprint 19 ✅
+```bash
+cd McClaw && swift build   # ✅ OK
+swift test                  # ✅ 413/413 passing (48 new)
+```
+
+---
+
+## Sprint 20: Slack Native Channel ✅ COMPLETADO
+
+### Objetivo
+Phase 2 de Native Channels: Slack via Socket Mode (WebSocket directo, sin servidor webhook).
+
+### 20.1 SlackKit (Pure Logic) ✅
+- **Archivo**: `McClaw/Sources/McClawKit/SlackKit.swift`
+- **Modelos**: `SocketEnvelope`, `Payload`, `SlackEvent`, `BotIdentity`
+- **Envelope types**: `typeHello`, `typeEventsApi`, `typeSlashCommands`, `typeInteractive`, `typeDisconnect`
+- **Parsing**: `parseEnvelope()`, `parseBotIdentity()`, `parseWebSocketURL()`
+- **URL Building**: `webAPIURL(method:)`, `connectURL()`
+- **Request Bodies**: `postMessageBody(channel:text:threadTs:)`, `acknowledgeBody(envelopeId:)`
+- **Event Logic**: `shouldProcess(event:)`, `extractText(from:botUserId:)` (strips `<@UBOTID>` mentions)
+- **Formatting**: `truncateForSlack(_:maxLength:)`, `escapeSlackMrkdwn(_:)`
+- **Validation**: `isValidBotToken(_:)` (xoxb- prefix, >20 chars), `isValidAppToken(_:)` (xapp- prefix, >20 chars)
+- **SlackEvent computed**: `isUserMessage`, `isDirectMessage`, `isAppMention`
+
+### 20.2 SlackNativeService (Socket Mode WebSocket) ✅
+- **Archivo**: `McClaw/Sources/McClaw/Services/NativeChannels/SlackNativeService.swift`
+- **Actor** implementando `NativeChannel` protocol
+- **Dual tokens**: Bot Token (xoxb- del ConnectorProvider existente via Keychain) + App-Level Token (xapp- del config)
+- **Flujo de conexión**:
+  1. `auth.test` con bot token → obtiene `BotIdentity`
+  2. `apps.connections.open` POST con app-level token → obtiene WebSocket URL
+  3. Conecta WebSocket → receive loop
+  4. Envelope handling: hello (log), disconnect (reconnect), events_api (process)
+  5. Ack dentro de 3 segundos (requisito Slack)
+- **Respuestas**: `chat.postMessage` Web API con bot token, threaded replies via `thread_ts`
+- **Reconnection**: Max 10 errores consecutivos, 5s delay entre reconexiones
+- **Filtering**: DM-only mode, allowed channel IDs, bot message filtering
+
+### 20.3 NativeChannelModels Actualizados ✅
+- **Archivo**: `McClaw/Sources/McClaw/Models/NativeChannel/NativeChannelModels.swift`
+- **NativeChannelConfig**: Añadidos `appLevelToken: String?`, `allowedChannelIds: [String]?`, `dmOnly: Bool?`
+- **NativeChannelMessage**: Añadidos `platformChannelId: String?`, `platformUserId: String?`, `threadId: String?`
+
+### 20.4 NativeChannelsManager Integración ✅
+- **Archivo**: `McClaw/Sources/McClaw/Services/NativeChannels/NativeChannelsManager.swift`
+- Añadido `slackState`, `slackStats`, `slackBotName` properties
+- Slack channel definition (icon: `number.square`, color: purple)
+- `startChannel`/`stopChannel`/`refreshChannelState` manejan `"slack"` case
+- `SlackNativeService.shared.stop()` en `stop()`
+
+### 20.5 NativeChannelsSettingsTab UI ✅
+- **Archivo**: `McClaw/Sources/McClaw/Views/Settings/NativeChannelsSettingsTab.swift`
+- Channel card con status badge para Slack
+- Config sheet: App-Level Token (SecureField), DM-only toggle, Allowed Channel IDs
+- Stats view: messages received/sent, uptime, last message
+- State/error/botName helpers para Slack
+
+### 20.6 SlackKitTests ✅
+- **Archivo**: `McClaw/Tests/McClawKitTests/SlackKitTests.swift`
+- **39 tests** en 11 suites:
+  - `EnvelopeParsing` (5): hello, disconnect, events_api message, app_mention, invalid JSON
+  - `BotIdentity` (3): parse auth.test, failed auth, displayName fallback
+  - `Acknowledge` (1): build ack body
+  - `URLBuilding` (2): web API URL, connect URL
+  - `WebSocketURL` (2): parse WSS URL, failed parse
+  - `RequestBody` (2): postMessage, postMessage with thread
+  - `EventFiltering` (7): user message, app_mention, bot skip, subtype skip, no-user skip, isDM, isNotDM
+  - `TextExtraction` (4): strip mention, no mention, empty after strip, nil text
+  - `Formatting` (3): truncate, no truncate, escape mrkdwn
+  - `TokenValidation` (7): valid/invalid bot tokens, valid/invalid app tokens, empty tokens
+  - `Models` (3): isUserMessage, subtype not user, botId not user
+
+### 20.7 Error: SlackNativeError ✅
+- **Archivo**: `McClaw/Sources/McClaw/Services/NativeChannels/SlackNativeService.swift`
+- `invalidURL`, `invalidResponse`, `noWebSocketURL`, `unauthorized`, `forbidden`, `httpError(Int)`
+- Mensajes descriptivos con sugerencias de solución
+
+### Verificación Sprint 20 ✅
+```bash
+cd McClaw && swift build   # ✅ OK
+swift test                  # ✅ 452/452 passing (39 new)
 ```
