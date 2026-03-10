@@ -1,0 +1,882 @@
+/* Localizable.strings — McClaw
+   English (base)
+   Auto-extracted from all user-facing strings in the project.
+   Key = Value for the base (English) language.
+*/
+
+// =============================================================================
+// MARK: - App / Global
+// =============================================================================
+
+"McClaw" = "McClaw";
+
+// =============================================================================
+// MARK: - AppDelegate (NSMenu items)
+// =============================================================================
+
+"Open McClaw" = "Open McClaw";
+"Quit McClaw" = "Quit McClaw";
+
+// =============================================================================
+// MARK: - McClawApp (Window titles)
+// =============================================================================
+
+"About McClaw" = "About McClaw";
+"Canvas" = "Canvas";
+
+// =============================================================================
+// MARK: - AboutWindow
+// =============================================================================
+
+"Version %@ (%@)" = "Version %@ (%@)";
+"Website" = "Website";
+"Developer Website" = "Developer Website";
+
+// =============================================================================
+// MARK: - MenuContentView
+// =============================================================================
+
+"What can I help you with?" = "What can I help you with?";
+"New Chat" = "New Chat";
+"New Code Session" = "New Code Session";
+"Open Chat Window" = "Open Chat Window";
+
+// =============================================================================
+// MARK: - ChatWindow
+// =============================================================================
+
+"Toggle sidebar" = "Toggle sidebar";
+
+// =============================================================================
+// MARK: - ChatInputBar
+// =============================================================================
+
+"Voice Mode active — listening for speech..." = "Voice Mode active — listening for speech...";
+"Escribe / para comandos, o escribe tu mensaje..." = "Escribe / para comandos, o escribe tu mensaje...";
+"Type / for commands" = "Type / for commands";
+"Voice Mode active..." = "Voice Mode active...";
+"Attach files" = "Attach files";
+"Voice Mode (Cmd+Shift+V)" = "Voice Mode (Cmd+Shift+V)";
+"Select files to attach" = "Select files to attach";
+
+// =============================================================================
+// MARK: - ChatSidebar
+// =============================================================================
+
+"New Conversation" = "New Conversation";
+"Search" = "Search";
+"Chats" = "Chats";
+"Projects" = "Projects";
+"Schedules" = "Schedules";
+"Notifications" = "Notifications";
+"Trash" = "Trash";
+"Recent" = "Recent";
+"No conversations yet" = "No conversations yet";
+"Move to Project" = "Move to Project";
+"Move to Trash" = "Move to Trash";
+"v%@" = "v%@";
+
+// =============================================================================
+// MARK: - MessageBubbleView
+// =============================================================================
+
+"You" = "You";
+"Copied" = "Copied";
+"Copy" = "Copy";
+
+// =============================================================================
+// MARK: - WelcomeView
+// =============================================================================
+
+"Good morning" = "Good morning";
+"Good afternoon" = "Good afternoon";
+"Good evening" = "Good evening";
+"Write" = "Write";
+"Learn" = "Learn";
+"Code" = "Code";
+"Brainstorm" = "Brainstorm";
+"Help me write something" = "Help me write something";
+"Explain a concept to me" = "Explain a concept to me";
+"Help me with code" = "Help me with code";
+"Help me brainstorm ideas" = "Help me brainstorm ideas";
+
+// =============================================================================
+// MARK: - ChatViewModel (system messages / slash commands)
+// =============================================================================
+
+"No AI CLI detected. Please install Claude, ChatGPT, Gemini or Ollama CLI." = "No AI CLI detected. Please install Claude, ChatGPT, Gemini or Ollama CLI.";
+"[Error: %@]" = "[Error: %@]";
+"[Aborted]" = "[Aborted]";
+
+// =============================================================================
+// MARK: - NotificationsContentView
+// =============================================================================
+
+"Clear all notifications?" = "Clear all notifications?";
+"Mark All Read" = "Mark All Read";
+"Clear All" = "Clear All";
+"No notifications" = "No notifications";
+"Success" = "Success";
+"Error" = "Error";
+"Timeout" = "Timeout";
+"macOS notifications are disabled" = "macOS notifications are disabled";
+"Enable" = "Enable";
+"No notifications yet" = "No notifications yet";
+"When your scheduled actions run, results will appear here." = "When your scheduled actions run, results will appear here.";
+"Enable macOS Notifications" = "Enable macOS Notifications";
+"Mark as Read" = "Mark as Read";
+"Delete" = "Delete";
+"Time" = "Time";
+"Result" = "Result";
+"Select a notification to view details" = "Select a notification to view details";
+
+// =============================================================================
+// MARK: - ProjectEditorView
+// =============================================================================
+
+"Back" = "Back";
+"Save" = "Save";
+"Title" = "Title";
+"Project name" = "Project name";
+"Description" = "Description";
+"Rules" = "Rules";
+"Generating cover image..." = "Generating cover image...";
+"Generate Cover Image" = "Generate Cover Image";
+"Shared Context" = "Shared Context";
+"Regenerate" = "Regenerate";
+
+// =============================================================================
+// MARK: - ProjectsContentView
+// =============================================================================
+
+"New Project" = "New Project";
+"No projects yet" = "No projects yet";
+"Create a project to organize your conversations and files." = "Create a project to organize your conversations and files.";
+"Create Project" = "Create Project";
+"Edit Project" = "Edit Project";
+"Delete Project" = "Delete Project";
+"Conversations" = "Conversations";
+"Remove from Project" = "Remove from Project";
+"Files" = "Files";
+"Show in Finder" = "Show in Finder";
+"Remove" = "Remove";
+"Start a new conversation..." = "Start a new conversation...";
+"Add files to project" = "Add files to project";
+"Project name" = "Project name";
+"Cancel" = "Cancel";
+"Create" = "Create";
+
+// =============================================================================
+// MARK: - SchedulesContentView
+// =============================================================================
+
+"No scheduled actions" = "No scheduled actions";
+"New Schedule" = "New Schedule";
+"Refresh" = "Refresh";
+"No schedules yet" = "No schedules yet";
+"Create scheduled actions to automate tasks with AI." = "Create scheduled actions to automate tasks with AI.";
+"Create Schedule" = "Create Schedule";
+"Run Now" = "Run Now";
+"Disable" = "Disable";
+"Edit..." = "Edit...";
+"Delete..." = "Delete...";
+"Delete this schedule?" = "Delete this schedule?";
+"Select a schedule to view details" = "Select a schedule to view details";
+"Schedule" = "Schedule";
+"AI Provider" = "AI Provider";
+"Session" = "Session";
+"Wake" = "Wake";
+"Next run" = "Next run";
+"Last run" = "Last run";
+"Last status" = "Last status";
+"Payload" = "Payload";
+"Run History" = "Run History";
+"No runs yet." = "No runs yet.";
+
+// =============================================================================
+// MARK: - TrashContentView
+// =============================================================================
+
+"Empty Trash" = "Empty Trash";
+"Delete All Permanently" = "Delete All Permanently";
+"Select All" = "Select All";
+"Deselect All" = "Deselect All";
+"selected" = "selected";
+"Restore" = "Restore";
+"Delete Permanently" = "Delete Permanently";
+"Trash is empty" = "Trash is empty";
+"Deleted conversations will appear here for 30 days." = "Deleted conversations will appear here for 30 days.";
+
+// =============================================================================
+// MARK: - MarkdownContentView
+// =============================================================================
+
+"code" = "code";
+
+// =============================================================================
+// MARK: - CanvasView
+// =============================================================================
+
+"Canvas Disabled" = "Canvas Disabled";
+"Enable Canvas in Settings > Advanced" = "Enable Canvas in Settings > Advanced";
+"Close Panel" = "Close Panel";
+"Open Panel" = "Open Panel";
+"Canvas Panel" = "Canvas Panel";
+
+// =============================================================================
+// MARK: - CanvasWindowController (HTML scaffold)
+// =============================================================================
+
+"Canvas Ready" = "Canvas Ready";
+"Awaiting agent instructions." = "Awaiting agent instructions.";
+"McClaw Canvas" = "McClaw Canvas";
+
+// =============================================================================
+// MARK: - VoiceOverlayView
+// =============================================================================
+
+"Voice Mode" = "Voice Mode";
+"Off" = "Off";
+"Listening..." = "Listening...";
+"Speaking..." = "Speaking...";
+"Processing..." = "Processing...";
+"Skip speech" = "Skip speech";
+"Turn off Voice Mode" = "Turn off Voice Mode";
+
+// =============================================================================
+// MARK: - ExecApprovalDialog
+// =============================================================================
+
+"Allow this command?" = "Allow this command?";
+"Review the command details before allowing execution." = "Review the command details before allowing execution.";
+"Command" = "Command";
+"Details" = "Details";
+"Executable" = "Executable";
+"Resolved Path" = "Resolved Path";
+"Arguments" = "Arguments";
+"Host" = "Host";
+"This command runs on this machine." = "This command runs on this machine.";
+"Don't Allow" = "Don't Allow";
+"Always Allow" = "Always Allow";
+"Allow Once" = "Allow Once";
+
+// =============================================================================
+// MARK: - OnboardingWizard
+// =============================================================================
+
+"Welcome to McClaw" = "Welcome to McClaw";
+"Your Profile" = "Your Profile";
+"Load Avatar" = "Load Avatar";
+"Detecting AI CLIs" = "Detecting AI CLIs";
+"Scanning..." = "Scanning...";
+"Scan Now" = "Scan Now";
+"Installed" = "Installed";
+"Install" = "Install";
+"Select Default CLI" = "Select Default CLI";
+"Choose which AI provider McClaw should use by default." = "Choose which AI provider McClaw should use by default.";
+"No CLIs detected. Please install at least one AI CLI." = "No CLIs detected. Please install at least one AI CLI.";
+"Default Provider" = "Default Provider";
+"Permissions" = "Permissions";
+"Microphone" = "Microphone";
+"Camera" = "Camera";
+"Allow" = "Allow";
+"Denied" = "Denied";
+"Gateway Connection" = "Gateway Connection";
+"Check Connection" = "Check Connection";
+"All Set!" = "All Set!";
+"McClaw is ready to use." = "McClaw is ready to use.";
+"Continue" = "Continue";
+"Get Started" = "Get Started";
+
+// =============================================================================
+// MARK: - SettingsWindow — Section Titles
+// =============================================================================
+
+"General" = "General";
+"CLIs" = "CLIs";
+"MCP" = "MCP";
+"Security" = "Security";
+"Connectors" = "Connectors";
+"Channels" = "Channels";
+"Plugins" = "Plugins";
+"Skills" = "Skills";
+"Voice" = "Voice";
+"Cron" = "Cron";
+"Remote" = "Remote";
+"Logs" = "Logs";
+"Advanced" = "Advanced";
+"Integrations" = "Integrations";
+
+// =============================================================================
+// MARK: - GeneralSettingsTab
+// =============================================================================
+
+"Profile" = "Profile";
+"Set your name" = "Set your name";
+"Set your email" = "Set your email";
+"Name" = "Name";
+"Your name" = "Your name";
+"Email" = "Email";
+"your@email.com (used for Gravatar)" = "your@email.com (used for Gravatar)";
+"About you" = "About you";
+"Brief description of your work and goals" = "Brief description of your work and goals";
+"Appearance" = "Appearance";
+"Launch at login" = "Launch at login";
+"Keep in menu bar" = "Keep in menu bar";
+"When enabled, closing or quitting McClaw hides it to the menu bar instead of terminating" = "When enabled, closing or quitting McClaw hides it to the menu bar instead of terminating";
+"Show dock icon" = "Show dock icon";
+"Icon animations" = "Icon animations";
+"Chat" = "Chat";
+"Font size" = "Font size";
+"%lld pt" = "%lld pt";
+"Gateway" = "Gateway";
+"Connection" = "Connection";
+"Status" = "Status";
+"Updates" = "Updates";
+"Version" = "Version";
+"Check automatically" = "Check automatically";
+"Check for Updates..." = "Check for Updates...";
+"Last: %@" = "Last: %@";
+
+// =============================================================================
+// MARK: - CLIsSettingsTab
+// =============================================================================
+
+"AI Provider CLIs" = "AI Provider CLIs";
+"Not authenticated" = "Not authenticated";
+"Default" = "Default";
+"Rescan" = "Rescan";
+
+// =============================================================================
+// MARK: - ChannelsSettingsTab
+// =============================================================================
+
+"WhatsApp, Telegram, and Slack integration coming soon." = "WhatsApp, Telegram, and Slack integration coming soon.";
+"Unknown" = "Unknown";
+"Connected" = "Connected";
+"Running" = "Running";
+"Configured" = "Configured";
+"Not configured" = "Not configured";
+"Logout" = "Logout";
+"Linking" = "Linking";
+"Show QR" = "Show QR";
+"Relink" = "Relink";
+"Configuration" = "Configuration";
+"Reload" = "Reload";
+
+// =============================================================================
+// MARK: - PluginsSettingsTab
+// =============================================================================
+
+"No plugins installed" = "No plugins installed";
+"Install plugins from the plugin ecosystem" = "Install plugins from the plugin ecosystem";
+"Uninstall Plugin?" = "Uninstall Plugin?";
+"Remove %@? This cannot be undone." = "Remove %@? This cannot be undone.";
+"Uninstall" = "Uninstall";
+"Install Plugin" = "Install Plugin";
+"Enter the npm package name of a compatible plugin." = "Enter the npm package name of a compatible plugin.";
+"e.g. mcclaw-plugin-memory-sqlite" = "e.g. mcclaw-plugin-memory-sqlite";
+
+// =============================================================================
+// MARK: - SecuritySettingsTab
+// =============================================================================
+
+"Execution Approvals" = "Execution Approvals";
+"Security Mode" = "Security Mode";
+"Deny all" = "Deny all";
+"Ask before executing" = "Ask before executing";
+"Allow all" = "Allow all";
+"All command execution is blocked. The AI cannot run any system commands." = "All command execution is blocked. The AI cannot run any system commands.";
+"You'll be asked to approve each command before it runs." = "You'll be asked to approve each command before it runs.";
+"All commands are allowed without prompting. Use with caution." = "All commands are allowed without prompting. Use with caution.";
+"Allowlist" = "Allowlist";
+"No patterns. Commands matching allowlist patterns are auto-approved." = "No patterns. Commands matching allowlist patterns are auto-approved.";
+"Last: %@" = "Last: %@";
+"Deny List" = "Deny List";
+"No deny rules. Deny rules block commands even in Allow All mode." = "No deny rules. Deny rules block commands even in Allow All mode.";
+"System Permissions" = "System Permissions";
+"Request" = "Request";
+"Open Settings" = "Open Settings";
+"Add Allowlist Pattern" = "Add Allowlist Pattern";
+"Pattern (e.g., /usr/bin/python*)" = "Pattern (e.g., /usr/bin/python*)";
+"Use glob patterns: * matches within a directory, ** matches across directories." = "Use glob patterns: * matches within a directory, ** matches across directories.";
+"Add" = "Add";
+
+// =============================================================================
+// MARK: - DiagnosticsSettingsTab
+// =============================================================================
+
+"Diagnostics" = "Diagnostics";
+"Enable file logging" = "Enable file logging";
+"Writes to ~/.mcclaw/logs/mcclaw.log" = "Writes to ~/.mcclaw/logs/mcclaw.log";
+"File logging is disabled. Enable it to capture diagnostics for debugging." = "File logging is disabled. Enable it to capture diagnostics for debugging.";
+"No log entries yet. Logs will appear here as McClaw runs." = "No log entries yet. Logs will appear here as McClaw runs.";
+"Enable logging above to start capturing diagnostics." = "Enable logging above to start capturing diagnostics.";
+"Export Log..." = "Export Log...";
+"Clear Log" = "Clear Log";
+"Open Log Folder" = "Open Log Folder";
+
+// =============================================================================
+// MARK: - AdvancedSettingsTab
+// =============================================================================
+
+"Debug pane" = "Debug pane";
+"Canvas & Node" = "Canvas & Node";
+"Canvas panel" = "Canvas panel";
+"Camera capture" = "Camera capture";
+"Screen recording" = "Screen recording";
+"Node Capabilities" = "Node Capabilities";
+"Node ID" = "Node ID";
+
+// =============================================================================
+// MARK: - MCPSettingsTab
+// =============================================================================
+
+"MCP Servers" = "MCP Servers";
+"Configure Model Context Protocol servers for extended capabilities." = "Configure Model Context Protocol servers for extended capabilities.";
+"Provider" = "Provider";
+"No MCP Servers" = "No MCP Servers";
+"Add an MCP server to extend AI capabilities." = "Add an MCP server to extend AI capabilities.";
+"Remove MCP Server?" = "Remove MCP Server?";
+"Loading..." = "Loading...";
+"Select a Server" = "Select a Server";
+"Choose an MCP server from the list." = "Choose an MCP server from the list.";
+"Transport" = "Transport";
+"Scope" = "Scope";
+"URL" = "URL";
+"Environment Variables" = "Environment Variables";
+"Edit" = "Edit";
+"MCP Not Available" = "MCP Not Available";
+"Install Claude CLI or Gemini CLI to manage MCP servers." = "Install Claude CLI or Gemini CLI to manage MCP servers.";
+
+// =============================================================================
+// MARK: - MCPServerEditor
+// =============================================================================
+
+"Edit MCP Server" = "Edit MCP Server";
+"Add MCP Server" = "Add MCP Server";
+"Server" = "Server";
+"Endpoint" = "Endpoint";
+"User (global)" = "User (global)";
+"Project (local)" = "Project (local)";
+"KEY" = "KEY";
+"Add Variable" = "Add Variable";
+"Add Server" = "Add Server";
+
+// =============================================================================
+// MARK: - RemoteSettingsTab
+// =============================================================================
+
+"Connection Mode" = "Connection Mode";
+"Unconfigured" = "Unconfigured";
+"Local" = "Local";
+"Port" = "Port";
+"Remote Configuration" = "Remote Configuration";
+"SSH Tunnel" = "SSH Tunnel";
+"Direct" = "Direct";
+"Target" = "Target";
+"SSH Key" = "SSH Key";
+"Browse" = "Browse";
+"Connection Test" = "Connection Test";
+"Test Connection" = "Test Connection";
+"Apply" = "Apply";
+"Select SSH Key" = "Select SSH Key";
+
+// =============================================================================
+// MARK: - SkillsSettingsTab
+// =============================================================================
+
+"Import specialized knowledge that the AI can read on demand." = "Import specialized knowledge that the AI can read on demand.";
+"Import ZIP" = "Import ZIP";
+"Open Folder" = "Open Folder";
+"How Skills Work" = "How Skills Work";
+"Each skill is a folder with a SKILL.md file (instructions for the AI) and an optional references/ folder with detailed docs. When you chat, McClaw tells the AI which skills are available — the AI reads the relevant ones automatically." = "Each skill is a folder with a SKILL.md file (instructions for the AI) and an optional references/ folder with detailed docs. When you chat, McClaw tells the AI which skills are available — the AI reads the relevant ones automatically.";
+"Skills are stored in ~/.mcclaw/skills/. You can import a ZIP or drop folders there manually." = "Skills are stored in ~/.mcclaw/skills/. You can import a ZIP or drop folders there manually.";
+"Remove Skill?" = "Remove Skill?";
+"Remove \"%@\"? The skill folder will be deleted from disk." = "Remove \"%@\"? The skill folder will be deleted from disk.";
+"No skills installed" = "No skills installed";
+"Import a ZIP file or drop a skill folder into ~/.mcclaw/skills/" = "Import a ZIP file or drop a skill folder into ~/.mcclaw/skills/";
+"Local" = "Local";
+"%lld refs" = "%lld refs";
+"by %@" = "by %@";
+
+// Skill categories
+"Documents & Files" = "Documents & Files";
+"Product Management" = "Product Management";
+"Developer Tools" = "Developer Tools";
+"WordPress Core" = "WordPress Core";
+"WordPress Themes" = "WordPress Themes";
+"WooCommerce" = "WooCommerce";
+"WordPress Site Management" = "WordPress Site Management";
+"Other" = "Other";
+
+// =============================================================================
+// MARK: - VoiceSettingsTab
+// =============================================================================
+
+"Microphone access is required for Voice Mode." = "Microphone access is required for Voice Mode.";
+"Speech Recognition" = "Speech Recognition";
+"Language" = "Language";
+"System Default" = "System Default";
+"Auto-send delay" = "Auto-send delay";
+"Silence threshold" = "Silence threshold";
+"Time of silence before auto-sending the message." = "Time of silence before auto-sending the message.";
+"Text-to-Speech" = "Text-to-Speech";
+"Preview" = "Preview";
+"Speed" = "Speed";
+"%lld wpm" = "%lld wpm";
+"Volume" = "Volume";
+"%lld%%" = "%lld%%";
+"Push-to-Talk" = "Push-to-Talk";
+"Enable Push-to-Talk" = "Enable Push-to-Talk";
+"Hold Right Option key to record, release to send." = "Hold Right Option key to record, release to send.";
+"Requires Accessibility permission" = "Requires Accessibility permission";
+"Wake Word" = "Wake Word";
+"Enable Wake Word Detection" = "Enable Wake Word Detection";
+"Trigger phrase:" = "Trigger phrase:";
+"hey claw" = "hey claw";
+"Say the trigger phrase to activate Voice Mode hands-free." = "Say the trigger phrase to activate Voice Mode hands-free.";
+"Test" = "Test";
+"Say something to test speech recognition:" = "Say something to test speech recognition:";
+"Stop" = "Stop";
+"Test Microphone" = "Test Microphone";
+
+// =============================================================================
+// MARK: - ChannelConfigForm
+// =============================================================================
+
+"Enabled" = "Enabled";
+"Unsupported field type." = "Unsupported field type.";
+"Select..." = "Select...";
+"Schema unavailable for this channel." = "Schema unavailable for this channel.";
+
+// =============================================================================
+// MARK: - ConnectorsSettingsTab
+// =============================================================================
+
+"Connect external services to enrich AI responses with real-time data." = "Connect external services to enrich AI responses with real-time data.";
+"%lld connector(s) active" = "%lld connector(s) active";
+"Connectors vs Channels" = "Connectors vs Channels";
+"Requires MCP Content Manager" = "Requires MCP Content Manager";
+"Get MCP Content Manager" = "Get MCP Content Manager";
+"Disconnect" = "Disconnect";
+"Connect" = "Connect";
+"Remove connector" = "Remove connector";
+"%lld abilities" = "%lld abilities";
+
+// =============================================================================
+// MARK: - ConnectorDetailView
+// =============================================================================
+
+"Not added" = "Not added";
+"Disconnected" = "Disconnected";
+"Connecting..." = "Connecting...";
+"Error: %@" = "Error: %@";
+"Auth Method" = "Auth Method";
+"Personal Access Token" = "Personal Access Token";
+"OAuth" = "OAuth";
+"Sign in with %@" = "Sign in with %@";
+"Save & Connect" = "Save & Connect";
+"Validate & Connect" = "Validate & Connect";
+"Bot Token" = "Bot Token";
+"Detected WordPress Sites" = "Detected WordPress Sites";
+"Connect via MCP" = "Connect via MCP";
+"Setup Required" = "Setup Required";
+"This connector does not require authentication." = "This connector does not require authentication.";
+"Add Connector" = "Add Connector";
+"Connection OK" = "Connection OK";
+"Test failed" = "Test failed";
+"Available Actions" = "Available Actions";
+"Available Modules (%lld abilities)" = "Available Modules (%lld abilities)";
+"Included Modules (%lld abilities)" = "Included Modules (%lld abilities)";
+"Last sync: %@ ago" = "Last sync: %@ ago";
+
+// =============================================================================
+// MARK: - ConnectorActionPicker
+// =============================================================================
+
+"Connector" = "Connector";
+"Action" = "Action";
+"Max length" = "Max length";
+"chars" = "chars";
+
+// =============================================================================
+// MARK: - CronJobEditor — Wizard Steps
+// =============================================================================
+
+"What to do" = "What to do";
+"Which AI" = "Which AI";
+"When" = "When";
+"Results" = "Results";
+
+// =============================================================================
+// MARK: - CronJobEditor — When Choices
+// =============================================================================
+
+"Once" = "Once";
+"Repeating" = "Repeating";
+
+// =============================================================================
+// MARK: - CronJobEditor — Repeat Presets
+// =============================================================================
+
+"Every 15 minutes" = "Every 15 minutes";
+"Every hour" = "Every hour";
+"Every 6 hours" = "Every 6 hours";
+"Every day" = "Every day";
+"Every week" = "Every week";
+"Custom interval" = "Custom interval";
+
+// =============================================================================
+// MARK: - CronJobEditor — Delivery Choices
+// =============================================================================
+
+"Send to a channel" = "Send to a channel";
+"Save only in history" = "Save only in history";
+"No notification" = "No notification";
+
+// =============================================================================
+// MARK: - CronJobEditor — Step Explanations
+// =============================================================================
+
+"Describe what you want the AI to do. Write it naturally, like you would explain it to someone." = "Describe what you want the AI to do. Write it naturally, like you would explain it to someone.";
+"Choose which AI provider will execute this task." = "Choose which AI provider will execute this task.";
+"Configure when this action should run." = "Configure when this action should run.";
+"Choose where to see the results." = "Choose where to see the results.";
+
+// =============================================================================
+// MARK: - CronJobEditor — Headers / Labels
+// =============================================================================
+
+"Edit Schedule" = "Edit Schedule";
+"e.g. Daily email summary" = "e.g. Daily email summary";
+"What should the AI do?" = "What should the AI do?";
+"e.g. Check my pending emails and send me a summary ordered by priority via Telegram" = "e.g. Check my pending emails and send me a summary ordered by priority via Telegram";
+"Data Sources" = "Data Sources";
+"(optional)" = "(optional)";
+"Pre-fetch data from connected services before running. Results are injected into the prompt automatically." = "Pre-fetch data from connected services before running. Results are injected into the prompt automatically.";
+"Add Data Source" = "Add Data Source";
+"Tip: Be specific about what you want. The more detail you give, the better the result." = "Tip: Be specific about what you want. The more detail you give, the better the result.";
+
+// =============================================================================
+// MARK: - CronJobEditor — Which AI Step
+// =============================================================================
+
+"Uses whichever AI is active when the schedule runs" = "Uses whichever AI is active when the schedule runs";
+"Ready" = "Ready";
+"No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, or Ollama)." = "No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, or Ollama).";
+
+// =============================================================================
+// MARK: - CronJobEditor — When Step
+// =============================================================================
+
+"Date and time" = "Date and time";
+"Delete this schedule after it runs successfully" = "Delete this schedule after it runs successfully";
+"Interval:" = "Interval:";
+"e.g. 30m, 2h, 3d" = "e.g. 30m, 2h, 3d";
+"(m = minutes, h = hours, d = days)" = "(m = minutes, h = hours, d = days)";
+"Cron expression" = "Cron expression";
+"e.g. 0 9 * * 1-5" = "e.g. 0 9 * * 1-5";
+"Timezone" = "Timezone";
+"e.g. Europe/Madrid (optional)" = "e.g. Europe/Madrid (optional)";
+"Quick reference" = "Quick reference";
+"Every day at 9:00 AM" = "Every day at 9:00 AM";
+"Weekdays at 9:00 AM" = "Weekdays at 9:00 AM";
+"Every Monday at 9:00 AM" = "Every Monday at 9:00 AM";
+"First day of every month" = "First day of every month";
+
+// =============================================================================
+// MARK: - CronJobEditor — Delivery Step
+// =============================================================================
+
+"Show in Notifications and as macOS system notification" = "Show in Notifications and as macOS system notification";
+"Send results via Telegram, Slack, or another channel" = "Send results via Telegram, Slack, or another channel";
+"Results are saved in the schedule's run history only" = "Results are saved in the schedule's run history only";
+"Run silently without any notification" = "Run silently without any notification";
+"Channel" = "Channel";
+"e.g. telegram, slack, whatsapp" = "e.g. telegram, slack, whatsapp";
+"Recipient (optional)" = "Recipient (optional)";
+"Chat ID, phone, etc." = "Chat ID, phone, etc.";
+"Continue even if delivery fails" = "Continue even if delivery fails";
+
+// =============================================================================
+// MARK: - CronJobEditor — Advanced Options
+// =============================================================================
+
+"Advanced options" = "Advanced options";
+"Thinking level" = "Thinking level";
+"e.g. low, medium, high" = "e.g. low, medium, high";
+"Timeout (seconds)" = "Timeout (seconds)";
+"e.g. 120" = "e.g. 120";
+"Isolated" = "Isolated";
+"Main" = "Main";
+"Wake mode" = "Wake mode";
+"Immediately" = "Immediately";
+"Next heartbeat" = "Next heartbeat";
+
+// =============================================================================
+// MARK: - CronJobEditor — Summary
+// =============================================================================
+
+"Summary" = "Summary";
+"Task" = "Task";
+"Unnamed" = "Unnamed";
+"AI" = "AI";
+"Default (active)" = "Default (active)";
+"Not configured" = "Not configured";
+
+// =============================================================================
+// MARK: - CronJobEditor — Navigation
+// =============================================================================
+
+"Next" = "Next";
+"Save Schedule" = "Save Schedule";
+
+// =============================================================================
+// MARK: - CronJobEditor — Validation Errors
+// =============================================================================
+
+"Name is required." = "Name is required.";
+"Task description is required." = "Task description is required.";
+
+// =============================================================================
+// MARK: - CronSettings
+// =============================================================================
+
+"Delete cron job?" = "Delete cron job?";
+"New Job" = "New Job";
+"Run now" = "Run now";
+"Run history" = "Run history";
+"No run log entries yet." = "No run log entries yet.";
+"Select a job to inspect..." = "Select a job to inspect...";
+"No scheduled tasks yet." = "No scheduled tasks yet.";
+"No scheduled tasks." = "No scheduled tasks.";
+"No scheduled tasks (or `claude task` not available)." = "No scheduled tasks (or `claude task` not available).";
+
+// =============================================================================
+// MARK: - CronError
+// =============================================================================
+
+"No CLI provider available" = "No CLI provider available";
+
+// =============================================================================
+// MARK: - UpdaterService
+// =============================================================================
+
+"Checking for updates..." = "Checking for updates...";
+"Unable to Check For Updates" = "Unable to Check For Updates";
+"OK" = "OK";
+
+// =============================================================================
+// MARK: - PermissionManager — Display Names
+// =============================================================================
+
+"Accessibility" = "Accessibility";
+"Screen Recording" = "Screen Recording";
+
+// =============================================================================
+// MARK: - ConnectorModels — Category Titles
+// =============================================================================
+
+"Google" = "Google";
+"Microsoft" = "Microsoft";
+"Development" = "Development";
+"Communication" = "Communication";
+"Productivity" = "Productivity";
+"Utilities" = "Utilities";
+"WordPress" = "WordPress";
+
+// =============================================================================
+// MARK: - ConnectorModels — Status Display Text
+// =============================================================================
+
+// =============================================================================
+// MARK: - ConnectorRegistry — Google Connectors
+// =============================================================================
+
+"Gmail" = "Gmail";
+"Read and search emails from your Gmail account" = "Read and search emails from your Gmail account";
+"Search emails" = "Search emails";
+"Search emails by query" = "Search emails by query";
+"Read email" = "Read email";
+"Read a specific email by ID" = "Read a specific email by ID";
+"List unread" = "List unread";
+"List unread emails" = "List unread emails";
+"List labels" = "List labels";
+"List all Gmail labels" = "List all Gmail labels";
+"Google Calendar" = "Google Calendar";
+"Read events and check availability from Google Calendar" = "Read events and check availability from Google Calendar";
+"List events" = "List events";
+"List calendar events in a date range" = "List calendar events in a date range";
+"Get event" = "Get event";
+"Get details of a specific event" = "Get details of a specific event";
+"List calendars" = "List calendars";
+"List all calendars" = "List all calendars";
+"Google Drive" = "Google Drive";
+"Search and list files from Google Drive" = "Search and list files from Google Drive";
+"Search files" = "Search files";
+"Search files by name or content" = "Search files by name or content";
+"Recent files" = "Recent files";
+"List recently modified files" = "List recently modified files";
+"File metadata" = "File metadata";
+"Get metadata of a file" = "Get metadata of a file";
+"Google Sheets" = "Google Sheets";
+"Read data from Google Sheets spreadsheets" = "Read data from Google Sheets spreadsheets";
+"Read range" = "Read range";
+"Read a cell range from a spreadsheet" = "Read a cell range from a spreadsheet";
+"List sheets" = "List sheets";
+"List all sheets in a spreadsheet" = "List all sheets in a spreadsheet";
+"Google Contacts" = "Google Contacts";
+"Search and list contacts from Google" = "Search and list contacts from Google";
+"Search contacts" = "Search contacts";
+"Search contacts by name or email" = "Search contacts by name or email";
+"List groups" = "List groups";
+"List contact groups" = "List contact groups";
+
+// =============================================================================
+// MARK: - ConnectorRegistry — Microsoft Connectors
+// =============================================================================
+
+"Outlook Mail" = "Outlook Mail";
+"Read and search emails from Outlook / Microsoft 365" = "Read and search emails from Outlook / Microsoft 365";
+"List messages" = "List messages";
+"List recent emails" = "List recent emails";
+"Read message" = "Read message";
+"Read a specific email" = "Read a specific email";
+"Search emails by keyword" = "Search emails by keyword";
+"List folders" = "List folders";
+"List mail folders" = "List mail folders";
+"Outlook Calendar" = "Outlook Calendar";
+"Read events from Outlook / Microsoft 365 Calendar" = "Read events from Outlook / Microsoft 365 Calendar";
+"List calendar events" = "List calendar events";
+"Get event details" = "Get event details";
+"OneDrive" = "OneDrive";
+"Search and list files from OneDrive" = "Search and list files from OneDrive";
+"List recently accessed files" = "List recently accessed files";
+"Search files by name" = "Search files by name";
+"Get item" = "Get item";
+"Get file/folder metadata" = "Get file/folder metadata";
+"Microsoft To Do" = "Microsoft To Do";
+"Read tasks and lists from Microsoft To Do" = "Read tasks and lists from Microsoft To Do";
+"List tasks" = "List tasks";
+"List tasks in a list" = "List tasks in a list";
+"List task lists" = "List task lists";
+"List all task lists" = "List all task lists";
+"Get task" = "Get task";
+
+// =============================================================================
+// MARK: - NodeMode — Capability Descriptions
+// =============================================================================
+
+"Canvas panel with A2UI protocol" = "Canvas panel with A2UI protocol";
+"Execute system commands" = "Execute system commands";
+"Get current location" = "Get current location";
+"Capture photos and video" = "Capture photos and video";
+"Record screen" = "Record screen";
+
+// =============================================================================
+// MARK: - CronJobsStore — Fallback name
+// =============================================================================
+
+"Claude Task" = "Claude Task";
+"Untitled" = "Untitled";

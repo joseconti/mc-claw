@@ -1,0 +1,66 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.swift text eol=lf
+*.kt text eol=lf
+*.kts text eol=lf
+*.java text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+
+# Docker
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+
+# Denote all files that are truly binary and should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.dmg binary
+*.apk binary
+*.aab binary
+*.ipa binary
+*.dSYM binary
+
+# GitHub Linguist overrides
+# Exclude vendored code from language stats
+vendor/** linguist-vendored
+node_modules/** linguist-vendored
+
+# Mark generated files
+dist/** linguist-generated
+**/build/** linguist-generated
+
+# Export ignore - files excluded from `git archive` / GitHub release packages
+.gitignore export-ignore
+.gitattributes export-ignore
+.github/ export-ignore
+.vscode/ export-ignore
+.idea/ export-ignore
+*.test.ts export-ignore
+**/Tests/ export-ignore
+**/tests/ export-ignore
+**/__tests__/ export-ignore
+CONTRIBUTING.md export-ignore
+AGENTS.md export-ignore
+CLAUDE.md export-ignore
+Dockerfile.sandbox export-ignore
+Dockerfile.sandbox-browser export-ignore
+Dockerfile.sandbox-common export-ignore

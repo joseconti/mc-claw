@@ -1,0 +1,324 @@
+import SwiftUI
+
+/// Settings tab for managing MCP server configurations.
+struct MCPSettingsTab: View {
+    @Environment(AppState.self) private var appState
+    @State private var manager = MCPConfigManager.shared
+    @State private var showEditor = false
+    @State private var editingServer: MCPServerConfig?
+    @State private var confirmDelete: MCPServerConfig?
+    @State private var selectedServerId: String?
+    @State private var selectedProvider: String = "claude"
+
+    private var currentProvider: String {
+        appState.currentCLIIdentifier ?? "claude"
+    }
+
+    private var mcpProviders: [CLIProviderInfo] {
+        appState.availableCLIs.filter { MCPProviderSupport.isSupported($0.id) }
+    }
+
+    private var serversForSelectedProvider: [MCPServerConfig] {
+        manager.servers.filter { $0.provider == selectedProvider }
+    }
+
+    private var selectedServer: MCPServerConfig? {
+        guard let id = selectedServerId else { return nil }
+        return manager.servers.first { $0.id == id }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            Divider()
+
+            if mcpProviders.isEmpty {
+                unsupportedView
+            } else {
+                HStack(spacing: 0) {
+                    serverList
+                    Divider()
+                    detailPane
+                }
+            }
+        }
+        .onAppear {
+            selectedProvider = currentProvider
+            Task { await manager.refreshServers() }
+        }
+        .sheet(isPresented: $showEditor) {
+            MCPServerEditor(
+                existingServer: editingServer,
+                provider: selectedProvider,
+                onCancel: {
+                    showEditor = false
+                    editingServer = nil
+                },
+                onSave: { form in
+                    if let existing = editingServer {
+                        // Remove old then add new
+                        try await manager.removeServer(existing)
+                    }
+                    try await manager.addServer(form, provider: selectedProvider)
+                    showEditor = false
+                    editingServer = nil
+                }
+            )
+        }
+        .alert(
+            "Remove MCP Server?",
+            isPresented: Binding(
+                get: { confirmDelete != nil },
+                set: { if !$0 { confirmDelete = nil } }
+            )
+        ) {
+            Button("Remove", role: .destructive) {
+                if let server = confirmDelete {
+                    Task {
+                        try? await manager.removeServer(server)
+                        if selectedServerId == server.id {
+                            selectedServerId = nil
+                        }
+                    }
+                }
+                confirmDelete = nil
+            }
+            Button("Cancel", role: .cancel) { confirmDelete = nil }
+        } message: {
+            if let server = confirmDelete {
+                Text("Remove \"\(server.name)\" from \(server.provider.capitalized)?")
+            }
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("MCP Servers")
+                    .font(.headline)
+                Text("Configure Model Context Protocol servers for your AI CLIs")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if mcpProviders.count > 1 {
+                Picker("Provider", selection: $selectedProvider) {
+                    ForEach(mcpProviders) { cli in
+                        Text(cli.displayName).tag(cli.id)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 200)
+            }
+
+            Button {
+                Task { await manager.refreshServers() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .disabled(manager.isLoading)
+
+            Button {
+                editingServer = nil
+                showEditor = true
+            } label: {
+                Image(systemName: "plus")
+            }
+            .disabled(!MCPProviderSupport.isSupported(selectedProvider))
+        }
+        .padding()
+    }
+
+    // MARK: - Server List
+
+    private var serverList: some View {
+        VStack(spacing: 0) {
+            if manager.isLoading && serversForSelectedProvider.isEmpty {
+                Spacer()
+                ProgressView("Loading...")
+                Spacer()
+            } else if serversForSelectedProvider.isEmpty {
+                Spacer()
+                ContentUnavailableView(
+                    "No MCP Servers",
+                    systemImage: "server.rack",
+                    description: Text("Add an MCP server to extend your AI's capabilities")
+                )
+                Spacer()
+            } else {
+                List(serversForSelectedProvider, selection: $selectedServerId) { server in
+                    serverRow(server)
+                        .tag(server.id)
+                }
+            }
+
+            if let error = manager.lastError {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(error)
+                        .font(.caption)
+                        .lineLimit(2)
+                }
+                .padding(8)
+                .background(.orange.opacity(0.1))
+            }
+        }
+        .frame(minWidth: 220, maxWidth: 260)
+    }
+
+    private func serverRow(_ server: MCPServerConfig) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(server.name)
+                .font(.body.weight(.medium))
+
+            HStack(spacing: 6) {
+                Text(server.transport.displayName)
+                    .font(.system(.caption2, design: .monospaced))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(.blue.opacity(0.15))
+                    .clipShape(Capsule())
+
+                if MCPProviderSupport.supportsScope(server.provider) {
+                    Text(server.scope.rawValue)
+                        .font(.system(.caption2))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(.green.opacity(0.15))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    // MARK: - Detail Pane
+
+    private var detailPane: some View {
+        Group {
+            if let server = selectedServer {
+                serverDetail(server)
+            } else {
+                ContentUnavailableView(
+                    "Select a Server",
+                    systemImage: "sidebar.left",
+                    description: Text("Choose an MCP server from the list to view its configuration")
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func serverDetail(_ server: MCPServerConfig) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Name & Provider
+                HStack {
+                    Text(server.name)
+                        .font(.title3.weight(.semibold))
+                    Spacer()
+                    Text(server.provider.capitalized)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(.quaternary)
+                        .clipShape(Capsule())
+                }
+
+                Divider()
+
+                // Transport
+                detailRow("Transport", value: server.transport.displayName)
+
+                // Scope (Claude only)
+                if MCPProviderSupport.supportsScope(server.provider) {
+                    detailRow("Scope", value: server.scope.rawValue.capitalized)
+                }
+
+                // Command + Args (stdio)
+                if server.transport == .stdio {
+                    if let command = server.command {
+                        detailRow("Command", value: command)
+                    }
+                    if !server.args.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Arguments")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(server.args.joined(separator: " "))
+                                .font(.system(.body, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+
+                // URL (sse/streamable-http)
+                if let url = server.url, server.transport != .stdio {
+                    detailRow("URL", value: url)
+                }
+
+                // Env vars
+                if !server.envVars.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Environment Variables")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        ForEach(server.envVars.keys.sorted(), id: \.self) { key in
+                            HStack {
+                                Text(key)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .fontWeight(.medium)
+                                Text("=")
+                                    .foregroundStyle(.secondary)
+                                Text(server.envVars[key] ?? "")
+                                    .font(.system(.caption, design: .monospaced))
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                // Actions
+                HStack {
+                    Button("Edit") {
+                        editingServer = server
+                        showEditor = true
+                    }
+                    Button("Remove", role: .destructive) {
+                        confirmDelete = server
+                    }
+                    Spacer()
+                }
+            }
+            .padding()
+        }
+    }
+
+    private func detailRow(_ label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.body)
+                .textSelection(.enabled)
+        }
+    }
+
+    // MARK: - Unsupported
+
+    private var unsupportedView: some View {
+        ContentUnavailableView(
+            "MCP Not Available",
+            systemImage: "server.rack",
+            description: Text("Install Claude CLI or Gemini CLI to configure MCP servers.")
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}

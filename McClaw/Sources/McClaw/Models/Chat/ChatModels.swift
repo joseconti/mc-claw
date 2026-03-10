@@ -1,0 +1,171 @@
+import Foundation
+
+/// A single message in a chat session.
+struct ChatMessage: Identifiable, Codable, Sendable {
+    let id: UUID
+    let role: MessageRole
+    var content: String
+    let timestamp: Date
+    let sessionId: String
+    var attachments: [Attachment]
+    var toolCalls: [ToolCall]
+    var isStreaming: Bool
+    /// Which CLI provider handled this message (e.g. "claude", "gemini").
+    var providerId: String?
+
+    init(
+        id: UUID = UUID(),
+        role: MessageRole,
+        content: String,
+        timestamp: Date = Date(),
+        sessionId: String,
+        attachments: [Attachment] = [],
+        toolCalls: [ToolCall] = [],
+        isStreaming: Bool = false,
+        providerId: String? = nil
+    ) {
+        self.id = id
+        self.role = role
+        self.content = content
+        self.timestamp = timestamp
+        self.sessionId = sessionId
+        self.attachments = attachments
+        self.toolCalls = toolCalls
+        self.isStreaming = isStreaming
+        self.providerId = providerId
+    }
+}
+
+/// Who sent the message.
+enum MessageRole: String, Codable, Sendable {
+    case user
+    case assistant
+    case system
+    case tool
+}
+
+/// File attachment on a message.
+struct Attachment: Identifiable, Codable, Sendable {
+    let id: UUID
+    let filename: String
+    let mimeType: String
+    let filePath: String
+    let fileSize: Int64
+
+    init(
+        id: UUID = UUID(),
+        filename: String,
+        mimeType: String,
+        filePath: String,
+        fileSize: Int64
+    ) {
+        self.id = id
+        self.filename = filename
+        self.mimeType = mimeType
+        self.filePath = filePath
+        self.fileSize = fileSize
+    }
+}
+
+/// A tool call made by the assistant.
+struct ToolCall: Identifiable, Codable, Sendable {
+    let id: String
+    let name: String
+    let arguments: String
+    var result: String?
+    var status: ToolCallStatus
+
+    init(
+        id: String,
+        name: String,
+        arguments: String,
+        result: String? = nil,
+        status: ToolCallStatus = .pending
+    ) {
+        self.id = id
+        self.name = name
+        self.arguments = arguments
+        self.result = result
+        self.status = status
+    }
+}
+
+enum ToolCallStatus: String, Codable, Sendable {
+    case pending
+    case running
+    case completed
+    case failed
+}
+
+/// Information about a chat session.
+struct SessionInfo: Identifiable, Codable, Sendable {
+    let id: String
+    let title: String
+    let createdAt: Date
+    var lastMessageAt: Date
+    let sessionType: SessionType
+    var messageCount: Int
+    var cliProvider: String?
+    /// If non-nil, the session belongs to this project and won't show in the main sidebar.
+    var projectId: String?
+}
+
+// MARK: - Projects
+
+/// A project that groups chat sessions together.
+struct ProjectInfo: Identifiable, Codable, Sendable {
+    let id: String
+    var name: String
+    var description: String
+    /// Rules/instructions that the AI must follow when chatting within this project.
+    var rules: String
+    /// Path to a cover image for the project (relative to ~/.mcclaw/projects/).
+    var imagePath: String?
+    let createdAt: Date
+    var updatedAt: Date
+    var sessionIds: [String]
+
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        description: String = "",
+        rules: String = "",
+        imagePath: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        sessionIds: [String] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.rules = rules
+        self.imagePath = imagePath
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.sessionIds = sessionIds
+    }
+}
+
+/// Type of chat session.
+enum SessionType: String, Codable, Sendable {
+    case main
+    case group
+    case cron
+    case subagent
+    case channel
+}
+
+/// Parsed session key following canonical format.
+struct SessionKey: Codable, Sendable, Hashable {
+    let type: SessionType
+    let identifier: String
+    let timestamp: Date?
+
+    /// Parse a session key string like "main", "group:abc", "cron:daily-report:2026-03-08"
+    static func parse(_ raw: String) -> SessionKey {
+        let parts = raw.split(separator: ":", maxSplits: 2).map(String.init)
+        let type = SessionType(rawValue: parts.first ?? "main") ?? .main
+        let identifier = parts.count > 1 ? parts[1] : "default"
+        return SessionKey(type: type, identifier: identifier, timestamp: nil)
+    }
+}

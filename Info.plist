@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Identity -->
+    <key>CFBundleIdentifier</key>
+    <string>ai.mcclaw.app</string>
+    <key>CFBundleName</key>
+    <string>McClaw</string>
+    <key>CFBundleDisplayName</key>
+    <string>McClaw</string>
+    <key>CFBundleExecutable</key>
+    <string>McClaw</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <!-- Versioning -->
+    <key>CFBundleShortVersionString</key>
+    <string>0.8.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <!-- Sparkle Auto-Update -->
+    <key>SUFeedURL</key>
+    <string>https://api.joseconti.com/v1/mcclaw/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>REPLACE_WITH_EDDSA_PUBLIC_KEY</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+
+    <!-- URL Scheme (for deep links - Sprint 10.4) -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>ai.mcclaw.app</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>mcclaw</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- App Icon -->
+    <key>CFBundleIconFile</key>
+    <string>McClaw</string>
+
+    <!-- macOS App Settings -->
+    <key>LSMinimumSystemVersion</key>
+    <string>15.0</string>
+    <key>LSUIElement</key>
+    <false/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <!-- Privacy Descriptions (TCC) -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>McClaw connects to a Gateway on your local network for channels, plugins, and automation.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>McClaw uses the microphone for voice input and speech recognition.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>McClaw uses the camera for Node mode visual capture.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>McClaw uses speech recognition for voice commands.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>McClaw uses screen capture for Node mode context awareness.</string>
+</dict>
+</plist>
