@@ -1,0 +1,1771 @@
+/* Localizable.strings — McClaw
+   English (base)
+   Auto-extracted from all user-facing strings in the project.
+   Key = Value for the base (English) language.
+*/
+
+// =============================================================================
+// MARK: - App / Global
+// =============================================================================
+
+"McClaw" = "McClaw";
+
+// =============================================================================
+// MARK: - AppDelegate (NSMenu items)
+// =============================================================================
+
+"Open McClaw" = "Open McClaw";
+"Prevent sleep" = "Prevent sleep";
+"Keep the Mac awake while McClaw is running." = "Keep the Mac awake while McClaw is running.";
+"Quit McClaw" = "Quit McClaw";
+
+// =============================================================================
+// MARK: - McClawApp (Window titles)
+// =============================================================================
+
+"About McClaw" = "About McClaw";
+"Canvas" = "Canvas";
+
+// =============================================================================
+// MARK: - AboutWindow
+// =============================================================================
+
+"Version %@ (%@)" = "Version %@ (%@)";
+"Website" = "Website";
+"Developer Website" = "Developer Website";
+
+// =============================================================================
+// MARK: - MenuContentView
+// =============================================================================
+
+"What can I help you with?" = "What can I help you with?";
+"New Chat" = "New Chat";
+"New Code Session" = "New Code Session";
+"New Chat in Project" = "New Chat in Project";
+"No Projects" = "No Projects";
+"New Schedule" = "New Schedule";
+"Open Chat Window" = "Open Chat Window";
+
+// =============================================================================
+// MARK: - ChatWindow
+// =============================================================================
+
+"Toggle sidebar" = "Toggle sidebar";
+
+// =============================================================================
+// MARK: - ChatInputBar
+// =============================================================================
+
+"Voice Mode active — listening for speech..." = "Voice Mode active — listening for speech...";
+"Escribe / para comandos, o escribe tu mensaje..." = "Escribe / para comandos, o escribe tu mensaje...";
+"Type / for commands" = "Type / for commands";
+
+// Slash Command Descriptions — McClaw native
+"cmd.help.desc" = "Show all available commands";
+"cmd.status.desc" = "Show app status";
+"cmd.new.desc" = "Start a new chat session";
+"cmd.reset.desc" = "Clear chat history";
+"cmd.compact.desc" = "Remove older messages, keep last 10";
+"cmd.think.desc" = "Send with extended thinking";
+"cmd.model.desc" = "Show or switch CLI provider";
+"cmd.provider.desc" = "Alias for /model";
+"cmd.session.desc" = "Show or switch session";
+"cmd.fetch.desc" = "Fetch data from a connector";
+"cmd.install.desc" = "Parse and execute an install prompt";
+"cmd.copy.desc" = "Copy last response to clipboard";
+"cmd.diff.desc" = "Show git changes summary";
+"cmd.plan.desc" = "Toggle Plan Mode";
+"cmd.export.desc" = "Export chat to file";
+
+// Slash Command Descriptions — CLI pass-through
+"cmd.init.desc" = "Initialize project context file";
+"cmd.memory.desc" = "Manage memory/context files";
+"cmd.mcp.desc" = "Manage MCP server connections";
+"cmd.rewind.desc" = "Rewind conversation to earlier point";
+"cmd.hooks.desc" = "Manage lifecycle hooks";
+"cmd.skills.desc" = "List available skills";
+"cmd.theme.desc" = "Change visual theme";
+"cmd.vim.desc" = "Toggle vim editing mode";
+"cmd.permissions.desc" = "View or update permissions";
+"cmd.resume.desc" = "Resume a previous session";
+"cmd.fork.desc" = "Fork current conversation";
+"cmd.fast.desc" = "Toggle fast mode";
+"cmd.context.desc" = "Visualize context usage";
+"cmd.btw.desc" = "Ask a quick side question";
+"cmd.doctor.desc" = "Diagnose installation";
+"cmd.prcomments.desc" = "Fetch PR comments";
+"cmd.compress.desc" = "Compress context with summary";
+"cmd.extensions.desc" = "Manage extensions";
+"cmd.agent.desc" = "Switch between agent threads";
+"cmd.mention.desc" = "Attach file to conversation";
+
+// Slash Command feedback messages
+"Last response copied to clipboard." = "Last response copied to clipboard.";
+"No assistant response to copy." = "No assistant response to copy.";
+"No uncommitted changes." = "No uncommitted changes.";
+"Failed to run git diff." = "Failed to run git diff.";
+"Plan Mode enabled — read-only analysis." = "Plan Mode enabled — read-only analysis.";
+"Plan Mode disabled." = "Plan Mode disabled.";
+"Chat exported to: " = "Chat exported to: ";
+"Failed to export chat." = "Failed to export chat.";
+"Voice Mode active..." = "Voice Mode active...";
+"Attach files" = "Attach files";
+"Voice Mode (Cmd+Shift+V)" = "Voice Mode (Cmd+Shift+V)";
+"Select files to attach" = "Select files to attach";
+"Describe the image you want to create..." = "Describe the image you want to create...";
+"Describe what you want to analyze..." = "Describe what you want to analyze...";
+"Plan" = "Plan";
+"Plan Mode — Read-only analysis" = "Plan Mode — Read-only analysis";
+"Plan Mode — Read-only analysis, no changes will be made" = "Plan Mode — Read-only analysis, no changes will be made";
+"New Plan Chat" = "New Plan Chat";
+"Plan File · MD" = "Plan File · MD";
+"Reveal in Finder" = "Reveal in Finder";
+"Copy Plan Content" = "Copy Plan Content";
+"Plan file is empty" = "Plan file is empty";
+"Generate Image" = "Generate Image";
+"Generated by" = "Generated by";
+"Generating image with Imagen 3..." = "Generating image with Imagen 3...";
+"Image generation failed. Make sure Gemini CLI is authenticated and Vertex AI API is enabled in your GCP project." = "Image generation failed. Make sure Gemini CLI is authenticated and Vertex AI API is enabled in your GCP project.";
+"creating_your_image" = "Creating your image...";
+"save_image" = "Save Image";
+
+// =============================================================================
+// MARK: - Multimedia Gallery
+// =============================================================================
+
+"multimedia" = "Multimedia";
+"no_images_yet" = "No images yet";
+"images_will_appear_here" = "Generated images from your conversations will appear here.";
+"session_label" = "Session";
+"prompt_label" = "Prompt";
+"provider_label" = "Provider";
+"created_label" = "Created";
+"open_in_chat" = "Open in Chat";
+"open_full_screen" = "Open Full Screen";
+"save_to_disk" = "Save to Disk";
+"refresh" = "Refresh";
+
+// =============================================================================
+// MARK: - Image Cleanup on Delete
+// =============================================================================
+
+"delete_images_too" = "Delete images too?";
+"delete_images_confirm %lld" = "This conversation has %lld generated image(s). Do you also want to delete the image files from disk?";
+"delete_conversation_and_images" = "Delete Conversation & Images";
+"delete_conversation_only" = "Delete Conversation Only";
+
+// =============================================================================
+// MARK: - ChatSidebar
+// =============================================================================
+
+"New Conversation" = "New Conversation";
+"Search" = "Search";
+"Chats" = "Chats";
+"Projects" = "Projects";
+"Schedules" = "Schedules";
+"Notifications" = "Notifications";
+"Trash" = "Trash";
+"Recent" = "Recent";
+"No conversations yet" = "No conversations yet";
+"Move to Project" = "Move to Project";
+"Move to Trash" = "Move to Trash";
+"v%@" = "v%@";
+
+// =============================================================================
+// MARK: - MessageBubbleView
+// =============================================================================
+
+"You" = "You";
+"Copied" = "Copied";
+"Copy" = "Copy";
+
+// =============================================================================
+// MARK: - WelcomeView
+// =============================================================================
+
+"Good morning" = "Good morning";
+"Good afternoon" = "Good afternoon";
+"Good evening" = "Good evening";
+
+// Quick Action — Category Labels
+"Write" = "Write";
+"Learn" = "Learn";
+"Code" = "Code";
+"Brainstorm" = "Brainstorm";
+
+// Quick Action — Write Options
+"Improve my writing style" = "Improve my writing style";
+"Write something creative based on mood" = "Write something creative based on mood";
+"Create interview questions" = "Create interview questions";
+"Write product descriptions" = "Write product descriptions";
+"Develop educational content" = "Develop educational content";
+
+// Quick Action — Learn Options
+"Explain a complex concept simply" = "Explain a complex concept simply";
+"Summarize a topic in depth" = "Summarize a topic in depth";
+"Compare two technologies or approaches" = "Compare two technologies or approaches";
+"Create a study plan" = "Create a study plan";
+
+// Quick Action — Code Options
+"Debug an issue in my code" = "Debug an issue in my code";
+"Write a function or algorithm" = "Write a function or algorithm";
+"Review and improve code" = "Review and improve code";
+"Explain how something works" = "Explain how something works";
+"Set up a project or tool" = "Set up a project or tool";
+
+// Quick Action — Brainstorm Options
+"Generate creative ideas" = "Generate creative ideas";
+"Solve a problem from multiple angles" = "Solve a problem from multiple angles";
+"Plan a project or strategy" = "Plan a project or strategy";
+"Come up with names or titles" = "Come up with names or titles";
+
+// Quick Action — Connector Labels
+"From Gmail" = "From Gmail";
+"From Calendar" = "From Calendar";
+"From Drive" = "From Drive";
+"From Outlook" = "From Outlook";
+"From Outlook Calendar" = "From Outlook Calendar";
+"From OneDrive" = "From OneDrive";
+"From GitHub" = "From GitHub";
+"From Notion" = "From Notion";
+"From Linear" = "From Linear";
+"From WordPress" = "From WordPress";
+
+// Quick Action — Gmail Options
+"Which subscribed emails do I usually leave unread?" = "Which subscribed emails do I usually leave unread?";
+"Review my emails and tell me if I'm missing something important" = "Review my emails and tell me if I'm missing something important";
+"Extract key points from my latest work emails" = "Extract key points from my latest work emails";
+"Summarize my unread emails" = "Summarize my unread emails";
+"Draft replies to my pending emails" = "Draft replies to my pending emails";
+
+// Quick Action — Calendar Options
+"What's on my schedule today?" = "What's on my schedule today?";
+"Find free time this week for a meeting" = "Find free time this week for a meeting";
+"Summarize my week ahead" = "Summarize my week ahead";
+"Help me prepare for my next meeting" = "Help me prepare for my next meeting";
+
+// Quick Action — Drive Options
+"Show my recently modified files" = "Show my recently modified files";
+"Find files related to a project" = "Find files related to a project";
+"Summarize a document from my Drive" = "Summarize a document from my Drive";
+
+// Quick Action — Outlook Options
+"Summarize my unread Outlook emails" = "Summarize my unread Outlook emails";
+"Review emails and flag what's important" = "Review emails and flag what's important";
+"Draft replies to pending Outlook emails" = "Draft replies to pending Outlook emails";
+
+// Quick Action — Outlook Calendar Options
+"What's on my Outlook schedule today?" = "What's on my Outlook schedule today?";
+"Find free time for a meeting" = "Find free time for a meeting";
+"Summarize my Outlook week ahead" = "Summarize my Outlook week ahead";
+
+// Quick Action — OneDrive Options
+"Show my recently modified OneDrive files" = "Show my recently modified OneDrive files";
+"Find OneDrive files related to a project" = "Find OneDrive files related to a project";
+
+// Quick Action — GitHub Options
+"Show my open pull requests" = "Show my open pull requests";
+"Review my assigned issues" = "Review my assigned issues";
+"Summarize recent activity in a repository" = "Summarize recent activity in a repository";
+"Check CI status of my latest PRs" = "Check CI status of my latest PRs";
+
+// Quick Action — Notion Options
+"Search my Notion pages" = "Search my Notion pages";
+"Summarize a Notion page" = "Summarize a Notion page";
+
+// Quick Action — Linear Options
+"Show my assigned Linear issues" = "Show my assigned Linear issues";
+"Summarize current sprint progress" = "Summarize current sprint progress";
+
+// Quick Action — WordPress Options
+"Check my site's recent posts" = "Check my site's recent posts";
+"Review pending comments" = "Review pending comments";
+"Check site health and errors" = "Check site health and errors";
+
+// =============================================================================
+// MARK: - ChatViewModel (system messages / slash commands)
+// =============================================================================
+
+"No AI CLI detected. Please install Claude, ChatGPT, Gemini, Copilot or Ollama CLI." = "No AI CLI detected. Please install Claude, ChatGPT, Gemini, Copilot, Codex, Amazon Q or Ollama CLI.";
+"[Error: %@]" = "[Error: %@]";
+"[Aborted]" = "[Aborted]";
+
+// =============================================================================
+// MARK: - NotificationsContentView
+// =============================================================================
+
+"Clear all notifications?" = "Clear all notifications?";
+"Mark All Read" = "Mark All Read";
+"Clear All" = "Clear All";
+"No notifications" = "No notifications";
+"Success" = "Success";
+"Error" = "Error";
+"Timeout" = "Timeout";
+"macOS notifications are disabled" = "macOS notifications are disabled";
+"Enable" = "Enable";
+"No notifications yet" = "No notifications yet";
+"When your scheduled actions run, results will appear here." = "When your scheduled actions run, results will appear here.";
+"Enable macOS Notifications" = "Enable macOS Notifications";
+"Mark as Read" = "Mark as Read";
+"Delete" = "Delete";
+"Time" = "Time";
+"Result" = "Result";
+"Select a notification to view details" = "Select a notification to view details";
+
+// =============================================================================
+// MARK: - ProjectEditorView
+// =============================================================================
+
+"Back" = "Back";
+"Previous question" = "Previous question";
+"Save" = "Save";
+"Title" = "Title";
+"Project name" = "Project name";
+"Description" = "Description";
+"Rules" = "Rules";
+"Generating cover image..." = "Generating cover image...";
+"Generate Cover Image" = "Generate Cover Image";
+"Shared Context" = "Shared Context";
+"Regenerate" = "Regenerate";
+
+// =============================================================================
+// MARK: - ProjectsContentView
+// =============================================================================
+
+"New Project" = "New Project";
+"No projects yet" = "No projects yet";
+"Create a project to organize your conversations and files." = "Create a project to organize your conversations and files.";
+"Create Project" = "Create Project";
+"Edit Project" = "Edit Project";
+"Delete Project" = "Delete Project";
+"Conversations" = "Conversations";
+"Remove from Project" = "Remove from Project";
+"Files" = "Files";
+"Show in Finder" = "Show in Finder";
+"Remove" = "Remove";
+"Start a new conversation..." = "Start a new conversation...";
+"Add files to project" = "Add files to project";
+"Project name" = "Project name";
+"Cancel" = "Cancel";
+"Create" = "Create";
+
+// =============================================================================
+// MARK: - SchedulesContentView
+// =============================================================================
+
+"No scheduled actions" = "No scheduled actions";
+"New Schedule" = "New Schedule";
+"Refresh" = "Refresh";
+"No schedules yet" = "No schedules yet";
+"Create scheduled actions to automate tasks with AI." = "Create scheduled actions to automate tasks with AI.";
+"Create Schedule" = "Create Schedule";
+"Run Now" = "Run Now";
+"Disable" = "Disable";
+"Edit..." = "Edit...";
+"Delete..." = "Delete...";
+"Delete this schedule?" = "Delete this schedule?";
+"Select a schedule to view details" = "Select a schedule to view details";
+"Schedule" = "Schedule";
+"AI Provider" = "AI Provider";
+"Session" = "Session";
+"Wake" = "Wake";
+"Next run" = "Next run";
+"Last run" = "Last run";
+"Last status" = "Last status";
+"Payload" = "Payload";
+"Run History" = "Run History";
+"No runs yet." = "No runs yet.";
+
+// =============================================================================
+// MARK: - TrashContentView
+// =============================================================================
+
+"Empty Trash" = "Empty Trash";
+"Delete All Permanently" = "Delete All Permanently";
+"Select All" = "Select All";
+"Deselect All" = "Deselect All";
+"selected" = "selected";
+"Restore" = "Restore";
+"Delete Permanently" = "Delete Permanently";
+"Trash is empty" = "Trash is empty";
+"Deleted conversations will appear here for 30 days." = "Deleted conversations will appear here for 30 days.";
+
+// =============================================================================
+// MARK: - MarkdownContentView
+// =============================================================================
+
+"code" = "code";
+
+// =============================================================================
+// MARK: - CanvasView
+// =============================================================================
+
+"Canvas Disabled" = "Canvas Disabled";
+"Enable Canvas in Settings > Advanced" = "Enable Canvas in Settings > Advanced";
+"Close Panel" = "Close Panel";
+"Open Panel" = "Open Panel";
+"Canvas Panel" = "Canvas Panel";
+
+// =============================================================================
+// MARK: - CanvasWindowController (HTML scaffold)
+// =============================================================================
+
+"Canvas Ready" = "Canvas Ready";
+"Awaiting agent instructions." = "Awaiting agent instructions.";
+"McClaw Canvas" = "McClaw Canvas";
+
+// =============================================================================
+// MARK: - VoiceOverlayView
+// =============================================================================
+
+"Voice Mode" = "Voice Mode";
+"Off" = "Off";
+"Listening..." = "Listening...";
+"Speaking..." = "Speaking...";
+"Processing..." = "Processing...";
+"Skip speech" = "Skip speech";
+"Turn off Voice Mode" = "Turn off Voice Mode";
+
+// =============================================================================
+// MARK: - ExecApprovalDialog
+// =============================================================================
+
+"Allow this command?" = "Allow this command?";
+"Review the command details before allowing execution." = "Review the command details before allowing execution.";
+"Command" = "Command";
+"Details" = "Details";
+"Executable" = "Executable";
+"Resolved Path" = "Resolved Path";
+"Arguments" = "Arguments";
+"Host" = "Host";
+"This command runs on this machine." = "This command runs on this machine.";
+"Don't Allow" = "Don't Allow";
+"Always Allow" = "Always Allow";
+"Allow Once" = "Allow Once";
+
+// =============================================================================
+// MARK: - OnboardingWizard
+// =============================================================================
+
+"Welcome to McClaw" = "Welcome to McClaw";
+"Your Profile" = "Your Profile";
+"Load Avatar" = "Load Avatar";
+"Detecting AI CLIs" = "Detecting AI CLIs";
+"Scanning..." = "Scanning...";
+"Scan Now" = "Scan Now";
+"Installed" = "Installed";
+"Install" = "Install";
+"Select Default CLI" = "Select Default CLI";
+"Choose which AI provider McClaw should use by default." = "Choose which AI provider McClaw should use by default.";
+"No CLIs detected. Please install at least one AI CLI." = "No CLIs detected. Please install at least one AI CLI.";
+"Default Provider" = "Default Provider";
+"Permissions" = "Permissions";
+"Microphone" = "Microphone";
+"Camera" = "Camera";
+"Allow" = "Allow";
+"Denied" = "Denied";
+"Check Connection" = "Check Connection";
+"All Set!" = "All Set!";
+"McClaw is ready to use." = "McClaw is ready to use.";
+"Continue" = "Continue";
+"Get Started" = "Get Started";
+
+// =============================================================================
+// MARK: - SettingsWindow — Section Titles
+// =============================================================================
+
+"Settings" = "Settings";
+"General" = "General";
+"CLIs" = "CLIs";
+"MCP" = "MCP";
+"Security" = "Security";
+"Connectors" = "Native Connectors";
+"Channels" = "Channels";
+"Native Channels" = "Native Channels";
+"Plugins" = "Plugins";
+"Skills" = "Skills";
+"Voice" = "Voice";
+"Cron" = "Cron";
+"Logs" = "Logs";
+"Advanced" = "Advanced";
+"Integrations" = "Integrations";
+
+// =============================================================================
+// MARK: - GeneralSettingsTab
+// =============================================================================
+
+"Profile" = "Profile";
+"Set your name" = "Set your name";
+"Set your email" = "Set your email";
+"Name" = "Name";
+"Your name" = "Your name";
+"Email" = "Email";
+"your@email.com (used for Gravatar)" = "your@email.com (used for Gravatar)";
+"About you" = "About you";
+"Brief description of your work and goals" = "Brief description of your work and goals";
+"Appearance" = "Appearance";
+"Theme" = "Theme";
+"Dark Themes" = "Dark Themes";
+"Light Themes" = "Light Themes";
+"McClaw Dark" = "McClaw Dark";
+"Midnight Blue" = "Midnight Blue";
+"Dracula" = "Dracula";
+"McClaw Light" = "McClaw Light";
+"Solarized Light" = "Solarized Light";
+"Paper" = "Paper";
+"Custom" = "Custom";
+"Custom Colors" = "Custom Colors";
+"Reset to Default" = "Reset to Default";
+"Accent" = "Accent";
+"Background" = "Background";
+"Sidebar" = "Sidebar";
+"Card" = "Card";
+"User Bubble" = "User Bubble";
+"Border" = "Border";
+"Hover" = "Hover";
+"Selection" = "Selection";
+"Foreground" = "Foreground";
+"Secondary Text" = "Secondary Text";
+"Behavior" = "Behavior";
+"Color mode" = "Color mode";
+"Chat font" = "Chat font";
+"Light" = "Light";
+"Auto" = "Auto";
+"Dark" = "Dark";
+"Default" = "Default";
+"Serif" = "Serif";
+"Mono" = "Mono";
+"Dyslexia" = "Dyslexia";
+"Launch at login" = "Launch at login";
+"Keep in menu bar" = "Keep in menu bar";
+"When enabled, closing or quitting McClaw hides it to the menu bar instead of terminating" = "When enabled, closing or quitting McClaw hides it to the menu bar instead of terminating";
+"Show dock icon" = "Show dock icon";
+"Icon animations" = "Icon animations";
+"Chat" = "Chat";
+"Font size" = "Font size";
+"%lld pt" = "%lld pt";
+"Connection" = "Connection";
+"Status" = "Status";
+"Updates" = "Updates";
+"Version" = "Version";
+"Check automatically" = "Check automatically";
+"Check for Updates..." = "Check for Updates...";
+"Features" = "Features";
+"Last: %@" = "Last: %@";
+
+// =============================================================================
+// MARK: - CLIsSettingsTab
+// =============================================================================
+
+"AI Provider CLIs" = "AI Provider CLIs";
+"Not authenticated" = "Not authenticated";
+"Default" = "Default";
+"Rescan" = "Rescan";
+
+// =============================================================================
+// MARK: - ChannelsSettingsTab
+// =============================================================================
+
+"WhatsApp, Telegram, and Slack integration coming soon." = "WhatsApp, Telegram, and Slack integration coming soon.";
+"Unknown" = "Unknown";
+"Connected" = "Connected";
+"Running" = "Running";
+"Configured" = "Configured";
+"Not configured" = "Not configured";
+"Logout" = "Logout";
+"Linking" = "Linking";
+"Show QR" = "Show QR";
+"Relink" = "Relink";
+"Configuration" = "Configuration";
+"Reload" = "Reload";
+
+// =============================================================================
+// MARK: - PluginsSettingsTab
+// =============================================================================
+
+"No plugins installed" = "No plugins installed";
+"Install plugins from the plugin ecosystem" = "Install plugins from the plugin ecosystem";
+"Uninstall Plugin?" = "Uninstall Plugin?";
+"Remove %@? This cannot be undone." = "Remove %@? This cannot be undone.";
+"Uninstall" = "Uninstall";
+"Install Plugin" = "Install Plugin";
+"Enter the npm package name of a compatible plugin." = "Enter the npm package name of a compatible plugin.";
+"e.g. mcclaw-plugin-memory-sqlite" = "e.g. mcclaw-plugin-memory-sqlite";
+
+// =============================================================================
+// MARK: - SecuritySettingsTab
+// =============================================================================
+
+"Execution Approvals" = "Execution Approvals";
+"Security Mode" = "Security Mode";
+"Deny all" = "Deny all";
+"Ask before executing" = "Ask before executing";
+"Allow all" = "Allow all";
+"All command execution is blocked. The AI cannot run any system commands." = "All command execution is blocked. The AI cannot run any system commands.";
+"You'll be asked to approve each command before it runs." = "You'll be asked to approve each command before it runs.";
+"All commands are allowed without prompting. Use with caution." = "All commands are allowed without prompting. Use with caution.";
+"Allowlist" = "Allowlist";
+"No patterns. Commands matching allowlist patterns are auto-approved." = "No patterns. Commands matching allowlist patterns are auto-approved.";
+"Last: %@" = "Last: %@";
+"Deny List" = "Deny List";
+"No deny rules. Deny rules block commands even in Allow All mode." = "No deny rules. Deny rules block commands even in Allow All mode.";
+"System Permissions" = "System Permissions";
+"Request" = "Request";
+"Open Settings" = "Open Settings";
+"Add Allowlist Pattern" = "Add Allowlist Pattern";
+"Pattern (e.g., /usr/bin/python*)" = "Pattern (e.g., /usr/bin/python*)";
+"Use glob patterns: * matches within a directory, ** matches across directories." = "Use glob patterns: * matches within a directory, ** matches across directories.";
+"Add" = "Add";
+
+// =============================================================================
+// MARK: - DiagnosticsSettingsTab
+// =============================================================================
+
+"Diagnostics" = "Diagnostics";
+"Enable file logging" = "Enable file logging";
+"Writes to ~/.mcclaw/logs/mcclaw.log" = "Writes to ~/.mcclaw/logs/mcclaw.log";
+"File logging is disabled. Enable it to capture diagnostics for debugging." = "File logging is disabled. Enable it to capture diagnostics for debugging.";
+"No log entries yet. Logs will appear here as McClaw runs." = "No log entries yet. Logs will appear here as McClaw runs.";
+"Enable logging above to start capturing diagnostics." = "Enable logging above to start capturing diagnostics.";
+"Export Log..." = "Export Log...";
+"Clear Log" = "Clear Log";
+"Open Log Folder" = "Open Log Folder";
+
+// =============================================================================
+// MARK: - AdvancedSettingsTab
+// =============================================================================
+
+"Debug pane" = "Debug pane";
+"Canvas & Node" = "Canvas & Node";
+"Canvas panel" = "Canvas panel";
+"Camera capture" = "Camera capture";
+"Screen recording" = "Screen recording";
+"Node Capabilities" = "Node Capabilities";
+"Node ID" = "Node ID";
+
+// =============================================================================
+// MARK: - MCPSettingsTab
+// =============================================================================
+
+"MCP Servers" = "MCP Servers";
+"Configure Model Context Protocol servers for extended capabilities." = "Configure Model Context Protocol servers for extended capabilities.";
+"Provider" = "Provider";
+"No MCP Servers" = "No MCP Servers";
+"Add an MCP server to extend AI capabilities." = "Add an MCP server to extend AI capabilities.";
+"Remove MCP Server?" = "Remove MCP Server?";
+"Loading..." = "Loading...";
+"Select a Server" = "Select a Server";
+"Choose an MCP server from the list." = "Choose an MCP server from the list.";
+"Transport" = "Transport";
+"Scope" = "Scope";
+"URL" = "URL";
+"Environment Variables" = "Environment Variables";
+"Edit" = "Edit";
+"MCP Not Available" = "MCP Not Available";
+"Install Claude CLI or Gemini CLI to manage MCP servers." = "Install Claude CLI or Gemini CLI to manage MCP servers.";
+
+// =============================================================================
+// MARK: - MCPServerEditor
+// =============================================================================
+
+"Edit MCP Server" = "Edit MCP Server";
+"Add MCP Server" = "Add MCP Server";
+"Server" = "Server";
+"Endpoint" = "Endpoint";
+"User (global)" = "User (global)";
+"Project (local)" = "Project (local)";
+"KEY" = "KEY";
+"Add Variable" = "Add Variable";
+"Add Server" = "Add Server";
+
+// =============================================================================
+// MARK: - SkillsSettingsTab
+// =============================================================================
+
+"Import specialized knowledge that the AI can read on demand." = "Import specialized knowledge that the AI can read on demand.";
+"Import ZIP" = "Import ZIP";
+"Open Folder" = "Open Folder";
+"How Skills Work" = "How Skills Work";
+"Each skill is a folder with a SKILL.md file (instructions for the AI) and an optional references/ folder with detailed docs. When you chat, McClaw tells the AI which skills are available — the AI reads the relevant ones automatically." = "Each skill is a folder with a SKILL.md file (instructions for the AI) and an optional references/ folder with detailed docs. When you chat, McClaw tells the AI which skills are available — the AI reads the relevant ones automatically.";
+"Skills are stored in ~/.mcclaw/skills/. You can import a ZIP or drop folders there manually." = "Skills are stored in ~/.mcclaw/skills/. You can import a ZIP or drop folders there manually.";
+"Remove Skill?" = "Remove Skill?";
+"Remove \"%@\"? The skill folder will be deleted from disk." = "Remove \"%@\"? The skill folder will be deleted from disk.";
+"No skills installed" = "No skills installed";
+"Import a ZIP file or drop a skill folder into ~/.mcclaw/skills/" = "Import a ZIP file or drop a skill folder into ~/.mcclaw/skills/";
+"Local" = "Local";
+"%lld refs" = "%lld refs";
+"by %@" = "by %@";
+
+// Skill categories
+"Documents & Files" = "Documents & Files";
+"Product Management" = "Product Management";
+"Developer Tools" = "Developer Tools";
+"WordPress Core" = "WordPress Core";
+"WordPress Themes" = "WordPress Themes";
+"WooCommerce" = "WooCommerce";
+"WordPress Site Management" = "WordPress Site Management";
+"Other" = "Other";
+
+// =============================================================================
+// MARK: - VoiceSettingsTab
+// =============================================================================
+
+"Microphone access is required for Voice Mode." = "Microphone access is required for Voice Mode.";
+"Speech Recognition" = "Speech Recognition";
+"Language" = "Language";
+"System Default" = "System Default";
+"Auto-send delay" = "Auto-send delay";
+"Silence threshold" = "Silence threshold";
+"Time of silence before auto-sending the message." = "Time of silence before auto-sending the message.";
+"Text-to-Speech" = "Text-to-Speech";
+"Preview" = "Preview";
+"Speed" = "Speed";
+"%lld wpm" = "%lld wpm";
+"Volume" = "Volume";
+"%lld%%" = "%lld%%";
+"Push-to-Talk" = "Push-to-Talk";
+"Enable Push-to-Talk" = "Enable Push-to-Talk";
+"Hold Right Option key to record, release to send." = "Hold Right Option key to record, release to send.";
+"Requires Accessibility permission" = "Requires Accessibility permission";
+"Wake Word" = "Wake Word";
+"Enable Wake Word Detection" = "Enable Wake Word Detection";
+"Trigger phrase:" = "Trigger phrase:";
+"hey claw" = "hey claw";
+"Say the trigger phrase to activate Voice Mode hands-free." = "Say the trigger phrase to activate Voice Mode hands-free.";
+"Test" = "Test";
+"Say something to test speech recognition:" = "Say something to test speech recognition:";
+"Stop" = "Stop";
+"Test Microphone" = "Test Microphone";
+
+// =============================================================================
+// MARK: - ChannelConfigForm
+// =============================================================================
+
+"Enabled" = "Enabled";
+"Unsupported field type." = "Unsupported field type.";
+"Select..." = "Select...";
+"Schema unavailable for this channel." = "Schema unavailable for this channel.";
+
+// =============================================================================
+// MARK: - ConnectorsSettingsTab
+// =============================================================================
+
+"Connect external services to enrich AI responses with real-time data." = "Connect external services to enrich AI responses with real-time data.";
+"%lld connector(s) active" = "%lld connector(s) active";
+"Connectors vs Channels" = "Connectors vs Channels";
+"Requires MCP Content Manager" = "Requires MCP Content Manager";
+"Get MCP Content Manager" = "Get MCP Content Manager";
+"Disconnect" = "Disconnect";
+"Connect" = "Connect";
+"Remove connector" = "Remove connector";
+"%lld abilities" = "%lld abilities";
+
+// =============================================================================
+// MARK: - ConnectorDetailView
+// =============================================================================
+
+"Not added" = "Not added";
+"Disconnected" = "Disconnected";
+"Connecting..." = "Connecting...";
+"Error: %@" = "Error: %@";
+"Auth Method" = "Auth Method";
+"Personal Access Token" = "Personal Access Token";
+"OAuth" = "OAuth";
+"Sign in with %@" = "Sign in with %@";
+"Save & Connect" = "Save & Connect";
+"Validate & Connect" = "Validate & Connect";
+"Bot Token" = "Bot Token";
+"Detected WordPress Sites" = "Detected WordPress Sites";
+"Connect via MCP" = "Connect via MCP";
+"Setup Required" = "Setup Required";
+"This connector does not require authentication." = "This connector does not require authentication.";
+"Add Connector" = "Add Connector";
+"Connection OK" = "Connection OK";
+"Test failed" = "Test failed";
+"Available Actions" = "Available Actions";
+"Available Modules (%lld abilities)" = "Available Modules (%lld abilities)";
+"Included Modules (%lld abilities)" = "Included Modules (%lld abilities)";
+"Last sync: %@ ago" = "Last sync: %@ ago";
+
+// =============================================================================
+// MARK: - ConnectorActionPicker
+// =============================================================================
+
+"Connector" = "Connector";
+"Action" = "Action";
+"Max length" = "Max length";
+"chars" = "chars";
+
+// =============================================================================
+// MARK: - CronJobEditor — Wizard Steps
+// =============================================================================
+
+"What to do" = "What to do";
+"Which AI" = "Which AI";
+"When" = "When";
+"Results" = "Results";
+
+// =============================================================================
+// MARK: - CronJobEditor — When Choices
+// =============================================================================
+
+"Once" = "Once";
+"Repeating" = "Repeating";
+
+// =============================================================================
+// MARK: - CronJobEditor — Repeat Presets
+// =============================================================================
+
+"Every 15 minutes" = "Every 15 minutes";
+"Every hour" = "Every hour";
+"Every 6 hours" = "Every 6 hours";
+"Every day" = "Every day";
+"Every week" = "Every week";
+"Every X time at..." = "Every X time at...";
+"Custom interval" = "Custom interval";
+
+// Scheduled interval units
+"Minutes" = "Minutes";
+"Hours" = "Hours";
+"Days" = "Days";
+"Weeks" = "Weeks";
+"Months" = "Months";
+"Years" = "Years";
+"Every" = "Every";
+"At" = "At";
+
+// =============================================================================
+// MARK: - CronJobEditor — Delivery (multi-select)
+// =============================================================================
+
+"Select one or more delivery methods:" = "Select one or more delivery methods:";
+"Show as macOS system notification" = "Show as macOS system notification";
+"Save only in history" = "Save only in history";
+"Results are saved in the schedule's run history" = "Results are saved in the schedule's run history";
+"Send to channels" = "Send to channels";
+"Select channels to receive the results. You can add the same channel multiple times with different recipients." = "Select channels to receive the results. You can add the same channel multiple times with different recipients.";
+"Recipient (Chat ID, channel, etc.)" = "Recipient (Chat ID, channel, etc.)";
+"Continue even if delivery fails" = "Continue even if delivery fails";
+"Configure native channels in Settings → Channels to enable channel delivery." = "Configure native channels in Settings → Channels to enable channel delivery.";
+"No notification" = "No notification";
+"History" = "History";
+
+// =============================================================================
+// MARK: - CronJobEditor — Step Explanations
+// =============================================================================
+
+"Describe what you want the AI to do. Write it naturally, like you would explain it to someone." = "Describe what you want the AI to do. Write it naturally, like you would explain it to someone.";
+"Choose which AI provider will execute this task." = "Choose which AI provider will execute this task.";
+"Configure when this action should run." = "Configure when this action should run.";
+"Choose where to see the results." = "Choose where to see the results.";
+
+// =============================================================================
+// MARK: - CronJobEditor — Headers / Labels
+// =============================================================================
+
+"Edit Schedule" = "Edit Schedule";
+"e.g. Daily email summary" = "e.g. Daily email summary";
+"What should the AI do?" = "What should the AI do?";
+"e.g. Check my pending emails and send me a summary ordered by priority via Telegram" = "e.g. Check my pending emails and send me a summary ordered by priority via Telegram";
+"Data Sources" = "Data Sources";
+"(optional)" = "(optional)";
+"Pre-fetch data from connected services before running. Results are injected into the prompt automatically." = "Pre-fetch data from connected services before running. Results are injected into the prompt automatically.";
+"Add Data Source" = "Add Data Source";
+"Tip: Be specific about what you want. The more detail you give, the better the result." = "Tip: Be specific about what you want. The more detail you give, the better the result.";
+
+// =============================================================================
+// MARK: - CronJobEditor — Which AI Step
+// =============================================================================
+
+"Uses whichever AI is active when the schedule runs" = "Uses whichever AI is active when the schedule runs";
+"Ready" = "Ready";
+"No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, or Ollama)." = "No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, Codex, Amazon Q, or Ollama).";
+
+// =============================================================================
+// MARK: - CronJobEditor — When Step
+// =============================================================================
+
+"Date and time" = "Date and time";
+"Delete this schedule after it runs successfully" = "Delete this schedule after it runs successfully";
+"Interval:" = "Interval:";
+"e.g. 30m, 2h, 3d" = "e.g. 30m, 2h, 3d";
+"(m = minutes, h = hours, d = days)" = "(m = minutes, h = hours, d = days)";
+"Cron expression" = "Cron expression";
+"e.g. 0 9 * * 1-5" = "e.g. 0 9 * * 1-5";
+"Timezone" = "Timezone";
+"e.g. Europe/Madrid (optional)" = "e.g. Europe/Madrid (optional)";
+"Quick reference" = "Quick reference";
+"Every day at 9:00 AM" = "Every day at 9:00 AM";
+"Weekdays at 9:00 AM" = "Weekdays at 9:00 AM";
+"Every Monday at 9:00 AM" = "Every Monday at 9:00 AM";
+"First day of every month" = "First day of every month";
+
+// =============================================================================
+// MARK: - CronJobEditor — Delivery Step
+// =============================================================================
+
+"Show in Notifications and as macOS system notification" = "Show in Notifications and as macOS system notification";
+"Send results via Telegram, Slack, or another channel" = "Send results via Telegram, Slack, or another channel";
+"Results are saved in the schedule's run history only" = "Results are saved in the schedule's run history only";
+"Run silently without any notification" = "Run silently without any notification";
+"Channel" = "Channel";
+"e.g. telegram, slack, whatsapp" = "e.g. telegram, slack, whatsapp";
+"Recipient (optional)" = "Recipient (optional)";
+"Chat ID, phone, etc." = "Chat ID, phone, etc.";
+"Continue even if delivery fails" = "Continue even if delivery fails";
+
+// =============================================================================
+// MARK: - CronJobEditor — Advanced Options
+// =============================================================================
+
+"Advanced options" = "Advanced options";
+"Thinking level" = "Thinking level";
+"e.g. low, medium, high" = "e.g. low, medium, high";
+"Timeout (seconds)" = "Timeout (seconds)";
+"e.g. 120" = "e.g. 120";
+"Isolated" = "Isolated";
+"Main" = "Main";
+"Wake mode" = "Wake mode";
+"Immediately" = "Immediately";
+"Next heartbeat" = "Next heartbeat";
+
+// =============================================================================
+// MARK: - CronJobEditor — Summary
+// =============================================================================
+
+"Summary" = "Summary";
+"Task" = "Task";
+"Unnamed" = "Unnamed";
+"AI" = "AI";
+"Default (active)" = "Default (active)";
+"Not configured" = "Not configured";
+
+// =============================================================================
+// MARK: - CronJobEditor — Navigation
+// =============================================================================
+
+"Next" = "Next";
+"Save Schedule" = "Save Schedule";
+
+// =============================================================================
+// MARK: - CronJobEditor — Validation Errors
+// =============================================================================
+
+"Name is required." = "Name is required.";
+"Task description is required." = "Task description is required.";
+
+// =============================================================================
+// MARK: - CronSettings
+// =============================================================================
+
+"Delete cron job?" = "Delete cron job?";
+"New Job" = "New Job";
+"Run now" = "Run now";
+"Run history" = "Run history";
+"No run log entries yet." = "No run log entries yet.";
+"Select a job to inspect..." = "Select a job to inspect...";
+"No scheduled tasks yet." = "No scheduled tasks yet.";
+"No scheduled tasks." = "No scheduled tasks.";
+"No scheduled tasks (or `claude task` not available)." = "No scheduled tasks (or `claude task` not available).";
+
+// =============================================================================
+// MARK: - CronError
+// =============================================================================
+
+"No CLI provider available" = "No CLI provider available";
+
+// =============================================================================
+// MARK: - UpdaterService
+// =============================================================================
+
+"Checking for updates..." = "Checking for updates...";
+"Unable to Check For Updates" = "Unable to Check For Updates";
+"OK" = "OK";
+
+// =============================================================================
+// MARK: - PermissionManager — Display Names
+// =============================================================================
+
+"Accessibility" = "Accessibility";
+"Screen Recording" = "Screen Recording";
+"security_system_permissions" = "System Permissions";
+"security_refresh_permissions_hint" = "Re-check all permission statuses";
+"security_permissions_hint" = "Some permissions (Accessibility, Screen Recording) require restarting the app after granting access in System Settings.";
+
+// =============================================================================
+// MARK: - ConnectorModels — Category Titles
+// =============================================================================
+
+"Google" = "Google";
+"Microsoft" = "Microsoft";
+"Development" = "Development";
+"Communication" = "Communication";
+"Productivity" = "Productivity";
+"Utilities" = "Utilities";
+"WordPress" = "WordPress";
+
+// =============================================================================
+// MARK: - ConnectorModels — Status Display Text
+// =============================================================================
+
+// =============================================================================
+// MARK: - ConnectorRegistry — Google Connectors
+// =============================================================================
+
+"Gmail" = "Gmail";
+"Read and search emails from your Gmail account" = "Read and search emails from your Gmail account";
+"Search emails" = "Search emails";
+"Search emails by query" = "Search emails by query";
+"Read email" = "Read email";
+"Read a specific email by ID" = "Read a specific email by ID";
+"List unread" = "List unread";
+"List unread emails" = "List unread emails";
+"List labels" = "List labels";
+"List all Gmail labels" = "List all Gmail labels";
+"Google Calendar" = "Google Calendar";
+"Read events and check availability from Google Calendar" = "Read events and check availability from Google Calendar";
+"List events" = "List events";
+"List calendar events in a date range" = "List calendar events in a date range";
+"Get event" = "Get event";
+"Get details of a specific event" = "Get details of a specific event";
+"List calendars" = "List calendars";
+"List all calendars" = "List all calendars";
+"Google Drive" = "Google Drive";
+"Search and list files from Google Drive" = "Search and list files from Google Drive";
+"Search files" = "Search files";
+"Search files by name or content" = "Search files by name or content";
+"Recent files" = "Recent files";
+"List recently modified files" = "List recently modified files";
+"File metadata" = "File metadata";
+"Get metadata of a file" = "Get metadata of a file";
+"Google Sheets" = "Google Sheets";
+"Read data from Google Sheets spreadsheets" = "Read data from Google Sheets spreadsheets";
+"Read range" = "Read range";
+"Read a cell range from a spreadsheet" = "Read a cell range from a spreadsheet";
+"List sheets" = "List sheets";
+"List all sheets in a spreadsheet" = "List all sheets in a spreadsheet";
+"Google Contacts" = "Google Contacts";
+"Search and list contacts from Google" = "Search and list contacts from Google";
+"Search contacts" = "Search contacts";
+"Search contacts by name or email" = "Search contacts by name or email";
+"List groups" = "List groups";
+"List contact groups" = "List contact groups";
+
+// =============================================================================
+// MARK: - ConnectorRegistry — Microsoft Connectors
+// =============================================================================
+
+"Outlook Mail" = "Outlook Mail";
+"Read and search emails from Outlook / Microsoft 365" = "Read and search emails from Outlook / Microsoft 365";
+"List messages" = "List messages";
+"List recent emails" = "List recent emails";
+"Read message" = "Read message";
+"Read a specific email" = "Read a specific email";
+"Search emails by keyword" = "Search emails by keyword";
+"List folders" = "List folders";
+"List mail folders" = "List mail folders";
+"Outlook Calendar" = "Outlook Calendar";
+"Read events from Outlook / Microsoft 365 Calendar" = "Read events from Outlook / Microsoft 365 Calendar";
+"List calendar events" = "List calendar events";
+"Get event details" = "Get event details";
+"OneDrive" = "OneDrive";
+"Search and list files from OneDrive" = "Search and list files from OneDrive";
+"List recently accessed files" = "List recently accessed files";
+"Search files by name" = "Search files by name";
+"Get item" = "Get item";
+"Get file/folder metadata" = "Get file/folder metadata";
+"Microsoft To Do" = "Microsoft To Do";
+"Read tasks and lists from Microsoft To Do" = "Read tasks and lists from Microsoft To Do";
+"List tasks" = "List tasks";
+"List tasks in a list" = "List tasks in a list";
+"List task lists" = "List task lists";
+"List all task lists" = "List all task lists";
+"Get task" = "Get task";
+
+// =============================================================================
+// MARK: - NodeMode — Capability Descriptions
+// =============================================================================
+
+"Canvas panel with A2UI protocol" = "Canvas panel with A2UI protocol";
+"Execute system commands" = "Execute system commands";
+"Get current location" = "Get current location";
+"Capture photos and video" = "Capture photos and video";
+"Record screen" = "Record screen";
+
+// =============================================================================
+// MARK: - CronJobsStore — Fallback name
+// =============================================================================
+
+"Claude Task" = "Claude Task";
+"Untitled" = "Untitled";
+
+// =============================================================================
+// MARK: - BitNet Settings (Experimental)
+// =============================================================================
+
+"BitNet" = "BitNet";
+"bitnet_experimental_badge" = "EXPERIMENTAL";
+"bitnet_show_experimental" = "Show experimental providers";
+"bitnet_prerequisites_header" = "Prerequisites";
+"bitnet_install_button" = "Install BitNet";
+"bitnet_install_time_estimate" = "Installation takes approximately 10-15 minutes.";
+"bitnet_installing" = "Installing BitNet...";
+"bitnet_status_header" = "Status";
+"bitnet_status_ready" = "BitNet is installed and ready";
+"bitnet_models_header" = "Models";
+"bitnet_model_default_badge" = "Default";
+"bitnet_set_default" = "Set as Default";
+"bitnet_available_models" = "Available to Download:";
+"bitnet_available_cores" = "available";
+"bitnet_download_button" = "Download";
+"bitnet_dismiss_log" = "Dismiss";
+"bitnet_inference_header" = "Inference Settings";
+"bitnet_threads" = "Threads:";
+"bitnet_context_size" = "Context Size:";
+"bitnet_max_tokens" = "Max Tokens:";
+"bitnet_temperature" = "Temperature:";
+"bitnet_server_port" = "Server Port:";
+"bitnet_server_mode" = "Server Mode:";
+"bitnet_server_always_on" = "Always On";
+"bitnet_server_on_demand" = "On Demand";
+"bitnet_server_mode_description" = "Always On starts the server at app launch. On Demand starts it only when you send a message.";
+"bitnet_tokens_label" = "tokens";
+"bitnet_uninstall_button" = "Uninstall BitNet";
+"bitnet_uninstall_title" = "Uninstall BitNet";
+"bitnet_uninstall_description" = "This will remove BitNet and its components from your system.";
+"bitnet_will_remove" = "Will be removed:";
+"bitnet_optional_remove" = "Optional (installed by McClaw):";
+"bitnet_optional_remove_warning" = "These tools may be used by other projects.";
+"bitnet_cancel" = "Cancel";
+"bitnet_uninstall_confirm" = "Uninstall";
+"bitnet_delete_model_help" = "Delete this model";
+"bitnet_base_no_chat" = "Base - no chat";
+"bitnet_base_only" = "Base only";
+"bitnet_brew_not_found" = "Homebrew not found. Install from https://brew.sh first.";
+"bitnet_all_models" = "All downloaded models";
+"bitnet_compiled_kernels" = "Compiled kernels and build artifacts";
+
+// =============================================================================
+// MARK: - Ollama Settings
+// =============================================================================
+
+"Ollama" = "Ollama";
+"ollama_not_installed" = "Ollama is not installed on this system.";
+"ollama_install_instructions" = "Install Ollama to run AI models locally on your Mac.";
+"ollama_download_button" = "Download Ollama";
+"ollama_server_status_header" = "Server Status";
+"ollama_server_running" = "Ollama server is running";
+"ollama_server_stopped" = "Ollama server is stopped";
+"ollama_start_server" = "Start Server";
+"ollama_stop_server" = "Stop Server";
+"ollama_loaded_models" = "Loaded in memory:";
+"ollama_server_mode" = "Server Mode";
+"ollama_mode_label" = "Mode:";
+"ollama_always_on" = "Always On";
+"ollama_on_demand" = "On Demand";
+"ollama_server_mode_description" = "Always On starts the server at app launch. On Demand starts it only when you send a message.";
+"ollama_server_port" = "Port:";
+"ollama_installed_models_header" = "Installed Models";
+"ollama_no_models_installed" = "No models installed. Pull a model to get started.";
+"ollama_default_badge" = "Default";
+"ollama_set_default" = "Set as Default";
+"ollama_delete_model" = "Delete this model";
+"ollama_delete_confirm_title" = "Delete Model";
+"ollama_delete_confirm" = "Delete";
+"ollama_delete_confirm_message" = "This will permanently remove the model from your system. You can pull it again later.";
+"ollama_cancel" = "Cancel";
+"ollama_model_installer_header" = "Model Library";
+"ollama_recommended_for_mac" = "Recommended for your Mac:";
+"ollama_all_recommended_installed" = "All recommended models are already installed.";
+"ollama_pull_button" = "Pull";
+"ollama_install_button" = "Install";
+"ollama_uninstall_button" = "Remove";
+"ollama_pull_custom_placeholder" = "Model name (e.g. llama3.2)";
+"ollama_dismiss_log" = "Dismiss";
+"ollama_best_badge" = "Best";
+"ollama_hardware_header" = "Hardware";
+"ollama_chip" = "Chip:";
+"ollama_ram" = "RAM:";
+"ollama_cores" = "CPU Cores:";
+
+// =============================================================================
+// MARK: - DashScope (Alibaba Cloud)
+// =============================================================================
+
+"DashScope" = "DashScope";
+"dashscope_description" = "Alibaba Cloud AI Coding Plan — access Qwen and third-party models via OpenAI-compatible API.";
+"dashscope_api_key_header" = "API Key";
+"dashscope_api_key_placeholder" = "sk-...";
+"dashscope_toggle_visibility" = "Toggle key visibility";
+"dashscope_save_key" = "Save Key";
+"dashscope_remove_key" = "Remove Key";
+"dashscope_key_stored" = "API key is securely stored in Keychain";
+"dashscope_key_hint" = "Get your API key from Alibaba Cloud Model Studio console.";
+"dashscope_region_header" = "Region";
+"dashscope_region_hint" = "Choose the region closest to you for best latency.";
+"dashscope_models_header" = "Available Models";
+"dashscope_default_badge" = "Default";
+"dashscope_set_default" = "Set as Default";
+"dashscope_connection_header" = "Connection";
+"dashscope_test_connection" = "Test Connection";
+"dashscope_connected" = "Connected";
+"dashscope_not_configured" = "Add your API key above to enable DashScope.";
+
+// =============================================================================
+// MARK: - GitHub Copilot CLI
+// =============================================================================
+
+"GitHub Copilot CLI" = "GitHub Copilot CLI";
+"copilot_description" = "GitHub's AI coding agent in your terminal. Requires a GitHub Copilot subscription.";
+"copilot_install_step_gh" = "Install GitHub CLI via Homebrew";
+"copilot_install_step_auth" = "Authenticate with GitHub";
+"copilot_install_step_ext" = "Install Copilot extension for gh";
+"copilot_install_step_verify" = "Verify Copilot CLI installation";
+"copilot_gh_missing" = "GitHub CLI (gh) not found. Install it first.";
+"copilot_ext_missing" = "GitHub CLI found but Copilot extension not installed.";
+
+// CLI row buttons
+"cli_configure_button" = "Configure";
+"cli_install_button" = "Install";
+"cli_deactivate_help" = "Remove API key and deactivate this provider";
+"cli_default_badge" = "Default";
+"cli_set_default_button" = "Set as Default";
+
+// =============================================================================
+// MARK: - Model Selection
+// =============================================================================
+
+"Select Model" = "Select Model";
+"Use Default" = "Use Default";
+"Model" = "Model";
+"Default" = "Default";
+"Gallery" = "Gallery";
+
+// =============================================================================
+// MARK: - Agent Install
+// =============================================================================
+
+"Install" = "Install";
+"Agent Install" = "Agent Install";
+"Paste the install prompt here..." = "Paste the install prompt here...";
+"Analyzing install prompt..." = "Analyzing install prompt...";
+"Install:" = "Install:";
+"Install Plan Review" = "Install Plan Review";
+"Execute Plan" = "Execute Plan";
+"Cancel" = "Cancel";
+"Steps" = "Steps";
+"Warnings" = "Warnings";
+"Each command will be checked against your security rules." = "Each command will be checked against your security rules.";
+"Stop Installation" = "Stop Installation";
+"Installation completed successfully." = "Installation completed successfully.";
+"Installation finished with issues." = "Installation finished with issues.";
+"steps completed" = "steps completed";
+"No install plan could be parsed from the prompt." = "No install plan could be parsed from the prompt.";
+"No AI provider available. Please configure a CLI in Settings." = "No AI provider available. Please configure a CLI in Settings.";
+"No response from AI provider." = "No response from AI provider.";
+"The install plan has no steps." = "The install plan has no steps.";
+"Command denied by user." = "Command denied by user.";
+"Installed Packages" = "Installed Packages";
+"No packages installed yet." = "No packages installed yet.";
+"Installations" = "Installations";
+"Clear History" = "Clear History";
+"Clear Installation History" = "Clear Installation History";
+"Clear All" = "Clear All";
+"This will remove all installation records. The installed software will not be removed." = "This will remove all installation records. The installed software will not be removed.";
+"Uninstall Package" = "Uninstall Package";
+"Uninstall" = "Uninstall";
+"Remove Record Only" = "Remove Record Only";
+"Choose whether to run uninstall commands or just remove the record." = "Choose whether to run uninstall commands or just remove the record.";
+"package(s) installed by agent" = "package(s) installed by agent";
+"No Installations Yet" = "No Installations Yet";
+"Use the Install button in the chat to install software from agent prompts." = "Use the Install button in the chat to install software from agent prompts.";
+"Software installed by the AI agent through install prompts." = "Software installed by the AI agent through install prompts.";
+"What are Agent Installations?" = "What are Agent Installations?";
+"Some websites and tools provide install prompts — blocks of text you can paste into an AI agent to automatically install and configure software on your Mac." = "Some websites and tools provide install prompts — blocks of text you can paste into an AI agent to automatically install and configure software on your Mac.";
+"Tap the Install button in the chat input bar." = "Tap the Install button in the chat input bar.";
+"Paste the install prompt provided by the website." = "Paste the install prompt provided by the website.";
+"McClaw analyzes the prompt and shows you a plan with every command before executing." = "McClaw analyzes the prompt and shows you a plan with every command before executing.";
+"Each command is checked against your security rules. You approve what runs on your machine." = "Each command is checked against your security rules. You approve what runs on your machine.";
+"All installations are tracked here so you can review and uninstall them at any time." = "All installations are tracked here so you can review and uninstall them at any time.";
+"Select an installation to view details" = "Select an installation to view details";
+"Installed" = "Installed";
+"Provider" = "Provider";
+"completed" = "completed";
+"Installation Steps" = "Installation Steps";
+"Output" = "Output";
+
+// =============================================================================
+// MARK: - Interactive Prompts
+// =============================================================================
+
+"Skip" = "Skip";
+"Skip all" = "Skip all";
+"%lld selected" = "%lld selected";
+"Confirm" = "Confirm";
+"Cancel" = "Cancel";
+"Accept" = "Accept";
+"Something else..." = "Something else...";
+"%lld of %lld" = "%lld of %lld";
+"↑↓ navigate · Enter select · Esc skip" = "↑↓ navigate · Enter select · Esc skip";
+"Skipped" = "Skipped";
+"Type your answer..." = "Type your answer...";
+
+// =============================================================================
+// MARK: - Project Memory
+// =============================================================================
+
+"Project Memory" = "Project Memory";
+"Memory" = "Memory";
+"Memory provider" = "Memory provider";
+"Disabled" = "Disabled";
+"Auto-update memory" = "Auto-update memory";
+"Automatically update project memory after each conversation. Uses tokens from the selected provider." = "Automatically update project memory after each conversation. Uses tokens from the selected provider.";
+"McClaw can automatically maintain a memory file for each project, capturing the project description, rules, decisions, and context from your conversations. The selected AI will read and update this memory after each conversation, so every new chat starts with full project knowledge." = "McClaw can automatically maintain a memory file for each project, capturing the project description, rules, decisions, and context from your conversations. The selected AI will read and update this memory after each conversation, so every new chat starts with full project knowledge.";
+"No memory yet" = "No memory yet";
+"Project memory will be created automatically after your first conversation, or you can create it manually." = "Project memory will be created automatically after your first conversation, or you can create it manually.";
+"Create Memory" = "Create Memory";
+"Delete Memory" = "Delete Memory";
+"Edit" = "Edit";
+"Save" = "Save";
+"Refresh" = "Refresh";
+"Export" = "Export";
+"Import" = "Import";
+"Set a memory provider in Settings → General to enable AI updates" = "Set a memory provider in Settings → General to enable AI updates";
+"Update memory using AI" = "Update memory using AI";
+
+// =============================================================================
+// MARK: - Project Directories
+// =============================================================================
+
+"Directories" = "Directories";
+"Filesystem directories associated with this project. The AI will use them as working paths." = "Filesystem directories associated with this project. The AI will use them as working paths.";
+"No directories added yet" = "No directories added yet";
+"Add Directory" = "Add Directory";
+"Select a project directory" = "Select a project directory";
+
+// =============================================================================
+// MARK: - Project Artifacts
+// =============================================================================
+
+"Artifacts" = "Artifacts";
+"Save Plan to Project" = "Save Plan to Project";
+"Source: %@" = "Source: %@";
+"Existing Project" = "Existing Project";
+"New Project" = "New Project";
+"Don't Save" = "Don't Save";
+"Save" = "Save";
+"Create & Save" = "Create & Save";
+"No projects yet" = "No projects yet";
+"Switch to \"New Project\" to create one." = "Switch to \"New Project\" to create one.";
+"Project Name" = "Project Name";
+"My Project" = "My Project";
+"Show in Finder" = "Show in Finder";
+"Copy Content" = "Copy Content";
+"Remove from Project" = "Remove from Project";
+"No artifacts yet" = "No artifacts yet";
+"Plans and documents created by AI will appear here. You can also upload files manually." = "Plans and documents created by AI will appear here. You can also upload files manually.";
+"Upload Artifact" = "Upload Artifact";
+"Add" = "Add";
+"Select files to add as project artifacts" = "Select files to add as project artifacts";
+
+// =============================================================================
+// MARK: - User Menu
+// =============================================================================
+
+"user_menu_settings" = "Settings";
+"user_menu_language" = "Language";
+"user_menu_help" = "Help";
+"user_menu_license" = "License";
+"user_menu_disclaimer" = "Disclaimer";
+"user_menu_get_more" = "Get more from McClaw";
+"user_menu_mobile_app" = "McClaw Mobile";
+"user_menu_coming_soon" = "Coming Soon";
+"user_menu_mcp_content_manager" = "MCP Content Manager for WordPress";
+"user_menu_smart_translate" = "Smart AI Translate for WordPress";
+"user_menu_more_products" = "More by José Conti";
+"user_menu_language_system" = "System Default";
+"user_menu_language_restart_title" = "Restart Required";
+"user_menu_language_restart_message" = "McClaw needs to restart to apply the language change.";
+"user_menu_language_restart_button" = "Restart Now";
+"user_menu_language_later_button" = "Later";
+
+// =============================================================================
+// MARK: - License Window
+// =============================================================================
+
+"license_title" = "License";
+"disclaimer_title" = "Disclaimer";
+
+// =============================================================================
+// MARK: - Help Content
+// =============================================================================
+
+"help_title" = "Help & Reference";
+"help_slash_commands" = "Slash Commands";
+"help_cli_commands_header" = "CLI Pass-through Commands";
+"help_keyboard_shortcuts" = "Keyboard Shortcuts";
+"help_chat_features" = "Chat Features";
+"help_voice_mode" = "Voice Mode";
+"help_canvas" = "Canvas";
+"help_projects" = "Projects";
+"help_mcp" = "MCP Servers";
+"help_connectors" = "Connectors";
+
+// Keyboard Shortcuts
+"help_shortcut_new_chat" = "New chat";
+"help_shortcut_settings" = "Open settings";
+"help_shortcut_voice" = "Toggle voice mode";
+"help_shortcut_abort" = "Abort current request";
+"help_shortcut_clear" = "Clear current chat";
+"help_shortcut_copy_last" = "Copy last response";
+"help_shortcut_send" = "Send message";
+"help_shortcut_newline" = "New line";
+
+// Chat Features
+"help_feature_streaming" = "Real-time Streaming";
+"help_feature_streaming_desc" = "Responses stream in real-time as the AI generates them.";
+"help_feature_model_selection" = "Model Selection";
+"help_feature_model_selection_desc" = "Switch between models per provider using the top bar or /model command.";
+"help_feature_plan_mode" = "Plan Mode";
+"help_feature_plan_mode_desc" = "Toggle plan mode to get structured implementation plans before coding.";
+"help_feature_image_gen" = "Image Generation";
+"help_feature_image_gen_desc" = "Generate images directly in chat using AI-powered image generation.";
+"help_feature_markdown" = "Rich Markdown";
+"help_feature_markdown_desc" = "Full markdown rendering with syntax highlighting, tables, and code blocks.";
+"help_feature_multi_provider" = "Multi-Provider";
+"help_feature_multi_provider_desc" = "Switch between Claude, ChatGPT, Gemini, Codex, and Ollama seamlessly.";
+
+// Voice Mode
+"help_voice_wake_word" = "Wake Word";
+"help_voice_wake_word_desc" = "Say 'Hey Claw' to activate voice mode hands-free.";
+"help_voice_push_to_talk" = "Push to Talk";
+"help_voice_push_to_talk_desc" = "Hold a key to record, release to send your voice message.";
+"help_voice_settings" = "Voice Settings";
+"help_voice_settings_desc" = "Configure speech rate, volume, voice selection, and trigger words.";
+
+// Canvas
+"help_canvas_inline" = "Inline Canvas";
+"help_canvas_inline_desc" = "View HTML/CSS/JS canvases directly in the chat conversation.";
+"help_canvas_external" = "External Window";
+"help_canvas_external_desc" = "Open canvases in a floating panel for larger workspaces.";
+"help_canvas_hot_reload" = "Hot Reload";
+"help_canvas_hot_reload_desc" = "Canvas automatically reloads when source files change.";
+
+// Projects
+"help_projects_create" = "Create Projects";
+"help_projects_create_desc" = "Organize your conversations into named projects.";
+"help_projects_sessions" = "Session Management";
+"help_projects_sessions_desc" = "Assign chats to projects and move them between projects.";
+"help_projects_memory" = "Project Memory";
+"help_projects_memory_desc" = "Each project stores persistent memory the AI can reference.";
+"help_projects_artifacts" = "Artifacts";
+"help_projects_artifacts_desc" = "Save plans, documents, and files as project artifacts.";
+
+// MCP
+"help_mcp_add" = "Add/Remove Servers";
+"help_mcp_add_desc" = "Manage MCP servers via the /mcp command or Settings.";
+"help_mcp_config" = "Per-Provider Config";
+"help_mcp_config_desc" = "Each CLI provider has its own MCP configuration.";
+"help_mcp_providers" = "Supported Providers";
+"help_mcp_providers_desc" = "Claude, Gemini, and Codex support MCP servers natively.";
+
+// Connectors
+"help_connectors_fetch" = "@fetch Syntax";
+"help_connectors_fetch_desc" = "Use @fetch connector.action in chat or /fetch to enrich prompts.";
+"help_connectors_types" = "Connector Types";
+"help_connectors_types_desc" = "Google, Microsoft, GitHub, Slack, Discord, Telegram, WordPress, and more.";
+"help_connectors_oauth" = "OAuth Flow";
+"help_connectors_oauth_desc" = "Connectors authenticate via OAuth 2.0 with PKCE for secure access.";
+
+// Git Integration
+"Git" = "Git";
+"Git Repositories" = "Git Repositories";
+"Git section" = "Git section";
+"Show a Git section in the sidebar to browse repositories from GitHub and GitLab." = "Show a Git section in the sidebar to browse repositories from GitHub and GitLab.";
+"Connect a GitHub or GitLab connector in Settings to browse your repositories." = "Connect a GitHub or GitLab connector in Settings to browse your repositories.";
+"No Git Connector" = "No Git Connector";
+"Connect a GitHub or GitLab connector in Settings → Connectors to browse your repositories." = "Connect a GitHub or GitLab connector in Settings → Connectors to browse your repositories.";
+"Open Settings" = "Open Settings";
+"Search repositories…" = "Search repositories…";
+"Last updated" = "Last updated";
+"Name" = "Name";
+"Stars" = "Stars";
+"Loading repositories…" = "Loading repositories…";
+"Retry" = "Retry";
+"No repositories found" = "No repositories found";
+"No matching repositories" = "No matching repositories";
+"Cloned locally" = "Cloned locally";
+"Cancel" = "Cancel";
+"Confirm" = "Confirm";
+
+// Git Panel Chat
+"Ask anything about this repository" = "Ask anything about this repository";
+"The AI knows your selected repo and branch. Try: \"Show me recent commits\" or \"What open PRs are there?\"" = "The AI knows your selected repo and branch. Try: \"Show me recent commits\" or \"What open PRs are there?\"";
+"Select a repository below to start" = "Select a repository below to start";
+"Click a repository to set it as context, then chat with the AI about your code." = "Click a repository to set it as context, then chat with the AI about your code.";
+"Open Connectors" = "Open Connectors";
+"Show chat" = "Show chat";
+"Hide chat" = "Hide chat";
+"Code" = "Code";
+"Loading…" = "Loading…";
+"%lld lines" = "%lld lines";
+"Loading file…" = "Loading file…";
+"Unable to decode file content" = "Unable to decode file content";
+"Unable to load file content" = "Unable to load file content";
+"Error loading file" = "Error loading file";
+"Copy file contents" = "Copy file contents";
+"Select a file to view its contents" = "Select a file to view its contents";
+
+// =============================================================================
+// MARK: - Backup Settings
+// =============================================================================
+
+"Backup" = "Backup";
+"Export Backup" = "Export Backup";
+"Restore from Backup" = "Restore from Backup";
+"Restore Backup" = "Restore Backup";
+"Export everything: settings, connectors, credentials, sessions, projects, skills, schedules, paired devices, learning data, and all app data to a single encrypted file." = "Export everything: settings, connectors, credentials, sessions, projects, skills, schedules, paired devices, learning data, and all app data to a single encrypted file.";
+"Restore everything from a previously exported .mcb backup file." = "Restore everything from a previously exported .mcb backup file.";
+"Authenticate to Export" = "Authenticate to Export";
+"Authenticate to export your McClaw configuration" = "Authenticate to export your McClaw configuration";
+"Encryption password" = "Encryption password";
+"Confirm password" = "Confirm password";
+"Include chat sessions" = "Include chat sessions";
+"Include projects" = "Include projects";
+"Export…" = "Export…";
+"Exporting…" = "Exporting…";
+"Import…" = "Import…";
+"Restoring…" = "Restoring…";
+"Export McClaw Backup" = "Export McClaw Backup";
+"Select McClaw Backup" = "Select McClaw Backup";
+"Passwords do not match" = "Passwords do not match";
+"Backup exported successfully" = "Backup exported successfully";
+"This will replace all current settings, credentials, sessions, projects, schedules, paired devices, and learning data. This action cannot be undone." = "This will replace all current settings, credentials, sessions, projects, schedules, paired devices, and learning data. This action cannot be undone.";
+"Cancel" = "Cancel";
+"Restore" = "Restore";
+"Warnings:" = "Warnings:";
+"Failed to encrypt backup" = "Failed to encrypt backup";
+"Wrong password or corrupted backup" = "Wrong password or corrupted backup";
+
+// MARK: - Git Repo List
+"git_repo_count %lld" = "%lld repositories";
+
+// MARK: - Git Action Confirmation Cards
+"git_action_executing" = "Executing…";
+"git_action_completed" = "Completed";
+"git_action_failed" = "Failed";
+"git_action_cancelled" = "Cancelled";
+"git_action_destructive_warning" = "This is a destructive operation that may lose data.";
+"git_action_confirm" = "Confirm";
+"git_action_cancel" = "Cancel";
+
+// MARK: - Git Contextual Actions (PR)
+"git_action_review_pr" = "Review this PR";
+"git_action_summarize_pr" = "Summarize PR";
+"git_action_suggest_improvements" = "Suggest improvements";
+"git_action_post_review" = "Post AI review as comment";
+"git_action_merge_pr" = "Merge PR";
+
+// MARK: - Git Contextual Actions (Issues)
+"git_action_analyze_issue" = "Analyze issue";
+"git_action_suggest_fix" = "Suggest fix";
+"git_action_create_branch_issue" = "Create branch for issue";
+"git_action_close_issue" = "Close with comment";
+"git_action_find_related" = "Find related issues";
+
+// MARK: - Git Contextual Actions (Commits)
+"git_action_explain_commit" = "Explain commit";
+"git_action_analyze_impact" = "Analyze impact";
+"git_action_revert_commit" = "Revert commit";
+"git_action_cherry_pick" = "Cherry-pick to branch";
+
+// MARK: - Git Contextual Actions (Branches)
+"git_action_compare_branch" = "Compare with default";
+"git_action_create_pr" = "Create PR from branch";
+"git_action_delete_branch" = "Delete branch";
+"git_action_merge_branch" = "Merge into current";
+
+// MARK: - Git Contextual Actions (Files)
+"git_action_explain_file" = "Explain file";
+"git_action_find_usages" = "Find usages";
+"git_action_suggest_improvements_file" = "Suggest improvements";
+"git_action_write_tests" = "Write tests";
+"git_action_ask_about_lines %lld %lld" = "Ask AI about lines %lld–%lld";
+
+// MARK: - Git Repo Action Bar
+"git_repo_explain" = "Explain Repo";
+"git_repo_what_broke" = "What Broke?";
+"git_repo_changelog" = "Changelog";
+"git_repo_health" = "Health Check";
+"git_repo_security" = "Security Audit";
+"git_repo_todos" = "Find TODOs";
+"git_repo_what_changed" = "This Week";
+
+// MARK: - Git Quick Actions Panel
+"Quick Actions" = "Quick Actions";
+"git_quick_commit" = "Commit changes";
+"git_quick_pull" = "Pull latest";
+"git_quick_create_branch" = "Create branch";
+"git_quick_review_prs" = "Review open PRs";
+"git_quick_changelog" = "Generate changelog";
+"git_quick_actions_title" = "Quick Actions";
+
+// MARK: - Project Git Repos
+"project_git_repos" = "Git Repos";
+"project_no_git_repos" = "No repos yet";
+"project_git_repos_description" = "Add Git repositories to give the AI context about your codebase.";
+"project_add_git_repo" = "Add Repository";
+"project_remove_git_repo" = "Remove from Project";
+"project_select_git_repo_message" = "Select a Git repository folder";
+"project_select_git_repo_prompt" = "Add";
+"project_select_repo_title" = "Add Repository";
+"project_repo_search_placeholder" = "Search repositories…";
+"project_repo_no_results" = "No repositories found";
+"project_browse_local_repo" = "Browse local folder…";
+"project_no_git_platforms" = "No Git platforms connected";
+"project_no_git_platforms_hint" = "Connect GitHub or GitLab in Settings → Connectors to browse your repositories.";
+
+// MARK: - Git Monitor Templates
+"git_monitor_pr_reviewer" = "PR Reviewer";
+"git_monitor_pr_reviewer_desc" = "Lists PRs that need review, warns about old PRs";
+"git_monitor_ci_watcher" = "CI Watcher";
+"git_monitor_ci_watcher_desc" = "Checks for failed CI pipelines on main";
+"git_monitor_stale_branches" = "Stale Branch Cleaner";
+"git_monitor_stale_branches_desc" = "Lists branches with no activity in 30+ days";
+"git_monitor_security_scan" = "Security Scan";
+"git_monitor_security_scan_desc" = "Checks for vulnerabilities and hardcoded secrets";
+"git_monitor_activity_summary" = "Activity Summary";
+"git_monitor_activity_summary_desc" = "Weekly development activity report";
+"git_monitor_issue_triage" = "Issue Triage";
+"git_monitor_issue_triage_desc" = "New unassigned issues daily";
+
+// MARK: - Git Monitor Setup Sheet
+"Set Up Monitor" = "Set Up Monitor";
+"Schedule:" = "Schedule:";
+"Create Monitor" = "Create Monitor";
+"git_monitor_created" = "Monitor created successfully";
+"git_monitor_error_no_connector" = "No connected connector for this platform";
+"git_monitor_error_create" = "Error creating monitor";
+"git_repo_monitor" = "Monitor";
+
+// MARK: - Git Project Association
+"git_project_add" = "Add to Project";
+"git_project_visit" = "Visit";
+"git_project_select" = "Select a project";
+"git_project_none" = "No projects yet. Create one in the Projects section.";
+
+// MARK: - Git Session History
+"git_session_new" = "New Conversation";
+"git_session_history" = "Conversation history";
+"git_session_open" = "Open";
+"git_session_delete" = "Delete";
+
+// MARK: - Git Chain Depth
+"git_chain_depth_exceeded" = "Maximum chain depth reached (10 steps). Please start a new request to continue.";
+
+// MARK: - Cron / BackgroundCLISession
+"cron.description" = "Manage scheduled jobs. Claude uses a persistent background session; other providers use the local scheduler.";
+"cron.claude.session.active" = "Claude background session active";
+
+// =============================================================================
+// MARK: - Adaptive Learning
+// =============================================================================
+"Learning" = "Learning";
+"settings.learning.title" = "Adaptive Learning";
+"settings.learning.enable" = "Enable adaptive learning";
+"settings.learning.enable.description" = "McClaw learns from your interactions to personalize future responses.";
+"settings.learning.indicators" = "Show learning indicators";
+"settings.learning.indicators.description" = "Display subtle indicators in chat when preferences are applied.";
+"settings.learning.statistics" = "Statistics";
+"settings.learning.preferences" = "Preferences";
+"settings.learning.interactions" = "Interactions";
+"settings.learning.satisfaction" = "Satisfaction";
+"settings.learning.provider.performance" = "Provider Performance";
+"settings.learning.best.for %@" = "Best for: %@";
+"settings.learning.learned.preferences" = "Learned Preferences";
+"settings.learning.data" = "Data Management";
+"settings.learning.data.description" = "All learning data is stored locally in ~/.mcclaw/learning/. Nothing is sent to any server.";
+"settings.learning.export" = "Export Preferences";
+"settings.learning.reset" = "Reset All Data";
+"settings.learning.reset.title" = "Reset Learning Data?";
+"settings.learning.reset.message" = "This will delete all learned preferences and feedback history. This action cannot be undone.";
+"settings.learning.reset.confirm" = "Reset";
+"settings.learning.reset.cancel" = "Cancel";
+"settings.learning.export.success" = "Preferences exported successfully.";
+"settings.learning.events.count %lld" = "%lld raw feedback events stored.";
+
+// MARK: - Devices Settings Tab
+
+"devices_tab_title" = "Devices";
+"pair_new_device" = "Pair New Device";
+"pair_device_header" = "Pair a Mobile Device";
+"pair_device_scan_hint" = "Scan this QR code from the McClaw Mobile app to pair this device.";
+"pair_device_dismiss_qr" = "Dismiss";
+"approve" = "Approve";
+"reject" = "Reject";
+"cancel" = "Cancel";
+"pending_request_header" = "Pending Pairing Request";
+"no_devices_paired" = "No devices paired yet. Tap \"Pair New Device\" and scan the QR code from the McClaw Mobile app.";
+"paired_devices_header" = "Paired Devices";
+"device_last_seen %@" = "Last seen: %@";
+"device_platform_ios" = "iOS";
+"device_platform_android" = "Android";
+"device_online" = "Online";
+"device_offline" = "Offline";
+"revoke_device" = "Revoke Access";
+"revoke_device_confirm %@" = "Are you sure you want to revoke access for %@? The device will need to pair again.";
+"device_permissions_header %@" = "Permissions for %@";
+"devices_server_running %@" = "Mobile server running on %@";
+"devices_server_stopped" = "Mobile server is not running.";
+"devices_server_start" = "Start Server";
+"devices_connected_count %lld %lld" = "%lld of %lld connected";
+"devices_remote_access" = "Remote Access";
+"devices_remote_access_desc" = "Connect to your Mac from anywhere via a relay server. Use McClaw Cloud or host your own relay.";
+"devices_relay_mode" = "Mode";
+"devices_relay_disabled" = "Local Only";
+"devices_relay_self_hosted" = "Self-Hosted";
+"devices_relay_cloud" = "McClaw Cloud";
+"devices_relay_url_placeholder" = "wss://your-relay-server.com";
+"devices_relay_cloud_url" = "relay.joseconti.com";
+"devices_relay_connected" = "Relay connected";
+"devices_relay_disconnected" = "Relay not connected";
+"devices_relay_connect" = "Connect";
+"devices_relay_disconnect" = "Disconnect";
+"devices_relay_cloud_cost" = "McClaw Cloud costs 20€/year. Includes relay access for all your paired devices.";
+"devices_relay_self_hosted_info" = "You can deploy your own relay server on any Node.js host. Source code and instructions:";
+"in_development_badge" = "In development";
+
+// =============================================================================
+// MARK: - MCP Presets
+// =============================================================================
+
+// Preset Browser
+"preset.browser.title" = "MCP Server Presets";
+"preset.browser.back" = "Back";
+"preset.browser.install" = "Install";
+"preset.browser.reinstall" = "Reinstall";
+
+// Preset Menu
+"preset.menu.manual" = "Add Manually…";
+"preset.menu.browse" = "Browse Presets…";
+
+// Preset Detail
+"preset.detail.command" = "Command";
+"preset.detail.options" = "Options";
+
+// Preset Options (shared)
+"preset.option.default" = "Default";
+"preset.option.headless" = "Headless";
+"preset.option.headless.help" = "Run Chrome without a visible window.";
+"preset.option.isolated" = "Isolated Profile";
+"preset.option.isolated.help" = "Use a temporary profile that is cleaned up after the browser closes.";
+"preset.option.channel" = "Chrome Channel";
+"preset.option.channel.help" = "Which Chrome channel to use (stable, canary, beta, dev).";
+"preset.option.viewport" = "Viewport";
+"preset.option.viewport.help" = "Initial viewport size, e.g. 1280x720.";
+"preset.option.browser_url" = "Browser URL";
+"preset.option.browser_url.help" = "Connect to a running Chrome instance (e.g. http://127.0.0.1:9222).";
+
+// Chrome DevTools Preset
+"preset.chrome_devtools.description" = "Control and inspect a live Chrome browser: automation, debugging, performance, network, and screenshots. 29 tools.";
+"preset.chrome_devtools_slim.description" = "Lightweight Chrome control with only 3 tools: navigate, evaluate JavaScript, and screenshot.";
