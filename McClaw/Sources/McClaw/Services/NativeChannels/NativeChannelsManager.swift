@@ -18,6 +18,27 @@ final class NativeChannelsManager {
     var slackState: NativeChannelState = .disconnected
     var slackStats = NativeChannelStats()
     var slackBotName: String?
+    var discordState: NativeChannelState = .disconnected
+    var discordStats = NativeChannelStats()
+    var discordBotName: String?
+    var matrixState: NativeChannelState = .disconnected
+    var matrixStats = NativeChannelStats()
+    var matrixBotName: String?
+    var mattermostState: NativeChannelState = .disconnected
+    var mattermostStats = NativeChannelStats()
+    var mattermostBotName: String?
+    var mastodonState: NativeChannelState = .disconnected
+    var mastodonStats = NativeChannelStats()
+    var mastodonBotName: String?
+    var zulipState: NativeChannelState = .disconnected
+    var zulipStats = NativeChannelStats()
+    var zulipBotName: String?
+    var rocketchatState: NativeChannelState = .disconnected
+    var rocketchatStats = NativeChannelStats()
+    var rocketchatBotName: String?
+    var twitchState: NativeChannelState = .disconnected
+    var twitchStats = NativeChannelStats()
+    var twitchBotName: String?
     var configs: [NativeChannelConfig] = []
     var lastError: String?
 
@@ -35,6 +56,48 @@ final class NativeChannelsManager {
             name: "Slack",
             icon: "number",
             connectorDefinitionId: "comm.slack"
+        ),
+        NativeChannelDefinition(
+            id: "discord",
+            name: "Discord",
+            icon: "bubble.left",
+            connectorDefinitionId: "comm.discord"
+        ),
+        NativeChannelDefinition(
+            id: "matrix",
+            name: "Matrix",
+            icon: "square.grid.3x3",
+            connectorDefinitionId: "comm.matrix"
+        ),
+        NativeChannelDefinition(
+            id: "mattermost",
+            name: "Mattermost",
+            icon: "bubble.left.and.bubble.right",
+            connectorDefinitionId: "comm.mattermost"
+        ),
+        NativeChannelDefinition(
+            id: "mastodon",
+            name: "Mastodon",
+            icon: "globe",
+            connectorDefinitionId: "comm.mastodon"
+        ),
+        NativeChannelDefinition(
+            id: "zulip",
+            name: "Zulip",
+            icon: "bubble.left.and.text.bubble.right",
+            connectorDefinitionId: "comm.zulip"
+        ),
+        NativeChannelDefinition(
+            id: "rocketchat",
+            name: "Rocket.Chat",
+            icon: "bubble.left.and.exclamationmark.bubble.right",
+            connectorDefinitionId: "comm.rocketchat"
+        ),
+        NativeChannelDefinition(
+            id: "twitch",
+            name: "Twitch",
+            icon: "play.tv",
+            connectorDefinitionId: "comm.twitch"
         ),
     ]
 
@@ -65,6 +128,13 @@ final class NativeChannelsManager {
         Task {
             await TelegramNativeService.shared.stop()
             await SlackNativeService.shared.stop()
+            await DiscordNativeService.shared.stop()
+            await MatrixNativeService.shared.stop()
+            await MattermostNativeService.shared.stop()
+            await MastodonNativeService.shared.stop()
+            await ZulipNativeService.shared.stop()
+            await RocketChatNativeService.shared.stop()
+            await TwitchNativeService.shared.stop()
         }
         logger.info("NativeChannelsManager stopped all channels")
     }
@@ -73,42 +143,78 @@ final class NativeChannelsManager {
 
     /// Start a specific channel.
     func startChannel(config: NativeChannelConfig) async {
+        let handler: @Sendable (NativeChannelMessage) async -> String? = { [weak self] message in
+            await self?.handleIncomingMessage(message)
+        }
+
         switch config.channelId {
         case "telegram":
             let service = TelegramNativeService.shared
-            await service.setOnMessage { [weak self] message in
-                await self?.handleIncomingMessage(message)
-            }
+            await service.setOnMessage(handler)
             await service.start(config: config)
-            await refreshTelegramState()
 
         case "slack":
             let service = SlackNativeService.shared
-            await service.setOnMessage { [weak self] message in
-                await self?.handleIncomingMessage(message)
-            }
+            await service.setOnMessage(handler)
             await service.start(config: config)
-            await refreshSlackState()
+
+        case "discord":
+            let service = DiscordNativeService.shared
+            await service.setOnMessage(handler)
+            await service.start(config: config)
+
+        case "matrix":
+            let service = MatrixNativeService.shared
+            await service.setOnMessage(handler)
+            await service.start(config: config)
+
+        case "mattermost":
+            let service = MattermostNativeService.shared
+            await service.setOnMessage(handler)
+            await service.start(config: config)
+
+        case "mastodon":
+            let service = MastodonNativeService.shared
+            await service.setOnMessage(handler)
+            await service.start(config: config)
+
+        case "zulip":
+            let service = ZulipNativeService.shared
+            await service.setOnMessage(handler)
+            await service.start(config: config)
+
+        case "rocketchat":
+            let service = RocketChatNativeService.shared
+            await service.setOnMessage(handler)
+            await service.start(config: config)
+
+        case "twitch":
+            let service = TwitchNativeService.shared
+            await service.setOnMessage(handler)
+            await service.start(config: config)
 
         default:
             logger.warning("Unknown native channel: \(config.channelId)")
         }
+
+        await refreshChannelState(config.channelId)
     }
 
     /// Stop a specific channel.
     func stopChannel(channelId: String) async {
         switch channelId {
-        case "telegram":
-            await TelegramNativeService.shared.stop()
-            await refreshTelegramState()
-
-        case "slack":
-            await SlackNativeService.shared.stop()
-            await refreshSlackState()
-
-        default:
-            logger.warning("Unknown native channel: \(channelId)")
+        case "telegram": await TelegramNativeService.shared.stop()
+        case "slack": await SlackNativeService.shared.stop()
+        case "discord": await DiscordNativeService.shared.stop()
+        case "matrix": await MatrixNativeService.shared.stop()
+        case "mattermost": await MattermostNativeService.shared.stop()
+        case "mastodon": await MastodonNativeService.shared.stop()
+        case "zulip": await ZulipNativeService.shared.stop()
+        case "rocketchat": await RocketChatNativeService.shared.stop()
+        case "twitch": await TwitchNativeService.shared.stop()
+        default: logger.warning("Unknown native channel: \(channelId)")
         }
+        await refreshChannelState(channelId)
     }
 
     /// Add or update a channel config.
@@ -151,23 +257,62 @@ final class NativeChannelsManager {
     /// Called by channel services when their state changes.
     func channelStateDidChange() {
         Task { @MainActor in
-            await refreshTelegramState()
-            await refreshSlackState()
+            for channel in Self.availableChannels {
+                await refreshChannelState(channel.id)
+            }
         }
     }
 
-    private func refreshTelegramState() async {
-        let service = TelegramNativeService.shared
-        telegramState = await service.state
-        telegramStats = await service.stats
-        telegramBotName = await service.botDisplayName
-    }
-
-    private func refreshSlackState() async {
-        let service = SlackNativeService.shared
-        slackState = await service.state
-        slackStats = await service.stats
-        slackBotName = await service.botDisplayName
+    private func refreshChannelState(_ channelId: String) async {
+        switch channelId {
+        case "telegram":
+            let s = TelegramNativeService.shared
+            telegramState = await s.state
+            telegramStats = await s.stats
+            telegramBotName = await s.botDisplayName
+        case "slack":
+            let s = SlackNativeService.shared
+            slackState = await s.state
+            slackStats = await s.stats
+            slackBotName = await s.botDisplayName
+        case "discord":
+            let s = DiscordNativeService.shared
+            discordState = await s.state
+            discordStats = await s.stats
+            discordBotName = await s.botDisplayName
+        case "matrix":
+            let s = MatrixNativeService.shared
+            matrixState = await s.state
+            matrixStats = await s.stats
+            matrixBotName = await s.botDisplayName
+        case "mattermost":
+            let s = MattermostNativeService.shared
+            mattermostState = await s.state
+            mattermostStats = await s.stats
+            mattermostBotName = await s.botDisplayName
+        case "mastodon":
+            let s = MastodonNativeService.shared
+            mastodonState = await s.state
+            mastodonStats = await s.stats
+            mastodonBotName = await s.botDisplayName
+        case "zulip":
+            let s = ZulipNativeService.shared
+            zulipState = await s.state
+            zulipStats = await s.stats
+            zulipBotName = await s.botDisplayName
+        case "rocketchat":
+            let s = RocketChatNativeService.shared
+            rocketchatState = await s.state
+            rocketchatStats = await s.stats
+            rocketchatBotName = await s.botDisplayName
+        case "twitch":
+            let s = TwitchNativeService.shared
+            twitchState = await s.state
+            twitchStats = await s.stats
+            twitchBotName = await s.botDisplayName
+        default:
+            break
+        }
     }
 
     // MARK: - Message Routing

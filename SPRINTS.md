@@ -3,7 +3,7 @@
 ## Proyecto
 App nativa macOS (Swift/SwiftUI) que wrappea CLIs de IA (Claude, ChatGPT, Gemini, Ollama) via CLI Bridge. Conecta a Gateway via WebSocket para channels, plugins y automation.
 
-## Estado: Sprint 1-10 COMPLETADO | Sprint 11 COMPLETADO | Sprint 12 COMPLETADO | Sprint 13 COMPLETADO | Sprint 14 COMPLETADO | Sprint 15 COMPLETADO | Sprint 16 COMPLETADO | Sprint 17 COMPLETADO | Sprint 18 COMPLETADO | Sprint 19 COMPLETADO | Sprint 20 COMPLETADO
+## Estado: Sprint 1-10 COMPLETADO | Sprint 11 COMPLETADO | Sprint 12 COMPLETADO | Sprint 13 COMPLETADO | Sprint 14 COMPLETADO | Sprint 15 COMPLETADO | Sprint 16 COMPLETADO | Sprint 17 COMPLETADO | Sprint 18 COMPLETADO | Sprint 19 COMPLETADO | Sprint 20 COMPLETADO | Sprint 21 COMPLETADO
 
 ---
 
@@ -1256,4 +1256,70 @@ Phase 2 de Native Channels: Slack via Socket Mode (WebSocket directo, sin servid
 ```bash
 cd McClaw && swift build   # ✅ OK
 swift test                  # ✅ 452/452 passing (39 new)
+```
+
+---
+
+## Sprint 21: Native Channels Expansion (7 plataformas) ✅ COMPLETADO
+
+### Objetivo
+Expandir el sistema de Native Channels con 7 nuevas plataformas de mensajería (Discord, Matrix, Mattermost, Mastodon, Zulip, Rocket.Chat, Twitch), manteniendo la arquitectura Kit + NativeService + Manager + UI.
+
+### 21.1 DiscordKit + DiscordNativeService ✅
+- **Kit**: `Sources/McClawKit/DiscordKit.swift` — Gateway v10 WebSocket: models (GatewayPayload, AnyCodableValue, User, Message, ReadyData), opcodes, URL building, Identify/Heartbeat payloads, parsing, event classification, mention extraction, markdown escaping
+- **Service**: `Services/NativeChannels/DiscordNativeService.swift` — Actor con Gateway WebSocket: Hello → Identify → Ready → heartbeat loop + receive loop, MESSAGE_CREATE dispatch, REST reply
+- **Tests**: `Tests/McClawKitTests/DiscordKitTests.swift` — 37 tests (URL, parsing, events, filtering, formatting, token validation, models)
+
+### 21.2 MatrixKit + MatrixNativeService ✅
+- **Kit**: `Sources/McClawKit/MatrixKit.swift` — Client-Server API: SyncResponse, RoomEvent, EventContent, WhoAmIResponse, /sync URL building, message body builders, text/notice/HTML messages
+- **Service**: `Services/NativeChannels/MatrixNativeService.swift` — Actor con long-polling /sync: initial sync → polling loop con since token, filtra m.room.message, responde via PUT
+- **Tests**: `Tests/McClawKitTests/MatrixKitTests.swift` — 25 tests
+
+### 21.3 MattermostKit + MattermostNativeService ✅
+- **Kit**: `Sources/McClawKit/MattermostKit.swift` — API v4: WebSocketEvent, Post, User, Channel, Team, ws:// URL building, auth challenge, post creation
+- **Service**: `Services/NativeChannels/MattermostNativeService.swift` — Actor con WebSocket + auth challenge, eventPosted handling, REST reply via POST /api/v4/posts
+- **Tests**: `Tests/McClawKitTests/MattermostKitTests.swift` — 26 tests
+
+### 21.4 MastodonKit + MastodonNativeService ✅
+- **Kit**: `Sources/McClawKit/MastodonKit.swift` — Mastodon API: Account, Status, Notification, Visibility enum, HTML stripping, SSE stream parsing, streaming/verify/post URLs
+- **Service**: `Services/NativeChannels/MastodonNativeService.swift` — Actor con WebSocket streaming user:notification, mention detection, reply con visibility configurable
+- **Tests**: `Tests/McClawKitTests/MastodonKitTests.swift` — 29 tests
+
+### 21.5 ZulipKit + ZulipNativeService ✅
+- **Kit**: `Sources/McClawKit/ZulipKit.swift` — Zulip API: RegisterResponse, Event, ZulipMessage, DisplayRecipient (enum stream/users), HTTP Basic auth, form-encoded bodies, event queue registration
+- **Service**: `Services/NativeChannels/ZulipNativeService.swift` — Actor con event queue registration + long-polling GET /api/v1/events, stream/DM reply routing
+- **Tests**: `Tests/McClawKitTests/ZulipKitTests.swift` — 31 tests
+
+### 21.6 RocketChatKit + RocketChatNativeService ✅
+- **Kit**: `Sources/McClawKit/RocketChatKit.swift` — DDP protocol: DDPMessage, RCMessage, RCUser, connect/login/pong/subscribe payloads, stream-room-messages parsing, REST auth headers
+- **Service**: `Services/NativeChannels/RocketChatNativeService.swift` — Actor con DDP WebSocket: connect → login → subscribe stream-room-messages → changed handling, REST reply via chat.sendMessage
+- **Tests**: `Tests/McClawKitTests/RocketChatKitTests.swift` — 34 tests
+
+### 21.7 TwitchKit + TwitchNativeService ✅
+- **Kit**: `Sources/McClawKit/TwitchKit.swift` — EventSub WebSocket: WebSocketMessage, Session, ChatEvent, ChatMessage, Fragment, TokenValidation, subscription/chat message bodies, Helix auth headers
+- **Service**: `Services/NativeChannels/TwitchNativeService.swift` — Actor con EventSub WebSocket: session_welcome → subscribe channel.chat.message → notification handling, REST chat reply
+- **Tests**: `Tests/McClawKitTests/TwitchKitTests.swift` — 30 tests
+
+### 21.8 NativeChannelsManager actualizado ✅
+- Soporte para los 9 canales (Telegram, Slack, Discord, Matrix, Mattermost, Mastodon, Zulip, Rocket.Chat, Twitch)
+- `startChannel()`, `stopChannel()`, `channelStateDidChange()`, `refreshChannelState()` con todos los cases
+
+### 21.9 NativeChannelsSettingsTab actualizado ✅
+- UI para los 9 canales con secciones específicas: Server URL, Bot Email, User ID, Client ID, Reply Visibility, DM-Only, Allowed Room IDs
+- Channel cards con estado, stats y botón de control
+
+### 21.10 ConnectorRegistry actualizado ✅
+- 6 nuevos ConnectorDefinition: `comm.matrix`, `comm.mattermost`, `comm.mastodon`, `comm.zulip`, `comm.rocketchat`, `comm.twitch`
+
+### 21.11 NativeChannelConfig ampliado ✅
+- 6 campos nuevos: `serverURL`, `botEmail`, `clientId`, `userId`, `allowedRoomIds`, `replyVisibility`
+
+### 21.12 Documentación actualizada ✅
+- `docs/McClaw/11-CHANNELS-NATIVOS.md` — Phases 3-9, Dropped Channels, Architecture, Connector Dependencies
+
+### Verificación Sprint 21 ✅
+```bash
+cd McClaw && swift build   # ✅ OK
+swift test                  # ✅ 692/692 passing (240 new)
+./scripts/build-app.sh     # ✅ McClaw.app built
 ```

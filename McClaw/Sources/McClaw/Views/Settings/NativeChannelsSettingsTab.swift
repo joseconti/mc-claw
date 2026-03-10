@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings UI for native channels (Telegram, Slack, Discord).
+/// Settings UI for native channels.
 /// Shows connection status, configuration, and controls for each channel.
 struct NativeChannelsSettingsTab: View {
     @State private var manager = NativeChannelsManager.shared
@@ -79,7 +79,7 @@ struct NativeChannelsSettingsTab: View {
         let state = channelState(for: channelId)
         let (text, color): (String, Color) = switch state {
         case .disconnected: ("Disconnected", .secondary)
-        case .connecting: ("Connecting…", .orange)
+        case .connecting: ("Connecting...", .orange)
         case .connected: ("Connected", .green)
         case .error: ("Error", .red)
         }
@@ -162,6 +162,13 @@ struct NativeChannelsSettingsTab: View {
         switch channelId {
         case "telegram": manager.telegramState
         case "slack": manager.slackState
+        case "discord": manager.discordState
+        case "matrix": manager.matrixState
+        case "mattermost": manager.mattermostState
+        case "mastodon": manager.mastodonState
+        case "zulip": manager.zulipState
+        case "rocketchat": manager.rocketchatState
+        case "twitch": manager.twitchState
         default: .disconnected
         }
     }
@@ -170,28 +177,37 @@ struct NativeChannelsSettingsTab: View {
         switch channelId {
         case "telegram": manager.telegramStats
         case "slack": manager.slackStats
+        case "discord": manager.discordStats
+        case "matrix": manager.matrixStats
+        case "mattermost": manager.mattermostStats
+        case "mastodon": manager.mastodonStats
+        case "zulip": manager.zulipStats
+        case "rocketchat": manager.rocketchatStats
+        case "twitch": manager.twitchStats
         default: NativeChannelStats()
         }
     }
 
     private func channelError(for channelId: String) -> String? {
-        switch channelId {
-        case "telegram": manager.telegramStats.lastError
-        case "slack": manager.slackStats.lastError
-        default: nil
-        }
+        channelStats(for: channelId).lastError
     }
 
     private func botName(for channelId: String) -> String? {
         switch channelId {
         case "telegram": manager.telegramBotName
         case "slack": manager.slackBotName
+        case "discord": manager.discordBotName
+        case "matrix": manager.matrixBotName
+        case "mattermost": manager.mattermostBotName
+        case "mastodon": manager.mastodonBotName
+        case "zulip": manager.zulipBotName
+        case "rocketchat": manager.rocketchatBotName
+        case "twitch": manager.twitchBotName
         default: nil
         }
     }
 
     private func startChannel(_ channelId: String) async {
-        // Get or create config
         var config = manager.config(for: channelId)
         if config == nil {
             guard let instanceId = manager.connectorInstanceId(for: channelId) else { return }
@@ -234,9 +250,17 @@ struct NativeChannelConfigSheet: View {
     @State private var systemPrompt = ""
     @State private var allowedChatIdsText = ""
     @State private var allowedChannelIdsText = ""
+    @State private var allowedRoomIdsText = ""
     @State private var selectedProviderId: String?
     @State private var appLevelToken = ""
     @State private var dmOnly = false
+    @State private var serverURL = ""
+    @State private var botEmail = ""
+    @State private var twitchClientId = ""
+    @State private var rcUserId = ""
+    @State private var replyVisibility = "unlisted"
+
+    private static let channelsNeedingServerURL: Set<String> = ["matrix", "mattermost", "mastodon", "zulip", "rocketchat"]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -259,12 +283,56 @@ struct NativeChannelConfigSheet: View {
                     Toggle("Auto-reconnect on error", isOn: $autoReconnect)
                 }
 
+                // Server URL (Matrix, Mattermost, Mastodon, Zulip, Rocket.Chat)
+                if Self.channelsNeedingServerURL.contains(channelId) {
+                    Section("Server") {
+                        TextField(serverURLPlaceholder, text: $serverURL)
+                            .textFieldStyle(.roundedBorder)
+                        Text(serverURLHint)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 // Slack-specific: App-Level Token
                 if channelId == "slack" {
                     Section("Socket Mode") {
                         SecureField("App-Level Token (xapp-...)", text: $appLevelToken)
                             .textFieldStyle(.roundedBorder)
                         Text("Required for Socket Mode. Create one in your Slack app's Basic Information page.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                // Zulip-specific: Bot Email
+                if channelId == "zulip" {
+                    Section("Bot Authentication") {
+                        TextField("Bot email (e.g. mybot-bot@your-org.zulipchat.com)", text: $botEmail)
+                            .textFieldStyle(.roundedBorder)
+                        Text("The email of the bot account. API key is stored in the connector credentials.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                // Rocket.Chat-specific: User ID
+                if channelId == "rocketchat" {
+                    Section("Authentication") {
+                        TextField("User ID", text: $rcUserId)
+                            .textFieldStyle(.roundedBorder)
+                        Text("Your Rocket.Chat user ID. Found in Administration > Users or your profile.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                // Twitch-specific: Client ID
+                if channelId == "twitch" {
+                    Section("Twitch App") {
+                        TextField("Client ID", text: $twitchClientId)
+                            .textFieldStyle(.roundedBorder)
+                        Text("From your Twitch Developer Console application.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -286,9 +354,21 @@ struct NativeChannelConfigSheet: View {
                     }
                 }
 
+                // Mastodon-specific: Reply visibility
+                if channelId == "mastodon" {
+                    Section("Reply Settings") {
+                        Picker("Reply visibility", selection: $replyVisibility) {
+                            Text("Public").tag("public")
+                            Text("Unlisted").tag("unlisted")
+                            Text("Followers only").tag("private")
+                            Text("Direct message").tag("direct")
+                        }
+                    }
+                }
+
                 Section("Security") {
-                    // Slack/Discord: DM only mode
-                    if channelId == "slack" {
+                    // DM only mode (Slack, Discord)
+                    if channelId == "slack" || channelId == "discord" {
                         Toggle("DMs only (ignore channel messages unless mentioned)", isOn: $dmOnly)
                     }
 
@@ -301,11 +381,20 @@ struct NativeChannelConfigSheet: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    // Slack: string channel IDs
-                    if channelId == "slack" {
+                    // String channel IDs (Slack, Discord, Mattermost, Rocket.Chat, Twitch)
+                    if ["slack", "discord", "mattermost", "rocketchat", "twitch"].contains(channelId) {
                         TextField("Allowed Channel IDs (comma-separated, empty = all)", text: $allowedChannelIdsText)
                             .textFieldStyle(.roundedBorder)
-                        Text("Leave empty to respond in all channels. Add specific Slack channel IDs (e.g. C1234567) to restrict.")
+                        Text("Leave empty to respond in all channels. Add specific channel IDs to restrict.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Room IDs (Matrix, Zulip)
+                    if ["matrix", "zulip"].contains(channelId) {
+                        TextField("Allowed Room/Stream IDs (comma-separated, empty = all)", text: $allowedRoomIdsText)
+                            .textFieldStyle(.roundedBorder)
+                        Text(channelId == "matrix" ? "Matrix room IDs (e.g. !abc123:matrix.org)" : "Zulip stream names or IDs")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -313,12 +402,34 @@ struct NativeChannelConfigSheet: View {
             }
             .formStyle(.grouped)
         }
-        .frame(width: 480, height: 500)
+        .frame(width: 520, height: 580)
         .onAppear { loadConfig() }
     }
 
     private var channelName: String {
         NativeChannelsManager.availableChannels.first { $0.id == channelId }?.name ?? channelId
+    }
+
+    private var serverURLPlaceholder: String {
+        switch channelId {
+        case "matrix": return "https://matrix.org"
+        case "mattermost": return "https://your-server.mattermost.com"
+        case "mastodon": return "https://mastodon.social"
+        case "zulip": return "https://your-org.zulipchat.com"
+        case "rocketchat": return "https://your-server.rocket.chat"
+        default: return "https://..."
+        }
+    }
+
+    private var serverURLHint: String {
+        switch channelId {
+        case "matrix": return "Your Matrix homeserver URL."
+        case "mattermost": return "Your Mattermost server URL (self-hosted or cloud)."
+        case "mastodon": return "Your Mastodon instance URL."
+        case "zulip": return "Your Zulip server URL."
+        case "rocketchat": return "Your Rocket.Chat server URL."
+        default: return "Server URL."
+        }
     }
 
     private func loadConfig() {
@@ -330,11 +441,19 @@ struct NativeChannelConfigSheet: View {
         selectedProviderId = config.aiProviderId
         appLevelToken = config.appLevelToken ?? ""
         dmOnly = config.dmOnly ?? false
+        serverURL = config.serverURL ?? ""
+        botEmail = config.botEmail ?? ""
+        twitchClientId = config.clientId ?? ""
+        rcUserId = config.userId ?? ""
+        replyVisibility = config.replyVisibility ?? "unlisted"
         if let ids = config.allowedChatIds, !ids.isEmpty {
             allowedChatIdsText = ids.map(String.init).joined(separator: ", ")
         }
         if let ids = config.allowedChannelIds, !ids.isEmpty {
             allowedChannelIdsText = ids.joined(separator: ", ")
+        }
+        if let ids = config.allowedRoomIds, !ids.isEmpty {
+            allowedRoomIdsText = ids.joined(separator: ", ")
         }
     }
 
@@ -345,6 +464,10 @@ struct NativeChannelConfigSheet: View {
 
         let allowedChannelIds: [String]? = allowedChannelIdsText.isEmpty ? nil :
             allowedChannelIdsText.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+
+        let allowedRoomIds: [String]? = allowedRoomIdsText.isEmpty ? nil :
+            allowedRoomIdsText.split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
 
         guard let instanceId = manager.connectorInstanceId(for: channelId) ??
@@ -361,7 +484,13 @@ struct NativeChannelConfigSheet: View {
             allowedChannelIds: allowedChannelIds,
             systemPrompt: systemPrompt.isEmpty ? nil : systemPrompt,
             appLevelToken: appLevelToken.isEmpty ? nil : appLevelToken,
-            dmOnly: dmOnly
+            dmOnly: dmOnly,
+            serverURL: serverURL.isEmpty ? nil : serverURL,
+            botEmail: botEmail.isEmpty ? nil : botEmail,
+            clientId: twitchClientId.isEmpty ? nil : twitchClientId,
+            userId: rcUserId.isEmpty ? nil : rcUserId,
+            allowedRoomIds: allowedRoomIds,
+            replyVisibility: channelId == "mastodon" ? replyVisibility : nil
         )
         manager.saveConfig(config)
     }

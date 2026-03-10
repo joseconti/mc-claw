@@ -31,6 +31,18 @@ struct NativeChannelConfig: Codable, Sendable {
     var appLevelToken: String?
     /// Whether to respond only to DMs (Slack/Discord). If false, responds in channels where mentioned.
     var dmOnly: Bool?
+    /// Server/instance URL for self-hosted platforms (Matrix, Mattermost, Zulip, Rocket.Chat, Mastodon).
+    var serverURL: String?
+    /// Bot email for Zulip authentication (used with API key).
+    var botEmail: String?
+    /// Client ID for platforms that require it (Twitch).
+    var clientId: String?
+    /// User ID for platforms that require it (Rocket.Chat auth).
+    var userId: String?
+    /// Allowed room/stream IDs (Matrix rooms, Zulip streams).
+    var allowedRoomIds: [String]?
+    /// Mastodon post visibility (public, unlisted, private, direct).
+    var replyVisibility: String?
 
     init(
         channelId: String,
@@ -43,7 +55,13 @@ struct NativeChannelConfig: Codable, Sendable {
         allowedChannelIds: [String]? = nil,
         systemPrompt: String? = nil,
         appLevelToken: String? = nil,
-        dmOnly: Bool? = nil
+        dmOnly: Bool? = nil,
+        serverURL: String? = nil,
+        botEmail: String? = nil,
+        clientId: String? = nil,
+        userId: String? = nil,
+        allowedRoomIds: [String]? = nil,
+        replyVisibility: String? = nil
     ) {
         self.channelId = channelId
         self.connectorInstanceId = connectorInstanceId
@@ -56,6 +74,12 @@ struct NativeChannelConfig: Codable, Sendable {
         self.systemPrompt = systemPrompt
         self.appLevelToken = appLevelToken
         self.dmOnly = dmOnly
+        self.serverURL = serverURL
+        self.botEmail = botEmail
+        self.clientId = clientId
+        self.userId = userId
+        self.allowedRoomIds = allowedRoomIds
+        self.replyVisibility = replyVisibility
     }
 }
 

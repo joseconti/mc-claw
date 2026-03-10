@@ -358,6 +358,92 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "get_me", name: "Bot info", description: "Get bot information"),
             ]
         ),
+        ConnectorDefinition(
+            id: "comm.matrix",
+            category: .communication,
+            name: "Matrix",
+            description: "Connect to Matrix homeserver for decentralized messaging",
+            icon: "square.grid.3x3",
+            authType: .pat,
+            actions: [
+                ConnectorActionDef(id: "whoami", name: "Who am I", description: "Get authenticated user info"),
+                ConnectorActionDef(id: "joined_rooms", name: "Joined rooms", description: "List rooms the bot has joined"),
+                ConnectorActionDef(id: "sync", name: "Sync", description: "Sync latest events from joined rooms"),
+            ]
+        ),
+        ConnectorDefinition(
+            id: "comm.mattermost",
+            category: .communication,
+            name: "Mattermost",
+            description: "Connect to Mattermost server for team messaging",
+            icon: "bubble.left.and.bubble.right",
+            authType: .pat,
+            actions: [
+                ConnectorActionDef(id: "get_me", name: "Get profile", description: "Get authenticated user profile"),
+                ConnectorActionDef(id: "list_channels", name: "List channels", description: "List channels in a team", parameters: [
+                    ConnectorActionParam(name: "teamId", description: "Team ID", required: true),
+                ]),
+                ConnectorActionDef(id: "list_teams", name: "List teams", description: "List teams the user belongs to"),
+            ]
+        ),
+        ConnectorDefinition(
+            id: "comm.mastodon",
+            category: .communication,
+            name: "Mastodon",
+            description: "Connect to Mastodon/Fediverse instance for social messaging",
+            icon: "globe",
+            authType: .pat,
+            actions: [
+                ConnectorActionDef(id: "verify_credentials", name: "Verify credentials", description: "Get authenticated account info"),
+                ConnectorActionDef(id: "notifications", name: "Notifications", description: "Get recent notifications", parameters: [
+                    ConnectorActionParam(name: "limit", description: "Max notifications", defaultValue: "20"),
+                ]),
+                ConnectorActionDef(id: "home_timeline", name: "Home timeline", description: "Get home timeline"),
+            ]
+        ),
+        ConnectorDefinition(
+            id: "comm.zulip",
+            category: .communication,
+            name: "Zulip",
+            description: "Connect to Zulip server for organized team chat",
+            icon: "bubble.left.and.text.bubble.right",
+            authType: .apiKey,
+            actions: [
+                ConnectorActionDef(id: "get_profile", name: "Get profile", description: "Get bot profile"),
+                ConnectorActionDef(id: "list_streams", name: "List streams", description: "List available streams"),
+                ConnectorActionDef(id: "get_messages", name: "Get messages", description: "Get messages from a stream", parameters: [
+                    ConnectorActionParam(name: "stream", description: "Stream name", required: true),
+                    ConnectorActionParam(name: "topic", description: "Topic name"),
+                ]),
+            ]
+        ),
+        ConnectorDefinition(
+            id: "comm.rocketchat",
+            category: .communication,
+            name: "Rocket.Chat",
+            description: "Connect to Rocket.Chat server for team messaging",
+            icon: "bubble.left.and.exclamationmark.bubble.right",
+            authType: .pat,
+            actions: [
+                ConnectorActionDef(id: "get_me", name: "Get profile", description: "Get authenticated user profile"),
+                ConnectorActionDef(id: "list_channels", name: "List channels", description: "List public channels"),
+                ConnectorActionDef(id: "list_dms", name: "List DMs", description: "List direct message rooms"),
+            ]
+        ),
+        ConnectorDefinition(
+            id: "comm.twitch",
+            category: .communication,
+            name: "Twitch",
+            description: "Connect to Twitch for chat bot integration",
+            icon: "play.tv",
+            authType: .pat,
+            actions: [
+                ConnectorActionDef(id: "validate_token", name: "Validate token", description: "Validate OAuth token"),
+                ConnectorActionDef(id: "get_user", name: "Get user", description: "Get user info by login", parameters: [
+                    ConnectorActionParam(name: "login", description: "Twitch username", required: true),
+                ]),
+            ]
+        ),
     ]
 
     // MARK: - Productivity
