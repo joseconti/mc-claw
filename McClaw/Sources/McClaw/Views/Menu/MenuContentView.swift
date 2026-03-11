@@ -85,13 +85,14 @@ struct MenuContentView: View {
                         .font(.callout)
                         .foregroundStyle(.white.opacity(0.6))
                     Image(systemName: "chevron.down")
-                        .font(.caption2)
+                        .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.35))
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(.white.opacity(0.08))
                 .clipShape(Capsule())
+                .liquidGlassCapsule(interactive: false)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
@@ -148,7 +149,7 @@ struct MenuContentView: View {
 
     @ViewBuilder
     private var cliSelector: some View {
-        let installed = appState.availableCLIs.filter(\.isInstalled)
+        let installed = appState.installedAIProviders
 
         if installed.count > 1 {
             // Multiple CLIs: show as dropdown
@@ -172,7 +173,7 @@ struct MenuContentView: View {
                         .fill(Color.green)
                         .frame(width: 6, height: 6)
                     Text(appState.currentCLI?.displayName ?? "CLI")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
                     Image(systemName: "chevron.down")
                         .font(.system(size: 8))
@@ -182,6 +183,7 @@ struct MenuContentView: View {
                 .padding(.vertical, 4)
                 .background(.white.opacity(0.08))
                 .clipShape(Capsule())
+                .liquidGlassCapsule(interactive: false)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
@@ -192,7 +194,7 @@ struct MenuContentView: View {
                     .fill(Color.green)
                     .frame(width: 6, height: 6)
                 Text(cli.displayName)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.5))
             }
         }

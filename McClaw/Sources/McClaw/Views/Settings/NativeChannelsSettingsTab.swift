@@ -5,19 +5,24 @@ import SwiftUI
 struct NativeChannelsSettingsTab: View {
     @State private var manager = NativeChannelsManager.shared
     @State private var connectorStore = ConnectorStore.shared
-    @State private var showingConfig = false
     @State private var editingChannelId: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Native Channels")
-                .font(.headline)
             Text("Persistent bot connections that run in the background. Messages are processed by your active AI provider.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
             ForEach(NativeChannelsManager.availableChannels, id: \.id) { definition in
                 channelCard(definition)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { editingChannelId != nil },
+            set: { if !$0 { editingChannelId = nil } }
+        )) {
+            if let channelId = editingChannelId {
+                NativeChannelConfigSheet(channelId: channelId)
             }
         }
     }
@@ -42,7 +47,7 @@ struct NativeChannelsSettingsTab: View {
                         }
                         if let botName = botName(for: definition.id) {
                             Text(botName)
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -60,16 +65,11 @@ struct NativeChannelsSettingsTab: View {
                 // Error message
                 if let error = channelError(for: definition.id) {
                     Label(error, systemImage: "exclamationmark.triangle")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.red)
                 }
             }
             .padding(.vertical, 4)
-        }
-        .sheet(isPresented: $showingConfig) {
-            if let channelId = editingChannelId {
-                NativeChannelConfigSheet(channelId: channelId)
-            }
         }
     }
 
@@ -85,7 +85,7 @@ struct NativeChannelsSettingsTab: View {
         }
 
         return Text(text)
-            .font(.caption2.weight(.medium))
+            .font(.subheadline.weight(.medium))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(color.opacity(0.15), in: Capsule())
@@ -98,6 +98,7 @@ struct NativeChannelsSettingsTab: View {
         HStack(spacing: 8) {
             let state = channelState(for: definition.id)
             let hasConnector = manager.hasValidConnector(for: definition.id)
+            let hasConfig = manager.config(for: definition.id) != nil
 
             if state == .connected || state == .connecting {
                 Button("Stop") {
@@ -111,20 +112,47 @@ struct NativeChannelsSettingsTab: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
-            } else {
+            } else if !hasConfig {
                 Text("Configure connector first")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             Button {
                 editingChannelId = definition.id
-                showingConfig = true
             } label: {
                 Image(systemName: "gear")
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
+
+            // Reset button — removes config, connector instance, and keychain credentials
+            if hasConfig || hasConnector {
+                Button {
+                    Task { await resetChannel(definition) }
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red.opacity(0.7))
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .help("Reset channel configuration")
+            }
+        }
+    }
+
+    /// Fully reset a channel: stop it, remove config, delete connector instance and keychain credentials.
+    private func resetChannel(_ definition: NativeChannelDefinition) async {
+        // Stop channel if running
+        await manager.removeConfig(channelId: definition.id)
+
+        // Remove associated connector instance and keychain credentials
+        if let instanceId = manager.connectorInstanceId(for: definition.id) {
+            connectorStore.setConnected(id: instanceId, connected: false)
+            Task {
+                await KeychainService.shared.deleteCredentials(instanceId: instanceId)
+            }
+            connectorStore.removeInstance(id: instanceId)
         }
     }
 
@@ -142,17 +170,17 @@ struct NativeChannelsSettingsTab: View {
                 statItem(label: "Last message", value: formatRelative(lastMsg))
             }
         }
-        .font(.caption)
+        .font(.subheadline)
         .foregroundStyle(.secondary)
     }
 
     private func statItem(label: String, value: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.caption.weight(.medium))
+                .font(.subheadline.weight(.medium))
                 .foregroundStyle(.primary)
             Text(label)
-                .font(.caption2)
+                .font(.subheadline)
         }
     }
 
@@ -243,15 +271,20 @@ struct NativeChannelConfigSheet: View {
     let channelId: String
     @Environment(\.dismiss) private var dismiss
     @State private var manager = NativeChannelsManager.shared
+    @State private var connectorStore = ConnectorStore.shared
 
+    // Credentials
+    @State private var botToken = ""
+    @State private var hasExistingToken = false
+
+    // General
     @State private var enabled = true
     @State private var respondWithAI = true
     @State private var autoReconnect = true
     @State private var systemPrompt = ""
-    @State private var allowedChatIdsText = ""
-    @State private var allowedChannelIdsText = ""
-    @State private var allowedRoomIdsText = ""
     @State private var selectedProviderId: String?
+
+    // Platform-specific
     @State private var appLevelToken = ""
     @State private var dmOnly = false
     @State private var serverURL = ""
@@ -259,6 +292,11 @@ struct NativeChannelConfigSheet: View {
     @State private var twitchClientId = ""
     @State private var rcUserId = ""
     @State private var replyVisibility = "unlisted"
+
+    // Security
+    @State private var allowedChatIdsText = ""
+    @State private var allowedChannelIdsText = ""
+    @State private var allowedRoomIdsText = ""
 
     private static let channelsNeedingServerURL: Set<String> = ["matrix", "mattermost", "mastodon", "zulip", "rocketchat"]
 
@@ -278,6 +316,17 @@ struct NativeChannelConfigSheet: View {
             Divider()
 
             Form {
+                // Credentials — always first, most important
+                Section("Credentials") {
+                    credentialsFields
+
+                    if hasExistingToken && botToken.isEmpty {
+                        Label("Token already configured", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.green)
+                    }
+                }
+
                 Section("General") {
                     Toggle("Enabled", isOn: $enabled)
                     Toggle("Auto-reconnect on error", isOn: $autoReconnect)
@@ -287,9 +336,9 @@ struct NativeChannelConfigSheet: View {
                 if Self.channelsNeedingServerURL.contains(channelId) {
                     Section("Server") {
                         TextField(serverURLPlaceholder, text: $serverURL)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                         Text(serverURLHint)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -298,31 +347,28 @@ struct NativeChannelConfigSheet: View {
                 if channelId == "slack" {
                     Section("Socket Mode") {
                         SecureField("App-Level Token (xapp-...)", text: $appLevelToken)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                         Text("Required for Socket Mode. Create one in your Slack app's Basic Information page.")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
 
                 // Zulip-specific: Bot Email
                 if channelId == "zulip" {
-                    Section("Bot Authentication") {
+                    Section("Bot Identity") {
                         TextField("Bot email (e.g. mybot-bot@your-org.zulipchat.com)", text: $botEmail)
-                            .textFieldStyle(.roundedBorder)
-                        Text("The email of the bot account. API key is stored in the connector credentials.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .mcclawTextField()
                     }
                 }
 
                 // Rocket.Chat-specific: User ID
                 if channelId == "rocketchat" {
-                    Section("Authentication") {
+                    Section("User Identity") {
                         TextField("User ID", text: $rcUserId)
-                            .textFieldStyle(.roundedBorder)
-                        Text("Your Rocket.Chat user ID. Found in Administration > Users or your profile.")
-                            .font(.caption)
+                            .mcclawTextField()
+                        Text("Found in Administration > Users or your profile.")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -331,9 +377,9 @@ struct NativeChannelConfigSheet: View {
                 if channelId == "twitch" {
                     Section("Twitch App") {
                         TextField("Client ID", text: $twitchClientId)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                         Text("From your Twitch Developer Console application.")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -344,7 +390,7 @@ struct NativeChannelConfigSheet: View {
                     if respondWithAI {
                         Picker("AI Provider", selection: $selectedProviderId) {
                             Text("Active provider").tag(nil as String?)
-                            ForEach(AppState.shared.availableCLIs.filter(\.isInstalled), id: \.id) { cli in
+                            ForEach(AppState.shared.installedAIProviders, id: \.id) { cli in
                                 Text(cli.displayName).tag(cli.id as String?)
                             }
                         }
@@ -367,47 +413,114 @@ struct NativeChannelConfigSheet: View {
                 }
 
                 Section("Security") {
-                    // DM only mode (Slack, Discord)
                     if channelId == "slack" || channelId == "discord" {
                         Toggle("DMs only (ignore channel messages unless mentioned)", isOn: $dmOnly)
                     }
 
-                    // Telegram: numeric chat IDs
                     if channelId == "telegram" {
                         TextField("Allowed Chat IDs (comma-separated, empty = all)", text: $allowedChatIdsText)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                         Text("Leave empty to respond to all chats. Add specific chat IDs to restrict access.")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
 
-                    // String channel IDs (Slack, Discord, Mattermost, Rocket.Chat, Twitch)
                     if ["slack", "discord", "mattermost", "rocketchat", "twitch"].contains(channelId) {
                         TextField("Allowed Channel IDs (comma-separated, empty = all)", text: $allowedChannelIdsText)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                         Text("Leave empty to respond in all channels. Add specific channel IDs to restrict.")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
 
-                    // Room IDs (Matrix, Zulip)
                     if ["matrix", "zulip"].contains(channelId) {
                         TextField("Allowed Room/Stream IDs (comma-separated, empty = all)", text: $allowedRoomIdsText)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                         Text(channelId == "matrix" ? "Matrix room IDs (e.g. !abc123:matrix.org)" : "Zulip stream names or IDs")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
             .formStyle(.grouped)
         }
-        .frame(width: 520, height: 580)
+        .frame(width: 520, height: 620)
         .onAppear { loadConfig() }
     }
 
+    // MARK: - Credentials Fields
+
+    @ViewBuilder
+    private var credentialsFields: some View {
+        switch channelId {
+        case "telegram":
+            SecureField("Bot Token (from @BotFather)", text: $botToken)
+                .mcclawTextField()
+            Text("Create a bot with @BotFather on Telegram and paste the token here.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "slack":
+            SecureField("Bot Token (xoxb-...)", text: $botToken)
+                .mcclawTextField()
+            Text("OAuth Bot Token from your Slack app's OAuth & Permissions page.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "discord":
+            SecureField("Bot Token", text: $botToken)
+                .mcclawTextField()
+            Text("From the Bot section of your Discord application in the Developer Portal.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "matrix":
+            SecureField("Access Token", text: $botToken)
+                .mcclawTextField()
+            Text("Matrix access token. Generate one via Element or the Matrix API.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "mattermost":
+            SecureField("Personal Access Token", text: $botToken)
+                .mcclawTextField()
+            Text("Create a Personal Access Token in Account Settings > Security.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "mastodon":
+            SecureField("Access Token", text: $botToken)
+                .mcclawTextField()
+            Text("From your Mastodon instance's Development > New Application page.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "zulip":
+            SecureField("API Key", text: $botToken)
+                .mcclawTextField()
+            Text("Found in Settings > Your Bots on your Zulip server.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "rocketchat":
+            SecureField("Auth Token", text: $botToken)
+                .mcclawTextField()
+            Text("Personal Access Token from Administration > My Account > Security.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        case "twitch":
+            SecureField("OAuth Token", text: $botToken)
+                .mcclawTextField()
+            Text("OAuth token with chat scopes. Generate via Twitch CLI or OAuth flow.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        default:
+            SecureField("API Token", text: $botToken)
+                .mcclawTextField()
+        }
+    }
+
+    // MARK: - Helpers
+
     private var channelName: String {
         NativeChannelsManager.availableChannels.first { $0.id == channelId }?.name ?? channelId
+    }
+
+    private var connectorDefinitionId: String {
+        NativeChannelsManager.availableChannels.first { $0.id == channelId }?.connectorDefinitionId ?? ""
     }
 
     private var serverURLPlaceholder: String {
@@ -432,32 +545,78 @@ struct NativeChannelConfigSheet: View {
         }
     }
 
+    // MARK: - Load
+
     private func loadConfig() {
-        guard let config = manager.config(for: channelId) else { return }
-        enabled = config.enabled
-        respondWithAI = config.respondWithAI
-        autoReconnect = config.autoReconnect
-        systemPrompt = config.systemPrompt ?? ""
-        selectedProviderId = config.aiProviderId
-        appLevelToken = config.appLevelToken ?? ""
-        dmOnly = config.dmOnly ?? false
-        serverURL = config.serverURL ?? ""
-        botEmail = config.botEmail ?? ""
-        twitchClientId = config.clientId ?? ""
-        rcUserId = config.userId ?? ""
-        replyVisibility = config.replyVisibility ?? "unlisted"
-        if let ids = config.allowedChatIds, !ids.isEmpty {
-            allowedChatIdsText = ids.map(String.init).joined(separator: ", ")
+        // Load channel config
+        if let config = manager.config(for: channelId) {
+            enabled = config.enabled
+            respondWithAI = config.respondWithAI
+            autoReconnect = config.autoReconnect
+            systemPrompt = config.systemPrompt ?? ""
+            selectedProviderId = config.aiProviderId
+            appLevelToken = config.appLevelToken ?? ""
+            dmOnly = config.dmOnly ?? false
+            serverURL = config.serverURL ?? ""
+            botEmail = config.botEmail ?? ""
+            twitchClientId = config.clientId ?? ""
+            rcUserId = config.userId ?? ""
+            replyVisibility = config.replyVisibility ?? "unlisted"
+            if let ids = config.allowedChatIds, !ids.isEmpty {
+                allowedChatIdsText = ids.map(String.init).joined(separator: ", ")
+            }
+            if let ids = config.allowedChannelIds, !ids.isEmpty {
+                allowedChannelIdsText = ids.joined(separator: ", ")
+            }
+            if let ids = config.allowedRoomIds, !ids.isEmpty {
+                allowedRoomIdsText = ids.joined(separator: ", ")
+            }
         }
-        if let ids = config.allowedChannelIds, !ids.isEmpty {
-            allowedChannelIdsText = ids.joined(separator: ", ")
-        }
-        if let ids = config.allowedRoomIds, !ids.isEmpty {
-            allowedRoomIdsText = ids.joined(separator: ", ")
+
+        // Check if credentials already exist in Keychain
+        Task {
+            if let instanceId = manager.connectorInstanceId(for: channelId) {
+                let creds = await KeychainService.shared.loadCredentials(instanceId: instanceId)
+                await MainActor.run {
+                    hasExistingToken = creds?.hasValidToken ?? false
+                }
+            }
         }
     }
 
+    // MARK: - Save
+
     private func save() {
+        let defId = connectorDefinitionId
+        guard !defId.isEmpty else { return }
+
+        // Ensure connector instance exists — create if needed
+        let instanceId: String
+        if let existingId = manager.connectorInstanceId(for: channelId) {
+            instanceId = existingId
+        } else {
+            guard let newInstance = connectorStore.addInstance(definitionId: defId) else { return }
+            connectorStore.setConnected(id: newInstance.id, connected: true)
+            instanceId = newInstance.id
+        }
+
+        // Save credentials to Keychain if token was entered
+        if !botToken.isEmpty {
+            let useApiKey = ["telegram", "zulip"].contains(channelId)
+            let credentials = ConnectorCredentials(
+                accessToken: useApiKey ? nil : botToken,
+                apiKey: useApiKey ? botToken : nil
+            )
+            Task {
+                try? await KeychainService.shared.saveCredentials(
+                    instanceId: instanceId,
+                    credentials: credentials
+                )
+            }
+            connectorStore.setConnected(id: instanceId, connected: true)
+        }
+
+        // Build config
         let allowedChatIds: [Int64]? = allowedChatIdsText.isEmpty ? nil :
             allowedChatIdsText.split(separator: ",")
                 .compactMap { Int64($0.trimmingCharacters(in: .whitespaces)) }
@@ -469,9 +628,6 @@ struct NativeChannelConfigSheet: View {
         let allowedRoomIds: [String]? = allowedRoomIdsText.isEmpty ? nil :
             allowedRoomIdsText.split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
-
-        guard let instanceId = manager.connectorInstanceId(for: channelId) ??
-              manager.config(for: channelId)?.connectorInstanceId else { return }
 
         let config = NativeChannelConfig(
             channelId: channelId,

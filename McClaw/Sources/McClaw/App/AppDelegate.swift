@@ -19,6 +19,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
     func applicationDidFinishLaunching(_ notification: Notification) {
         logger.info("McClaw launching...")
 
+        // Register bundled fonts (OpenDyslexic for accessibility)
+        registerBundledFonts()
+
         // Activate as foreground app and make window key (needed for swift run)
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
@@ -124,6 +127,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
             self.startIconObservation()
 
             logger.info("McClaw ready. Detected \(detected.count) CLI(s).")
+        }
+    }
+
+    // MARK: - Bundled Fonts
+
+    /// Register bundled custom fonts (e.g. OpenDyslexic for accessibility).
+    private func registerBundledFonts() {
+        let fontFiles = [
+            "OpenDyslexic-Regular.otf",
+            "OpenDyslexic-Bold.otf",
+            "OpenDyslexic-Italic.otf",
+            "OpenDyslexic-BoldItalic.otf",
+        ]
+        for file in fontFiles {
+            if let url = Bundle.module.url(forResource: file, withExtension: nil) {
+                var errorRef: Unmanaged<CFError>?
+                if !CTFontManagerRegisterFontsForURL(url as CFURL, .process, &errorRef) {
+                    let error = errorRef?.takeRetainedValue()
+                    logger.warning("Failed to register font \(file): \(String(describing: error))")
+                } else {
+                    logger.info("Registered bundled font: \(file)")
+                }
+            }
         }
     }
 

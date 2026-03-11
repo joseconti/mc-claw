@@ -13,10 +13,16 @@ final class ConnectorStore {
     var selectedInstanceId: String?
     var lastError: String?
 
-    /// OAuth client ID for Google (set by user in Settings > Connectors).
+    /// OAuth client ID for Google/Microsoft (set by user in Settings > Connectors).
     var oauthClientId: String? {
         get { UserDefaults.standard.string(forKey: "mcclaw.oauth.clientId") }
         set { UserDefaults.standard.set(newValue, forKey: "mcclaw.oauth.clientId") }
+    }
+
+    /// OAuth client secret for Google/Microsoft (set by user in Settings > Connectors).
+    var oauthClientSecret: String? {
+        get { UserDefaults.standard.string(forKey: "mcclaw.oauth.clientSecret") }
+        set { UserDefaults.standard.set(newValue, forKey: "mcclaw.oauth.clientSecret") }
     }
 
     private var configFileURL: URL {
@@ -77,6 +83,12 @@ final class ConnectorStore {
         if connected {
             instances[idx].lastSyncAt = Date()
         }
+        saveToDisk()
+    }
+
+    func updateConfig(id: String, config: [String: String]) {
+        guard let idx = instances.firstIndex(where: { $0.id == id }) else { return }
+        instances[idx].config = config
         saveToDisk()
     }
 

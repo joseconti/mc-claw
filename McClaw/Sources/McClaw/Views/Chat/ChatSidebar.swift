@@ -8,6 +8,7 @@ enum SidebarSection: Hashable {
     case schedules
     case notifications
     case trash
+    case settings
 }
 
 /// Sidebar for the chat window, showing conversations and navigation.
@@ -57,6 +58,7 @@ struct ChatSidebar: View {
                 .padding(.vertical, 8)
                 .background(.quaternary.opacity(0.5))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .liquidGlass(cornerRadius: 8)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
@@ -141,7 +143,7 @@ struct ChatSidebar: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Recent")
-                    .font(.caption.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
                     .padding(.horizontal, 14)
@@ -234,7 +236,7 @@ struct ChatSidebar: View {
                         .fill(Color.accentColor.gradient)
                         .overlay {
                             Text(userInitials)
-                                .font(.caption.weight(.bold))
+                                .font(.subheadline.weight(.bold))
                                 .foregroundStyle(.white)
                         }
                 }
@@ -246,13 +248,15 @@ struct ChatSidebar: View {
                 Text(userName)
                     .font(.callout.weight(.medium))
                 Text("v\(UpdaterService.shared.currentVersion)")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
 
             Spacer()
 
-            SettingsLink {
+            Button {
+                currentSection = .settings
+            } label: {
                 Image(systemName: "gearshape")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -296,12 +300,13 @@ private struct SidebarNavItem: View {
                 Spacer()
                 if badge > 0 {
                     Text("\(badge)")
-                        .font(.caption2.weight(.medium))
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(.quaternary)
                         .clipShape(Capsule())
+                        .liquidGlassCapsule(interactive: false)
                 }
             }
             .padding(.horizontal, 14)

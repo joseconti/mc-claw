@@ -94,15 +94,15 @@ struct SkillsSettingsTab: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 4) {
                 Label("How Skills Work", systemImage: "info.circle")
-                    .font(.caption.bold())
+                    .font(.subheadline.bold())
                     .foregroundStyle(.secondary)
 
                 Text("Each skill is a folder with a SKILL.md file (instructions for the AI) and an optional references/ folder with detailed docs. When you chat, McClaw tells the AI which skills are available — the AI reads the relevant ones automatically.")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
 
                 Text("Skills are stored in ~/.mcclaw/skills/. You can import a ZIP or drop folders there manually.")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
             .padding(4)
@@ -150,14 +150,14 @@ struct SkillsSettingsTab: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: group.icon)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Text(group.category)
-                    .font(.caption.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
                 Text("(\(group.skills.count))")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
             .padding(.leading, 4)
@@ -271,14 +271,14 @@ struct SkillsSettingsTab: View {
 
                     if let version = skill.metadata.version {
                         Text("v\(version)")
-                            .font(.caption2)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
                     }
                 }
 
                 if !skill.metadata.description.isEmpty {
                     Text(skill.metadata.description)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
@@ -292,7 +292,7 @@ struct SkillsSettingsTab: View {
 
                     if let author = skill.metadata.author {
                         Text("by \(author)")
-                            .font(.caption2)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
                     }
                 }
@@ -305,6 +305,7 @@ struct SkillsSettingsTab: View {
                 set: { store.setEnabled(skillId: skill.id, enabled: $0) }
             ))
             .toggleStyle(.switch)
+            .controlSize(.small)
             .labelsHidden()
 
             Button {
@@ -329,11 +330,12 @@ private struct SkillTag: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.caption2.weight(.semibold))
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
             .background(Color.secondary.opacity(0.12))
             .clipShape(Capsule())
+            .liquidGlassCapsule(interactive: false)
     }
 }

@@ -81,18 +81,34 @@ final class MCPConfigManager {
 
     // MARK: - Claude CLI
 
-    private func refreshClaudeServers(cli: CLIProviderInfo) async -> [MCPServerConfig] {
-        guard let binaryPath = cli.binaryPath else { return [] }
+    private var claudePluginsURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude")
+            .appendingPathComponent("plugins")
+    }
 
-        do {
-            let args = MCPParser.buildClaudeListArgs()
-            let output = try await runProcess(binaryPath: binaryPath, args: args)
-            let parsed = MCPParser.parseClaudeListOutput(output)
-            return parsed.map { $0.toConfig(provider: "claude") }
-        } catch {
-            logger.error("claude mcp list failed: \(error.localizedDescription)")
-            return []
+    private func refreshClaudeServers(cli: CLIProviderInfo) async -> [MCPServerConfig] {
+        var allParsed: [MCPParser.ParsedMCPServer] = []
+
+        // 1. Read from `claude mcp list` (user-configured servers via CLI/web/app)
+        if let binaryPath = cli.binaryPath {
+            do {
+                let args = MCPParser.buildClaudeListArgs()
+                let output = try await runProcess(binaryPath: binaryPath, args: args)
+                allParsed += MCPParser.parseClaudeListTextOutput(output)
+            } catch {
+                logger.debug("claude mcp list failed: \(error.localizedDescription)")
+            }
         }
+
+        // 2. Read from plugin .mcp.json files (marketplace plugins)
+        let pluginServers = MCPParser.scanClaudePluginDirectory(claudePluginsURL)
+        allParsed += pluginServers
+
+        // Deduplicate by name (CLI takes priority)
+        var seen = Set<String>()
+        let deduped = allParsed.filter { seen.insert($0.name).inserted }
+        return deduped.map { $0.toConfig(provider: "claude") }
     }
 
     private func addClaudeServer(_ form: MCPServerFormData) async throws {
@@ -106,6 +122,8 @@ final class MCPConfigManager {
                 .map { ($0.key, $0.value) }
         )
 
+        let headerDict = form.parsedHeaders
+
         let args = MCPParser.buildClaudeAddArgs(
             name: form.name.trimmingCharacters(in: .whitespacesAndNewlines),
             transport: form.transport.rawValue,
@@ -113,6 +131,10 @@ final class MCPConfigManager {
             args: form.transport == .stdio ? form.parsedArgs : [],
             url: form.transport != .stdio ? form.url.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
             envVars: envDict,
+            headers: form.authType == .headers ? headerDict : [:],
+            oauthClientId: form.authType == .oauth ? form.oauthClientId.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+            oauthClientSecret: form.authType == .oauth ? form.oauthClientSecret.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+            oauthCallbackPort: form.authType == .oauth ? Int(form.oauthCallbackPort) : nil,
             scope: form.scope.rawValue
         )
 
@@ -153,12 +175,21 @@ final class MCPConfigManager {
                 .map { ($0.key, $0.value) }
         )
 
+        let headerDict = form.authType == .headers ? form.parsedHeaders : [:]
+
         guard let updated = MCPParser.updateGeminiSettings(
             existing: existing,
             serverName: form.name.trimmingCharacters(in: .whitespacesAndNewlines),
+            transport: form.transport.rawValue,
             command: form.command.trimmingCharacters(in: .whitespacesAndNewlines),
             args: form.parsedArgs,
-            envVars: envDict
+            url: form.url.trimmingCharacters(in: .whitespacesAndNewlines),
+            envVars: envDict,
+            headers: headerDict,
+            authType: form.authType.rawValue,
+            oauthClientId: form.authType == .oauth ? form.oauthClientId.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+            oauthClientSecret: form.authType == .oauth ? form.oauthClientSecret.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+            oauthCallbackPort: form.authType == .oauth ? Int(form.oauthCallbackPort) : nil
         ) else {
             throw MCPError.fileIOError("Failed to build settings JSON.")
         }
@@ -235,6 +266,10 @@ private extension MCPParser.ParsedMCPServer {
             args: args,
             url: url,
             envVars: envVars,
+            headers: headers,
+            oauthClientId: oauthClientId,
+            oauthClientSecret: oauthClientSecret,
+            oauthCallbackPort: oauthCallbackPort,
             scope: MCPScope(rawValue: scope) ?? .user,
             provider: provider
         )

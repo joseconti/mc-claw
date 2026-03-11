@@ -8,6 +8,7 @@ struct MessageBubbleView: View {
     let message: ChatMessage
     var userAvatarImage: NSImage?
     var fontSize: CGFloat = 16
+    var fontFamily: ChatFontFamily = .default
     var isLastMessage: Bool = false
 
     var body: some View {
@@ -161,7 +162,7 @@ struct MessageBubbleView: View {
                     .fill(Color.accentColor.gradient)
                     .overlay {
                         Text(userInitials)
-                            .font(.caption.weight(.bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
                     }
             }
@@ -183,7 +184,7 @@ struct MessageBubbleView: View {
                     .fill(.orange.gradient)
                     .overlay {
                         Image(systemName: "sparkles")
-                            .font(.caption.weight(.bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
                     }
             }
@@ -196,7 +197,7 @@ struct MessageBubbleView: View {
 
     @ViewBuilder
     private var markdownContent: some View {
-        MarkdownContentView(content: message.content, fontSize: fontSize)
+        MarkdownContentView(content: message.content, fontSize: fontSize, fontFamily: fontFamily)
     }
 
     @ViewBuilder
@@ -204,12 +205,13 @@ struct MessageBubbleView: View {
         HStack(spacing: 6) {
             ForEach(message.attachments) { attachment in
                 Label(attachment.filename, systemImage: "paperclip")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(.quaternary.opacity(0.5))
                     .clipShape(Capsule())
+                    .liquidGlassCapsule(interactive: false)
             }
         }
     }
@@ -230,7 +232,7 @@ struct ToolCallCard: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Image(systemName: toolIconName)
-                    .font(.caption2)
+                    .font(.subheadline)
                 Text(toolCall.name)
                     .font(.callout.weight(.medium))
                 Spacer()

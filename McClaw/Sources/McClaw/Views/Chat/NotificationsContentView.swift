@@ -32,7 +32,7 @@ struct NotificationsContentView: View {
                 Text("Notifications")
                     .font(.title3.weight(.semibold))
                 Text(headerSubtitle)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -81,7 +81,7 @@ struct NotificationsContentView: View {
                     Text("macOS notifications are disabled")
                         .font(.callout.weight(.medium))
                     Text("Enable them to receive schedule results as system notifications.")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -194,11 +194,11 @@ struct NotificationsContentView: View {
                         .lineLimit(1)
                 }
                 Text(entry.summary)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                 Text(relativeTime(entry.timestamp))
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
             Spacer()
@@ -239,7 +239,7 @@ struct NotificationsContentView: View {
                                 statusPill(entry.status)
                                 if let provider = entry.provider, !provider.isEmpty {
                                     Text(provider)
-                                        .font(.caption)
+                                        .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -301,12 +301,13 @@ struct NotificationsContentView: View {
         case .timeout: ("Timeout", .orange)
         }
         return Text(text)
-            .font(.caption2)
+            .font(.subheadline)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(color.opacity(0.15))
             .foregroundStyle(color)
             .clipShape(Capsule())
+            .liquidGlassCapsule(interactive: false)
     }
 
     private func relativeTime(_ date: Date) -> String {

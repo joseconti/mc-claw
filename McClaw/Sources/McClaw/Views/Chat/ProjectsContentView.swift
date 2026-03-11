@@ -172,6 +172,7 @@ struct ProjectsContentView: View {
                             .padding(8)
                             .background(.ultraThinMaterial.opacity(0.6))
                             .clipShape(Capsule())
+                            .liquidGlassCapsule()
                         }
                         .buttonStyle(.plain)
                         .padding(16)
@@ -212,7 +213,7 @@ struct ProjectsContentView: View {
                     }
 
                     Text("\(projectSessions.count) conversation\(projectSessions.count == 1 ? "" : "s")")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.tertiary)
                 }
 
@@ -234,10 +235,10 @@ struct ProjectsContentView: View {
             if let rules = project?.rules, !rules.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "brain.head.profile")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(Color.accentColor)
                     Text("Project rules active (\(rules.count) chars)")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
@@ -357,11 +358,12 @@ struct ProjectsContentView: View {
                     addFilesToProject(projectId: projectId)
                 } label: {
                     Image(systemName: "plus")
-                        .font(.caption.weight(.semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .frame(width: 26, height: 26)
                         .background(.quaternary.opacity(0.5))
                         .clipShape(Circle())
+                        .liquidGlassCircle()
                 }
                 .buttonStyle(.plain)
                 .help("Add files to project")
@@ -404,7 +406,7 @@ struct ProjectsContentView: View {
 
     @ViewBuilder
     private var projectCLISelector: some View {
-        let installedCLIs = appState.availableCLIs.filter(\.isInstalled)
+        let installedCLIs = appState.installedAIProviders
         if installedCLIs.count > 1 {
             HStack(spacing: 0) {
                 ForEach(installedCLIs) { cli in
@@ -424,6 +426,7 @@ struct ProjectsContentView: View {
                                     : AnyShapeStyle(Color.clear)
                             )
                             .clipShape(Capsule())
+                            .liquidGlassCapsule()
                     }
                     .buttonStyle(.plain)
                 }
@@ -431,6 +434,7 @@ struct ProjectsContentView: View {
             .padding(3)
             .background(.quaternary.opacity(0.5))
             .clipShape(Capsule())
+            .liquidGlassCapsule()
         } else if let cli = appState.currentCLI {
             Text(cli.displayName)
                 .font(.subheadline.weight(.medium))
@@ -478,7 +482,7 @@ struct ProjectsContentView: View {
                         addFilesToProject(projectId: projectId)
                     } label: {
                         Image(systemName: "plus")
-                            .font(.caption.weight(.medium))
+                            .font(.subheadline.weight(.medium))
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
@@ -546,7 +550,7 @@ struct ProjectsContentView: View {
                 .font(.headline)
 
             TextField("Project name", text: $newProjectName)
-                .textFieldStyle(.roundedBorder)
+                .mcclawTextField()
                 .frame(width: 260)
                 .onSubmit {
                     commitNewProject()
@@ -621,7 +625,7 @@ private struct ProjectCard: View {
 
                     if !project.description.isEmpty {
                         Text(project.description)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
                             .lineLimit(2)
                     }
@@ -631,30 +635,31 @@ private struct ProjectCard: View {
                     HStack {
                         HStack(spacing: 4) {
                             Image(systemName: "bubble.left.and.bubble.right")
-                                .font(.caption2)
+                                .font(.subheadline)
                             Text("\(sessionCount)")
-                                .font(.caption)
+                                .font(.subheadline)
                         }
                         .foregroundStyle(.secondary)
 
                         if !project.rules.isEmpty {
                             HStack(spacing: 3) {
                                 Image(systemName: "brain.head.profile")
-                                    .font(.caption2)
+                                    .font(.subheadline)
                                 Text("Rules")
-                                    .font(.caption2)
+                                    .font(.subheadline)
                             }
                             .foregroundStyle(Color.accentColor.opacity(0.8))
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
                             .background(Color.accentColor.opacity(0.1))
                             .clipShape(Capsule())
+                            .liquidGlassCapsule(interactive: false)
                         }
 
                         Spacer()
 
                         Text(project.updatedAt, style: .relative)
-                            .font(.caption2)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
                     }
                 }
@@ -698,12 +703,12 @@ private struct ProjectFileCard: View {
                 .frame(height: 28)
 
             Text(file.name)
-                .font(.caption)
+                .font(.subheadline)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
 
             Text(file.formattedSize)
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
@@ -740,20 +745,21 @@ struct SessionListRow: View {
                     HStack(spacing: 8) {
                         if let provider = session.cliProvider {
                             Text(provider.capitalized)
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 1)
                                 .background(.quaternary)
                                 .clipShape(Capsule())
+                                .liquidGlassCapsule(interactive: false)
                         }
 
                         Text("\(session.messageCount) message\(session.messageCount == 1 ? "" : "s")")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
 
                         Text(session.lastMessageAt, style: .relative)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
                     }
                 }
@@ -761,7 +767,7 @@ struct SessionListRow: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.quaternary)
             }
             .padding(.horizontal, 32)

@@ -33,6 +33,7 @@ enum ConnectorProviderError: LocalizedError {
     case unknownAction(String)
     case missingParameter(String)
     case authenticationFailed
+    case tokenExpiredReauthRequired
     case rateLimited(retryAfter: Int?)
     case apiError(statusCode: Int, message: String)
     case networkError(Error)
@@ -46,6 +47,8 @@ enum ConnectorProviderError: LocalizedError {
             "Missing required parameter: \(param)"
         case .authenticationFailed:
             "Authentication failed. Please reconnect this connector."
+        case .tokenExpiredReauthRequired:
+            "Token expired and could not be refreshed. Please re-authenticate in Settings → Connectors."
         case .rateLimited(let retryAfter):
             if let seconds = retryAfter {
                 "Rate limited. Retry in \(seconds) seconds."

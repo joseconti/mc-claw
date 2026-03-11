@@ -182,17 +182,7 @@ final class CronJobsStore {
     }
 
     func upsertJob(id: String?, payload: [String: AnyCodableValue]) async throws {
-        // Claude tasks with no specific agentId use native scheduling
-        if isClaudeProvider {
-            let agentId = payload["agentId"]
-            let isForClaude = agentId == nil || agentId == .string("claude") || agentId == .string("")
-            if isForClaude {
-                try await upsertClaudeTask(payload: payload)
-                return
-            }
-        }
-
-        // Local storage for all other jobs
+        // Always save locally so the job is visible in the list
         let job = buildCronJob(from: payload, existingId: id)
         if let existingIndex = jobs.firstIndex(where: { $0.id == job.id }) {
             jobs[existingIndex] = job
@@ -200,6 +190,19 @@ final class CronJobsStore {
             jobs.append(job)
         }
         persistLocalJobs()
+
+        // Additionally delegate to Claude CLI for native scheduling (best-effort)
+        if isClaudeProvider {
+            let agentId = payload["agentId"]
+            let isForClaude = agentId == nil || agentId == .string("claude") || agentId == .string("")
+            if isForClaude {
+                do {
+                    try await upsertClaudeTask(payload: payload)
+                } catch {
+                    logger.warning("Claude task create failed (job saved locally): \(error.localizedDescription)")
+                }
+            }
+        }
     }
 
     // MARK: - Claude CLI Task Integration
@@ -209,29 +212,42 @@ final class CronJobsStore {
     }
 
     /// Refresh jobs from `claude task list` output.
+    /// Only replaces Claude-sourced jobs; local jobs are preserved.
     private func refreshClaudeJobs() async {
         do {
             let output = try await runClaudeCommand(["task", "list", "--json"])
             let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // Empty output or non-JSON means no tasks
+            // Empty output or non-JSON means no tasks from Claude CLI
             guard !trimmed.isEmpty, trimmed.hasPrefix("[") || trimmed.hasPrefix("{"),
                   let data = trimmed.data(using: .utf8) else {
-                jobs = []
-                statusMessage = "No scheduled tasks."
+                // Remove only Claude-sourced jobs (non-local), keep local jobs
+                jobs.removeAll { !localJobIds.contains($0.id) }
+                if jobs.isEmpty {
+                    statusMessage = "No scheduled tasks."
+                }
                 return
             }
 
             let tasks = try JSONDecoder().decode([ClaudeTask].self, from: data)
-            jobs = tasks.map { $0.toCronJob() }
+            let claudeJobs = tasks.map { $0.toCronJob() }
+
+            // Remove old Claude-sourced jobs, keep local, add fresh Claude jobs
+            jobs.removeAll { !localJobIds.contains($0.id) }
+            for cj in claudeJobs where !jobs.contains(where: { $0.id == cj.id }) {
+                jobs.append(cj)
+            }
+
             if jobs.isEmpty {
                 statusMessage = "No scheduled tasks."
             }
         } catch {
             logger.error("claude task list failed: \(error.localizedDescription)")
-            // Empty list is ok — Claude may not have task support yet
-            jobs = []
-            statusMessage = "No scheduled tasks (or `claude task` not available)."
+            // Keep local jobs intact — only clear Claude-sourced ones
+            jobs.removeAll { !localJobIds.contains($0.id) }
+            if jobs.isEmpty {
+                statusMessage = "No scheduled tasks (or `claude task` not available)."
+            }
         }
     }
 

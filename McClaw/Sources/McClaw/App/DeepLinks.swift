@@ -32,12 +32,9 @@ enum DeepLinkRouter {
             openWindow(id: "chat")
 
         case "settings":
-            // Open settings via NSApp
-            if #available(macOS 14.0, *) {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            } else {
-                NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-            }
+            // Open settings inside the main window
+            AppState.shared.showSettingsInMainWindow = true
+            openWindow(id: "chat")
 
         case "canvas":
             openWindow(id: "canvas")

@@ -21,7 +21,7 @@ struct RemoteSettingsTab: View {
                         .pickerStyle(.segmented)
 
                         Text(connectionModeDescription)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
@@ -31,7 +31,7 @@ struct RemoteSettingsTab: View {
                 GroupBox("Gateway") {
                     LabeledContent("Port") {
                         TextField("3577", value: $state.gatewayPort, format: .number)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                             .frame(width: 80)
                     }
                     LabeledContent("Status") {
@@ -40,7 +40,7 @@ struct RemoteSettingsTab: View {
                                 .fill(statusColor)
                                 .frame(width: 8, height: 8)
                             Text(state.gatewayStatus.rawValue.capitalized)
-                                .font(.caption)
+                                .font(.subheadline)
                         }
                     }
                 }
@@ -77,7 +77,7 @@ struct RemoteSettingsTab: View {
                                 Image(systemName: testStatus == .success ? "checkmark.circle" : "xmark.circle")
                                     .foregroundStyle(testStatus == .success ? .green : .red)
                                 Text(message)
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundStyle(testStatus == .success ? .green : .red)
                             }
                         }
@@ -124,7 +124,7 @@ struct RemoteSettingsTab: View {
                 get: { state.remoteTarget ?? "" },
                 set: { state.remoteTarget = $0.isEmpty ? nil : $0 }
             ))
-            .textFieldStyle(.roundedBorder)
+            .mcclawTextField()
             .font(.system(.body, design: .monospaced))
         }
 
@@ -134,7 +134,7 @@ struct RemoteSettingsTab: View {
                     get: { state.remoteIdentity ?? "" },
                     set: { state.remoteIdentity = $0.isEmpty ? nil : $0 }
                 ))
-                .textFieldStyle(.roundedBorder)
+                .mcclawTextField()
                 .font(.system(.body, design: .monospaced))
 
                 Button("Browse") {
@@ -145,7 +145,7 @@ struct RemoteSettingsTab: View {
         }
 
         Text("SSH tunnel forwards the remote gateway port to localhost.\nRequires SSH key-based auth (BatchMode=yes, no password prompt).")
-            .font(.caption)
+            .font(.subheadline)
             .foregroundStyle(.secondary)
     }
 
@@ -158,20 +158,20 @@ struct RemoteSettingsTab: View {
                 get: { state.remoteUrl ?? "" },
                 set: { state.remoteUrl = $0.isEmpty ? nil : $0 }
             ))
-            .textFieldStyle(.roundedBorder)
+            .mcclawTextField()
             .font(.system(.body, design: .monospaced))
         }
 
         if let urlStr = state.remoteUrl, !urlStr.isEmpty {
             if GatewayRemoteConfig.normalizeGatewayUrl(urlStr) == nil {
                 Text("Invalid URL. Must be wss:// for remote or ws:// for loopback only.")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.red)
             }
         }
 
         Text("Direct WebSocket connection. Use wss:// (TLS) for non-loopback hosts.")
-            .font(.caption)
+            .font(.subheadline)
             .foregroundStyle(.secondary)
     }
 

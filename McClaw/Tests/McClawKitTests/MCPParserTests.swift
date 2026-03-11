@@ -82,7 +82,7 @@ struct MCPParserClaudeArgsTests {
     @Test("Build list args")
     func buildListArgs() {
         let args = MCPParser.buildClaudeListArgs()
-        #expect(args == ["mcp", "list", "-j"])
+        #expect(args == ["mcp", "list"])
     }
 
     @Test("Build streamable-http args")

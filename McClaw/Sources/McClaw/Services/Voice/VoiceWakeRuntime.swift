@@ -75,8 +75,12 @@ final class VoiceWakeRuntime {
             return
         }
 
+        // Capture request as nonisolated(unsafe) to avoid actor-isolation check
+        // on the real-time audio thread. This is safe because SFSpeechAudioBufferRecognitionRequest.append
+        // is thread-safe and designed to be called from audio tap callbacks.
+        nonisolated(unsafe) let tapRequest = request
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
-            request.append(buffer)
+            tapRequest.append(buffer)
         }
 
         do {

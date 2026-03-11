@@ -501,5 +501,6 @@ struct CronSettings: View {
             .background(tint.opacity(0.15))
             .foregroundStyle(tint)
             .clipShape(Capsule())
+            .liquidGlassCapsule(interactive: false)
     }
 }

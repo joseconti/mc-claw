@@ -210,6 +210,7 @@ struct ChatInputBar: View {
                             .frame(width: 26, height: 26)
                             .background(.quaternary.opacity(0.5))
                             .clipShape(Circle())
+                            .liquidGlassCircle()
                     }
                     .buttonStyle(.plain)
                     .help("Attach files")
@@ -250,6 +251,12 @@ struct ChatInputBar: View {
             .padding(.vertical, compact ? 6 : 10)
         }
         .animation(.easeInOut(duration: 0.2), value: voiceMode.isActive)
+        .onChange(of: appState.prefillText) { _, newValue in
+            if let newValue, !newValue.isEmpty {
+                text = newValue
+                appState.prefillText = nil
+            }
+        }
     }
 
     // MARK: - Subviews
@@ -276,6 +283,7 @@ struct ChatInputBar: View {
                     .padding(.vertical, 5)
                     .background(.quaternary.opacity(0.5))
                     .clipShape(Capsule())
+                    .liquidGlassCapsule(interactive: false)
                 }
             }
         }

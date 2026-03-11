@@ -29,6 +29,12 @@ cd McClaw && swift test    # Tests
 - Config persisted in `~/.mcclaw/mcclaw.json`
 - Singletons: `AppState.shared`, `ConfigStore.shared`, `CLIBridge.shared`, `GatewayConnectionService.shared`
 
+## Localization
+- **ALL user-facing text MUST be localizable.** Use `String(localized: "key", bundle: .module)` for every visible string in the UI.
+- Add all new keys to `McClaw/Sources/McClaw/Resources/en.lproj/Localizable.strings` with `"key" = "value";` format.
+- Prompts sent to AI (not shown to user) do NOT need localization — the AI responds in the user's language automatically.
+- Never use hardcoded strings for labels, titles, placeholders, error messages, or any text the user sees.
+
 ## Goal
 McClaw is the native macOS AI assistant that unifies multiple AI providers through their official CLI tools. It provides a rich feature set including chat, voice, canvas, automation, connectors, and plugin support — all through a single SwiftUI interface.
 

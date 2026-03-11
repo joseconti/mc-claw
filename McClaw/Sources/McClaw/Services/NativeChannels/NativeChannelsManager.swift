@@ -227,11 +227,29 @@ final class NativeChannelsManager {
         saveToDisk()
     }
 
-    /// Remove a channel config.
+    /// Remove a channel config and clear its stats/errors.
     func removeConfig(channelId: String) async {
         await stopChannel(channelId: channelId)
+        await clearChannelStats(channelId: channelId)
         configs.removeAll { $0.channelId == channelId }
         saveToDisk()
+    }
+
+    /// Clear stats and error state for a channel service.
+    private func clearChannelStats(channelId: String) async {
+        switch channelId {
+        case "telegram": await TelegramNativeService.shared.clearStats()
+        case "slack": await SlackNativeService.shared.clearStats()
+        case "discord": await DiscordNativeService.shared.clearStats()
+        case "matrix": await MatrixNativeService.shared.clearStats()
+        case "mattermost": await MattermostNativeService.shared.clearStats()
+        case "mastodon": await MastodonNativeService.shared.clearStats()
+        case "zulip": await ZulipNativeService.shared.clearStats()
+        case "rocketchat": await RocketChatNativeService.shared.clearStats()
+        case "twitch": await TwitchNativeService.shared.clearStats()
+        default: break
+        }
+        await refreshChannelState(channelId)
     }
 
     /// Get config for a channel.
@@ -385,6 +403,40 @@ final class NativeChannelsManager {
         parts.append("You are responding to a message from \(message.senderName) on \(message.channelId). Keep responses concise and helpful.")
 
         return parts.joined(separator: "\n\n")
+    }
+
+    // MARK: - Outbound Messaging
+
+    /// Send an outbound message to a native channel (e.g. from cron job delivery).
+    /// - Parameters:
+    ///   - channelId: The native channel ID (e.g. "telegram", "slack").
+    ///   - text: The message text to send.
+    ///   - recipientId: Platform-specific target (chat ID, channel ID, room ID).
+    /// - Returns: true if the message was sent successfully.
+    func sendMessage(channelId: String, text: String, recipientId: String) async -> Bool {
+        switch channelId {
+        case "telegram":
+            return await TelegramNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "slack":
+            return await SlackNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "discord":
+            return await DiscordNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "matrix":
+            return await MatrixNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "mattermost":
+            return await MattermostNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "mastodon":
+            return await MastodonNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "zulip":
+            return await ZulipNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "rocketchat":
+            return await RocketChatNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        case "twitch":
+            return await TwitchNativeService.shared.sendOutbound(text: text, recipientId: recipientId)
+        default:
+            logger.warning("Unknown native channel for outbound: \(channelId)")
+            return false
+        }
     }
 
     // MARK: - Persistence

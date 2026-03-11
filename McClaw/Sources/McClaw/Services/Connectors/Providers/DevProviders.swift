@@ -438,14 +438,20 @@ struct LinearProvider: ConnectorProvider {
         let query = """
         { "query": "{ viewer { id name } }" }
         """
-        let (_, status) = try await RESTAPIClient.post(
+        let (responseData, status) = try await RESTAPIClient.post(
             path: "/graphql",
             baseURL: Self.baseURL,
             body: Data(query.utf8),
             credentials: credentials,
             authHeaders: headers
         )
-        return status == 200
+        guard status == 200 else { return false }
+        // GraphQL returns 200 even for auth errors — check for errors array
+        if let json = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any],
+           let errors = json["errors"] as? [[String: Any]], !errors.isEmpty {
+            return false
+        }
+        return true
     }
 
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {

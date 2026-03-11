@@ -71,6 +71,23 @@ actor CLIDetector {
                 maxContextTokens: nil
             )
         ),
+        CLIProviderDefinition(
+            id: "agent-browser",
+            displayName: "Agent Browser",
+            binaryNames: ["agent-browser"],
+            versionFlag: "--version",
+            authCheckCommand: nil,
+            installMethod: .npm,
+            capabilities: CLICapabilities(
+                supportsStreaming: false,
+                supportsToolUse: false,
+                supportsVision: false,
+                supportsThinking: false,
+                supportsConversation: false,
+                maxContextTokens: nil
+            ),
+            isToolCLI: true
+        ),
     ]
 
     /// Write debug info to a log file for diagnosing GUI app issues.
@@ -133,7 +150,8 @@ actor CLIDetector {
             isAuthenticated: isAuthenticated,
             installMethod: definition.installMethod,
             supportedModels: [],  // Populated later via CLI query
-            capabilities: definition.capabilities
+            capabilities: definition.capabilities,
+            isToolCLI: definition.isToolCLI
         )
     }
 
@@ -258,4 +276,6 @@ private struct CLIProviderDefinition {
     let authCheckCommand: [String]?
     let installMethod: CLIInstallMethod
     let capabilities: CLICapabilities
+    /// True for optional tool CLIs (not AI providers).
+    var isToolCLI: Bool = false
 }

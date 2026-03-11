@@ -67,19 +67,27 @@ struct OAuthConfig: Codable, Equatable, Sendable {
     let scopes: [String]
     let redirectScheme: String
     let usePKCE: Bool
+    /// Per-connector client ID. Falls back to global ConnectorStore.oauthClientId if nil.
+    var clientId: String?
+    /// Per-connector client secret. Required by Google/Microsoft for token exchange.
+    var clientSecret: String?
 
     init(
         authUrl: String,
         tokenUrl: String,
         scopes: [String],
         redirectScheme: String = "mcclaw",
-        usePKCE: Bool = true
+        usePKCE: Bool = true,
+        clientId: String? = nil,
+        clientSecret: String? = nil
     ) {
         self.authUrl = authUrl
         self.tokenUrl = tokenUrl
         self.scopes = scopes
         self.redirectScheme = redirectScheme
         self.usePKCE = usePKCE
+        self.clientId = clientId
+        self.clientSecret = clientSecret
     }
 }
 

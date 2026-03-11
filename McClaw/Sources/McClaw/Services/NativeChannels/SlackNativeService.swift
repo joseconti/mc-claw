@@ -37,8 +37,26 @@ actor SlackNativeService: NativeChannel {
 
     // MARK: - NativeChannel
 
+    func clearStats() {
+        stats = NativeChannelStats()
+        state = .disconnected
+        botDisplayName = nil
+    }
+
     func setOnMessage(_ handler: @escaping @Sendable (NativeChannelMessage) async -> String?) {
         self.onMessage = handler
+    }
+
+    func sendOutbound(text: String, recipientId: String) async -> Bool {
+        guard state == .connected else {
+            logger.warning("Cannot send outbound: Slack channel not connected")
+            return false
+        }
+        guard botToken != nil else {
+            logger.error("Cannot send outbound: no bot token available")
+            return false
+        }
+        return await postMessage(channel: recipientId, text: text, threadTs: nil)
     }
 
     func start(config: NativeChannelConfig) async {

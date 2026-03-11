@@ -56,7 +56,7 @@ struct ProjectEditorView: View {
                     // Title
                     formSection(title: "Title") {
                         TextField("Project name", text: $name)
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                             .font(.title3)
                             .onChange(of: name) { _, _ in hasChanges = true }
                     }
@@ -81,7 +81,7 @@ struct ProjectEditorView: View {
                     formSection(title: "Rules") {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Instructions that the AI must follow when chatting within this project. These are injected as system prompt on every message.")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.tertiary)
 
                             TextEditor(text: $rules)
@@ -128,11 +128,12 @@ struct ProjectEditorView: View {
                             generateImage()
                         } label: {
                             Label("Regenerate", systemImage: "arrow.clockwise")
-                                .font(.caption.weight(.medium))
+                                .font(.subheadline.weight(.medium))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .background(.ultraThinMaterial)
                                 .clipShape(Capsule())
+                                .liquidGlassCapsule(interactive: false)
                         }
                         .buttonStyle(.plain)
                         .padding(12)
@@ -170,7 +171,7 @@ struct ProjectEditorView: View {
                             .controlSize(.small)
 
                             Text("Uses Gemini or ChatGPT to create a cover based on the project description")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.tertiary)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: 300)
@@ -214,7 +215,7 @@ struct ProjectEditorView: View {
     private func contextBullet(icon: String, text: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: icon)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .frame(width: 16)
             Text(text)

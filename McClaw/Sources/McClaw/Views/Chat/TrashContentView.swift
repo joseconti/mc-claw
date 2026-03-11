@@ -174,6 +174,7 @@ struct TrashContentView: View {
                             .padding(.vertical, 1)
                             .background(.quaternary)
                             .clipShape(Capsule())
+                            .liquidGlassCapsule(interactive: false)
                     }
 
                     Text("\(session.messageCount) message\(session.messageCount == 1 ? "" : "s")")

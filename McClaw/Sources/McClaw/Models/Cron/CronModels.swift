@@ -26,11 +26,31 @@ enum CronDeliveryMode: String, CaseIterable, Identifiable, Codable, Sendable {
 
 // MARK: - Delivery
 
+struct CronDeliveryTarget: Codable, Equatable, Sendable {
+    var mode: CronDeliveryMode
+    var channel: String
+    var to: String?
+    var bestEffort: Bool?
+}
+
 struct CronDelivery: Codable, Equatable, Sendable {
     var mode: CronDeliveryMode
     var channel: String?
     var to: String?
     var bestEffort: Bool?
+    var targets: [CronDeliveryTarget]?
+
+    /// All effective delivery targets (flattened from single + multi).
+    var allTargets: [CronDeliveryTarget] {
+        var result: [CronDeliveryTarget] = []
+        if let targets, !targets.isEmpty {
+            result.append(contentsOf: targets)
+        }
+        if let channel, !channel.isEmpty {
+            result.append(CronDeliveryTarget(mode: mode, channel: channel, to: to, bestEffort: bestEffort))
+        }
+        return result
+    }
 }
 
 // MARK: - Schedule

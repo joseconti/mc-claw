@@ -67,7 +67,7 @@ struct ConnectorActionPicker: View {
                                 param.required ? "\(param.description) (required)" : param.description,
                                 text: paramBinding(for: param.name, default: param.defaultValue ?? "")
                             )
-                            .textFieldStyle(.roundedBorder)
+                            .mcclawTextField()
                             .frame(maxWidth: .infinity)
                         }
                     }
@@ -78,7 +78,7 @@ struct ConnectorActionPicker: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 100, alignment: .leading)
                     TextField("4000", text: $maxResultLength)
-                        .textFieldStyle(.roundedBorder)
+                        .mcclawTextField()
                         .frame(width: 80)
                     Text("chars")
                         .font(.footnote)

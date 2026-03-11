@@ -11,6 +11,32 @@ struct CLIProviderInfo: Identifiable, Codable, Sendable {
     let installMethod: CLIInstallMethod
     let supportedModels: [ModelInfo]
     let capabilities: CLICapabilities
+    /// True for optional tool CLIs (e.g. agent-browser), not AI providers.
+    let isToolCLI: Bool
+
+    init(
+        id: String,
+        displayName: String,
+        binaryPath: String?,
+        version: String?,
+        isInstalled: Bool,
+        isAuthenticated: Bool,
+        installMethod: CLIInstallMethod,
+        supportedModels: [ModelInfo],
+        capabilities: CLICapabilities,
+        isToolCLI: Bool = false
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.binaryPath = binaryPath
+        self.version = version
+        self.isInstalled = isInstalled
+        self.isAuthenticated = isAuthenticated
+        self.installMethod = installMethod
+        self.supportedModels = supportedModels
+        self.capabilities = capabilities
+        self.isToolCLI = isToolCLI
+    }
 }
 
 /// How a CLI can be installed.

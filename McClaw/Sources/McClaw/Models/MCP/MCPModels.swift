@@ -31,6 +31,23 @@ enum MCPScope: String, Codable, Sendable, CaseIterable, Identifiable {
 
 // MARK: - Server Config
 
+/// MCP server authentication type.
+enum MCPAuthType: String, Codable, Sendable, CaseIterable, Identifiable {
+    case none
+    case headers
+    case oauth
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .none: "None"
+        case .headers: "Headers (Bearer / App Password)"
+        case .oauth: "OAuth 2.0"
+        }
+    }
+}
+
 /// A configured MCP server.
 struct MCPServerConfig: Identifiable, Codable, Sendable, Equatable {
     var id: String { "\(provider):\(name)" }
@@ -40,8 +57,18 @@ struct MCPServerConfig: Identifiable, Codable, Sendable, Equatable {
     let args: [String]
     let url: String?
     let envVars: [String: String]
+    let headers: [String: String]
+    let oauthClientId: String?
+    let oauthClientSecret: String?
+    let oauthCallbackPort: Int?
     let scope: MCPScope
     let provider: String
+
+    var authType: MCPAuthType {
+        if oauthClientId != nil { return .oauth }
+        if !headers.isEmpty { return .headers }
+        return .none
+    }
 
     init(
         name: String,
@@ -50,6 +77,10 @@ struct MCPServerConfig: Identifiable, Codable, Sendable, Equatable {
         args: [String] = [],
         url: String? = nil,
         envVars: [String: String] = [:],
+        headers: [String: String] = [:],
+        oauthClientId: String? = nil,
+        oauthClientSecret: String? = nil,
+        oauthCallbackPort: Int? = nil,
         scope: MCPScope = .user,
         provider: String
     ) {
@@ -59,12 +90,29 @@ struct MCPServerConfig: Identifiable, Codable, Sendable, Equatable {
         self.args = args
         self.url = url
         self.envVars = envVars
+        self.headers = headers
+        self.oauthClientId = oauthClientId
+        self.oauthClientSecret = oauthClientSecret
+        self.oauthCallbackPort = oauthCallbackPort
         self.scope = scope
         self.provider = provider
     }
 }
 
 // MARK: - Form Data
+
+/// A single HTTP header key-value pair for the editor.
+struct HeaderEntry: Identifiable, Sendable {
+    let id: UUID
+    var key: String
+    var value: String
+
+    init(id: UUID = UUID(), key: String = "", value: String = "") {
+        self.id = id
+        self.key = key
+        self.value = value
+    }
+}
 
 /// Mutable form state for the MCP server editor.
 struct MCPServerFormData: Sendable {
@@ -75,6 +123,12 @@ struct MCPServerFormData: Sendable {
     var url: String = ""
     var envVars: [EnvVarEntry] = []
     var scope: MCPScope = .user
+    // Auth
+    var authType: MCPAuthType = .none
+    var headers: [HeaderEntry] = []
+    var oauthClientId: String = ""
+    var oauthClientSecret: String = ""
+    var oauthCallbackPort: String = ""
 
     /// Parse argsText (one arg per line or space-separated) into array.
     var parsedArgs: [String] {
@@ -83,6 +137,15 @@ struct MCPServerFormData: Sendable {
             .flatMap { $0.split(separator: " ") }
             .map(String.init)
             .filter { !$0.isEmpty }
+    }
+
+    /// Parsed headers dictionary.
+    var parsedHeaders: [String: String] {
+        Dictionary(
+            uniqueKeysWithValues: headers
+                .filter { !$0.key.isEmpty }
+                .map { ($0.key, $0.value) }
+        )
     }
 
     /// Validate the form data.
@@ -106,12 +169,18 @@ struct MCPServerFormData: Sendable {
             if entry.key.contains(" ") { return "Environment variable keys cannot contain spaces." }
         }
 
+        if authType == .oauth {
+            if oauthClientId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return "Client ID is required for OAuth."
+            }
+        }
+
         return nil
     }
 
     /// Create form data from an existing server config (for editing).
     static func from(_ config: MCPServerConfig) -> MCPServerFormData {
-        MCPServerFormData(
+        var form = MCPServerFormData(
             name: config.name,
             transport: config.transport,
             command: config.command ?? "",
@@ -120,6 +189,13 @@ struct MCPServerFormData: Sendable {
             envVars: config.envVars.map { EnvVarEntry(key: $0.key, value: $0.value) },
             scope: config.scope
         )
+        // Auth
+        form.authType = config.authType
+        form.headers = config.headers.map { HeaderEntry(key: $0.key, value: $0.value) }
+        form.oauthClientId = config.oauthClientId ?? ""
+        form.oauthClientSecret = config.oauthClientSecret ?? ""
+        form.oauthCallbackPort = config.oauthCallbackPort.map(String.init) ?? ""
+        return form
     }
 }
 
@@ -144,7 +220,7 @@ enum MCPProviderSupport {
     static func supportedTransports(for provider: String) -> [MCPTransport] {
         switch provider {
         case "claude": MCPTransport.allCases
-        case "gemini": [.stdio]
+        case "gemini": [.stdio, .streamableHTTP]
         default: []
         }
     }

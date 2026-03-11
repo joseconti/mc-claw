@@ -24,8 +24,51 @@ actor MastodonNativeService: NativeChannel {
 
     private init() {}
 
+    func clearStats() {
+        stats = NativeChannelStats()
+        state = .disconnected
+        botDisplayName = nil
+    }
+
     func setOnMessage(_ handler: @escaping @Sendable (NativeChannelMessage) async -> String?) {
         self.onMessage = handler
+    }
+
+    func sendOutbound(text: String, recipientId: String) async -> Bool {
+        guard state == .connected else {
+            logger.warning("Cannot send outbound: Mastodon channel not connected")
+            return false
+        }
+        guard let instanceURL = config?.serverURL,
+              let token = accessToken else {
+            logger.error("Cannot send outbound: no credentials available")
+            return false
+        }
+        guard let url = MastodonKit.postStatusURL(instanceURL: instanceURL) else { return false }
+        let truncated = MastodonKit.truncateForMastodon(text)
+        let visibility = MastodonKit.Visibility(rawValue: config?.replyVisibility ?? "unlisted") ?? .unlisted
+        // recipientId is used as inReplyToId; empty means a new public status
+        let inReplyToId: String? = recipientId.isEmpty ? nil : recipientId
+        guard let body = MastodonKit.postStatusBody(text: truncated, inReplyToId: inReplyToId, visibility: visibility) else { return false }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = body
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                stats.messagesSent += 1
+                return true
+            }
+            return false
+        } catch {
+            logger.error("sendOutbound error: \(error.localizedDescription)")
+            return false
+        }
     }
 
     func start(config: NativeChannelConfig) async {

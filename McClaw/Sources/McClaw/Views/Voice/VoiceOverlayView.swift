@@ -29,6 +29,7 @@ struct VoiceOverlayView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
+        .liquidGlass(cornerRadius: 20)
         .animation(.easeInOut(duration: 0.2), value: voiceMode.state)
         .animation(.easeInOut(duration: 0.2), value: voiceMode.currentTranscript)
     }

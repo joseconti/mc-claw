@@ -91,14 +91,101 @@
 "Good morning" = "Good morning";
 "Good afternoon" = "Good afternoon";
 "Good evening" = "Good evening";
+
+// Quick Action — Category Labels
 "Write" = "Write";
 "Learn" = "Learn";
 "Code" = "Code";
 "Brainstorm" = "Brainstorm";
-"Help me write something" = "Help me write something";
-"Explain a concept to me" = "Explain a concept to me";
-"Help me with code" = "Help me with code";
-"Help me brainstorm ideas" = "Help me brainstorm ideas";
+
+// Quick Action — Write Options
+"Improve my writing style" = "Improve my writing style";
+"Write something creative based on mood" = "Write something creative based on mood";
+"Create interview questions" = "Create interview questions";
+"Write product descriptions" = "Write product descriptions";
+"Develop educational content" = "Develop educational content";
+
+// Quick Action — Learn Options
+"Explain a complex concept simply" = "Explain a complex concept simply";
+"Summarize a topic in depth" = "Summarize a topic in depth";
+"Compare two technologies or approaches" = "Compare two technologies or approaches";
+"Create a study plan" = "Create a study plan";
+
+// Quick Action — Code Options
+"Debug an issue in my code" = "Debug an issue in my code";
+"Write a function or algorithm" = "Write a function or algorithm";
+"Review and improve code" = "Review and improve code";
+"Explain how something works" = "Explain how something works";
+"Set up a project or tool" = "Set up a project or tool";
+
+// Quick Action — Brainstorm Options
+"Generate creative ideas" = "Generate creative ideas";
+"Solve a problem from multiple angles" = "Solve a problem from multiple angles";
+"Plan a project or strategy" = "Plan a project or strategy";
+"Come up with names or titles" = "Come up with names or titles";
+
+// Quick Action — Connector Labels
+"From Gmail" = "From Gmail";
+"From Calendar" = "From Calendar";
+"From Drive" = "From Drive";
+"From Outlook" = "From Outlook";
+"From Outlook Calendar" = "From Outlook Calendar";
+"From OneDrive" = "From OneDrive";
+"From GitHub" = "From GitHub";
+"From Notion" = "From Notion";
+"From Linear" = "From Linear";
+"From WordPress" = "From WordPress";
+
+// Quick Action — Gmail Options
+"Which subscribed emails do I usually leave unread?" = "Which subscribed emails do I usually leave unread?";
+"Review my emails and tell me if I'm missing something important" = "Review my emails and tell me if I'm missing something important";
+"Extract key points from my latest work emails" = "Extract key points from my latest work emails";
+"Summarize my unread emails" = "Summarize my unread emails";
+"Draft replies to my pending emails" = "Draft replies to my pending emails";
+
+// Quick Action — Calendar Options
+"What's on my schedule today?" = "What's on my schedule today?";
+"Find free time this week for a meeting" = "Find free time this week for a meeting";
+"Summarize my week ahead" = "Summarize my week ahead";
+"Help me prepare for my next meeting" = "Help me prepare for my next meeting";
+
+// Quick Action — Drive Options
+"Show my recently modified files" = "Show my recently modified files";
+"Find files related to a project" = "Find files related to a project";
+"Summarize a document from my Drive" = "Summarize a document from my Drive";
+
+// Quick Action — Outlook Options
+"Summarize my unread Outlook emails" = "Summarize my unread Outlook emails";
+"Review emails and flag what's important" = "Review emails and flag what's important";
+"Draft replies to pending Outlook emails" = "Draft replies to pending Outlook emails";
+
+// Quick Action — Outlook Calendar Options
+"What's on my Outlook schedule today?" = "What's on my Outlook schedule today?";
+"Find free time for a meeting" = "Find free time for a meeting";
+"Summarize my Outlook week ahead" = "Summarize my Outlook week ahead";
+
+// Quick Action — OneDrive Options
+"Show my recently modified OneDrive files" = "Show my recently modified OneDrive files";
+"Find OneDrive files related to a project" = "Find OneDrive files related to a project";
+
+// Quick Action — GitHub Options
+"Show my open pull requests" = "Show my open pull requests";
+"Review my assigned issues" = "Review my assigned issues";
+"Summarize recent activity in a repository" = "Summarize recent activity in a repository";
+"Check CI status of my latest PRs" = "Check CI status of my latest PRs";
+
+// Quick Action — Notion Options
+"Search my Notion pages" = "Search my Notion pages";
+"Summarize a Notion page" = "Summarize a Notion page";
+
+// Quick Action — Linear Options
+"Show my assigned Linear issues" = "Show my assigned Linear issues";
+"Summarize current sprint progress" = "Summarize current sprint progress";
+
+// Quick Action — WordPress Options
+"Check my site's recent posts" = "Check my site's recent posts";
+"Review pending comments" = "Review pending comments";
+"Check site health and errors" = "Check site health and errors";
 
 // =============================================================================
 // MARK: - ChatViewModel (system messages / slash commands)
@@ -292,12 +379,14 @@
 // MARK: - SettingsWindow — Section Titles
 // =============================================================================
 
+"Settings" = "Settings";
 "General" = "General";
 "CLIs" = "CLIs";
 "MCP" = "MCP";
 "Security" = "Security";
-"Connectors" = "Connectors";
+"Connectors" = "Native Connectors";
 "Channels" = "Channels";
+"Native Channels" = "Native Channels";
 "Plugins" = "Plugins";
 "Skills" = "Skills";
 "Voice" = "Voice";
@@ -321,6 +410,16 @@
 "About you" = "About you";
 "Brief description of your work and goals" = "Brief description of your work and goals";
 "Appearance" = "Appearance";
+"Behavior" = "Behavior";
+"Color mode" = "Color mode";
+"Chat font" = "Chat font";
+"Light" = "Light";
+"Auto" = "Auto";
+"Dark" = "Dark";
+"Default" = "Default";
+"Serif" = "Serif";
+"Mono" = "Mono";
+"Dyslexia" = "Dyslexia";
 "Launch at login" = "Launch at login";
 "Keep in menu bar" = "Keep in menu bar";
 "When enabled, closing or quitting McClaw hides it to the menu bar instead of terminating" = "When enabled, closing or quitting McClaw hides it to the menu bar instead of terminating";
@@ -336,6 +435,7 @@
 "Version" = "Version";
 "Check automatically" = "Check automatically";
 "Check for Updates..." = "Check for Updates...";
+"Features" = "Features";
 "Last: %@" = "Last: %@";
 
 // =============================================================================
@@ -625,15 +725,34 @@
 "Every 6 hours" = "Every 6 hours";
 "Every day" = "Every day";
 "Every week" = "Every week";
+"Every X time at..." = "Every X time at...";
 "Custom interval" = "Custom interval";
 
+// Scheduled interval units
+"Minutes" = "Minutes";
+"Hours" = "Hours";
+"Days" = "Days";
+"Weeks" = "Weeks";
+"Months" = "Months";
+"Years" = "Years";
+"Every" = "Every";
+"At" = "At";
+
 // =============================================================================
-// MARK: - CronJobEditor — Delivery Choices
+// MARK: - CronJobEditor — Delivery (multi-select)
 // =============================================================================
 
-"Send to a channel" = "Send to a channel";
+"Select one or more delivery methods:" = "Select one or more delivery methods:";
+"Show as macOS system notification" = "Show as macOS system notification";
 "Save only in history" = "Save only in history";
+"Results are saved in the schedule's run history" = "Results are saved in the schedule's run history";
+"Send to channels" = "Send to channels";
+"Select channels to receive the results. You can add the same channel multiple times with different recipients." = "Select channels to receive the results. You can add the same channel multiple times with different recipients.";
+"Recipient (Chat ID, channel, etc.)" = "Recipient (Chat ID, channel, etc.)";
+"Continue even if delivery fails" = "Continue even if delivery fails";
+"Configure native channels in Settings → Channels to enable channel delivery." = "Configure native channels in Settings → Channels to enable channel delivery.";
 "No notification" = "No notification";
+"History" = "History";
 
 // =============================================================================
 // MARK: - CronJobEditor — Step Explanations

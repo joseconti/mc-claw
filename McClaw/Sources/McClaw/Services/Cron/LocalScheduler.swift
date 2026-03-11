@@ -223,9 +223,9 @@ final class LocalScheduler {
             durationMs: durationMs
         )
 
-        // Post notification if delivery is set to "notifications"
-        if job.delivery?.channel == "notifications" {
-            postNotification(job: job, summary: summary, status: notifStatus)
+        // Deliver results
+        if let delivery = job.delivery {
+            await deliverResults(delivery: delivery, job: job, summary: summary, status: notifStatus)
         }
 
         // Handle deleteAfterRun (one-time schedules)
@@ -244,6 +244,57 @@ final class LocalScheduler {
         runningJobIds.insert(job.id)
         await executeJob(job)
         runningJobIds.remove(job.id)
+    }
+
+    // MARK: - Delivery
+
+    /// Known native channel IDs for routing delivery.
+    private static let nativeChannelIds: Set<String> = [
+        "telegram", "slack", "discord", "matrix", "mattermost",
+        "mastodon", "zulip", "rocketchat", "twitch"
+    ]
+
+    /// Deliver job results to configured targets (notifications, native channels, etc.).
+    private func deliverResults(
+        delivery: CronDelivery,
+        job: CronJob,
+        summary: String,
+        status: ScheduleNotification.Status
+    ) async {
+        let targets = delivery.allTargets
+
+        if targets.isEmpty {
+            // Single-target legacy: check the channel field
+            if delivery.channel == "notifications" {
+                postNotification(job: job, summary: summary, status: status)
+            } else if let channel = delivery.channel, Self.nativeChannelIds.contains(channel) {
+                let sent = await NativeChannelsManager.shared.sendMessage(
+                    channelId: channel,
+                    text: "[\(job.displayName)] \(summary)",
+                    recipientId: delivery.to ?? ""
+                )
+                if !sent {
+                    logger.warning("Failed to deliver job '\(job.displayName)' to \(channel)")
+                }
+            }
+            return
+        }
+
+        // Multi-target delivery
+        for target in targets {
+            if target.channel == "notifications" {
+                postNotification(job: job, summary: summary, status: status)
+            } else if Self.nativeChannelIds.contains(target.channel) {
+                let sent = await NativeChannelsManager.shared.sendMessage(
+                    channelId: target.channel,
+                    text: "[\(job.displayName)] \(summary)",
+                    recipientId: target.to ?? ""
+                )
+                if !sent && target.bestEffort != true {
+                    logger.warning("Failed to deliver job '\(job.displayName)' to \(target.channel)")
+                }
+            }
+        }
     }
 
     // MARK: - Helpers

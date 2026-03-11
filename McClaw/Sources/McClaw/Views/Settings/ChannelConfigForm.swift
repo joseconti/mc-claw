@@ -49,7 +49,7 @@ struct ConfigSchemaForm: View {
                 VStack(alignment: .leading, spacing: 6) {
                     if let label { Text(label).font(.callout.weight(.semibold)) }
                     Text("Unsupported field type.")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             )
@@ -68,7 +68,7 @@ struct ConfigSchemaForm: View {
             if let label { Text(label).font(.callout.weight(.semibold)) }
             if let help {
                 Text(help)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Picker("", selection: enumBinding(path, options: options, defaultValue: schema.explicitDefault)) {
@@ -95,7 +95,7 @@ struct ConfigSchemaForm: View {
             }
             if let help {
                 Text(help)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             let properties = schema.properties
@@ -129,7 +129,7 @@ struct ConfigSchemaForm: View {
             if let label { Text(label).font(.callout.weight(.semibold)) }
             if let help {
                 Text(help)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             if let options = schema.enumValues {
@@ -142,10 +142,10 @@ struct ConfigSchemaForm: View {
                 .pickerStyle(.menu)
             } else if sensitive {
                 SecureField(placeholder, text: stringBinding(path, defaultValue: defaultValue))
-                    .textFieldStyle(.roundedBorder)
+                    .mcclawTextField()
             } else {
                 TextField(placeholder, text: stringBinding(path, defaultValue: defaultValue))
-                    .textFieldStyle(.roundedBorder)
+                    .mcclawTextField()
             }
         }
     }
@@ -163,7 +163,7 @@ struct ConfigSchemaForm: View {
             if let label { Text(label).font(.callout.weight(.semibold)) }
             if let help {
                 Text(help)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             TextField(
@@ -172,7 +172,7 @@ struct ConfigSchemaForm: View {
                     path,
                     isInteger: schema.schemaType == "integer",
                     defaultValue: defaultValue))
-                .textFieldStyle(.roundedBorder)
+                .mcclawTextField()
         }
     }
 
@@ -190,7 +190,7 @@ struct ConfigSchemaForm: View {
             if let label { Text(label).font(.callout.weight(.semibold)) }
             if let help {
                 Text(help)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             ForEach(items.indices, id: \.self) { index in
@@ -308,7 +308,7 @@ struct ChannelConfigFormView: View {
             )
         } else {
             Text("Schema unavailable for this channel.")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
     }

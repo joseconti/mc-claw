@@ -15,8 +15,8 @@ struct ChatWindow: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Sidebar (collapsible)
-            if showSidebar {
+            // Sidebar (collapsible, hidden in settings)
+            if showSidebar && currentSection != .settings {
                 ChatSidebar(
                     currentSection: $currentSection,
                     onNewChat: newChat,
@@ -35,6 +35,7 @@ struct ChatWindow: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 700, minHeight: 550)
+        .font(.system(size: 14))
         .animation(.easeInOut(duration: 0.2), value: showSidebar)
         .sheet(isPresented: Bindable(appState).showOnboarding) {
             OnboardingWizard()
@@ -73,6 +74,12 @@ struct ChatWindow: View {
             // Process any pending message from menu bar
             processPendingMessage()
         }
+        .onChange(of: appState.showSettingsInMainWindow) { _, show in
+            if show {
+                currentSection = .settings
+                appState.showSettingsInMainWindow = false
+            }
+        }
         .task {
             let detector = CLIDetector()
             let detected = await detector.scan()
@@ -104,6 +111,38 @@ struct ChatWindow: View {
             NotificationsContentView()
         case .trash:
             TrashContentView()
+        case .settings:
+            settingsContent
+        }
+    }
+
+    /// Settings embedded in the main window, styled like Claude Desktop.
+    private var settingsContent: some View {
+        VStack(spacing: 0) {
+            // Back header
+            HStack(spacing: 6) {
+                Button {
+                    currentSection = .chats
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.medium))
+                        Text(String(localized: "Settings"))
+                            .font(.title2.weight(.bold))
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            SettingsWindow()
+                .environment(appState)
         }
     }
 
@@ -188,28 +227,37 @@ struct ChatWindow: View {
         .padding(.vertical, 8)
     }
 
+    @Namespace private var cliSelectorNamespace
+
     @ViewBuilder
     private var cliSelector: some View {
-        let installedCLIs = appState.availableCLIs.filter(\.isInstalled)
+        let installedCLIs = appState.installedAIProviders
         if installedCLIs.count > 1 {
             HStack(spacing: 0) {
                 ForEach(installedCLIs) { cli in
                     let isSelected = cli.id == appState.currentCLIIdentifier
                     Button {
-                        appState.currentCLIIdentifier = cli.id
+                        withAnimation(.snappy(duration: 0.25)) {
+                            appState.currentCLIIdentifier = cli.id
+                        }
                         Task { await ConfigStore.shared.saveFromState() }
                     } label: {
                         Text(cli.displayName)
                             .font(.subheadline.weight(isSelected ? .semibold : .regular))
-                            .foregroundStyle(isSelected ? .primary : .secondary)
+                            .foregroundStyle(isSelected ? .white : .secondary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 6)
-                            .background(
-                                isSelected
-                                    ? AnyShapeStyle(Color.accentColor.opacity(0.15))
-                                    : AnyShapeStyle(Color.clear)
-                            )
-                            .clipShape(Capsule())
+                            .background {
+                                if isSelected {
+                                    Capsule()
+                                        .fill(Color.accentColor.opacity(0.35))
+                                        .overlay(
+                                            Capsule()
+                                                .strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1)
+                                        )
+                                        .matchedGeometryEffect(id: "cliPill", in: cliSelectorNamespace)
+                                }
+                            }
                     }
                     .buttonStyle(.plain)
                 }
@@ -217,6 +265,7 @@ struct ChatWindow: View {
             .padding(3)
             .background(.quaternary.opacity(0.5))
             .clipShape(Capsule())
+            .liquidGlassCapsule()
         } else if let cli = appState.currentCLI {
             Text(cli.displayName)
                 .font(.subheadline.weight(.medium))
@@ -237,6 +286,7 @@ struct ChatWindow: View {
                                 message: message,
                                 userAvatarImage: appState.userAvatarImage,
                                 fontSize: appState.chatFontSize,
+                                fontFamily: appState.chatFontFamily,
                                 isLastMessage: message.id == viewModel.messages.last?.id
                             )
                             .id(message.id)

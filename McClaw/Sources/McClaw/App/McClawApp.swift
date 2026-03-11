@@ -18,6 +18,7 @@ struct McClawApp: App {
         Window("McClaw", id: "chat") {
             DeepLinkAwareChat()
                 .environment(appState)
+                .preferredColorScheme(appState.appColorScheme.swiftUIScheme)
         }
         .defaultSize(width: 480, height: 720)
         .defaultPosition(.trailing)
@@ -28,18 +29,21 @@ struct McClawApp: App {
                     AboutWindowController.shared.show()
                 }
             }
-        }
-
-        // Settings Window
-        Settings {
-            SettingsWindow()
-                .environment(appState)
+            // Override Cmd+, to open settings inside the main window
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings...") {
+                    appState.showSettingsInMainWindow = true
+                    appState.openChatWindowAction?()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
         }
 
         // Canvas Window
         Window("Canvas", id: "canvas") {
             CanvasView()
                 .environment(appState)
+                .preferredColorScheme(appState.appColorScheme.swiftUIScheme)
         }
         .defaultSize(width: 800, height: 600)
     }

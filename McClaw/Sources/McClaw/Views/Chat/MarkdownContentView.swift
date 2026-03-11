@@ -6,6 +6,7 @@ import AppKit
 struct MarkdownContentView: View {
     let content: String
     var fontSize: CGFloat = 16
+    var fontFamily: ChatFontFamily = .default
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -42,10 +43,10 @@ struct MarkdownContentView: View {
                 options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
             ) {
                 Text(attributed)
-                    .font(.system(size: fontSize))
+                    .font(fontFamily.font(size: fontSize))
             } else {
                 Text(trimmed)
-                    .font(.system(size: fontSize))
+                    .font(fontFamily.font(size: fontSize))
             }
         }
     }
@@ -70,7 +71,7 @@ private struct CodeBlockView: View {
             // Language label
             HStack {
                 Text(language.isEmpty ? "code" : language)
-                    .font(.caption.weight(.medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                 Spacer()
             }
@@ -117,11 +118,12 @@ private struct CodeBlockView: View {
             }
         } label: {
             Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.8))
                 .frame(width: 30, height: 30)
                 .background(.white.opacity(0.15))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                .liquidGlass(cornerRadius: 6)
         }
         .buttonStyle(.plain)
         .help("Copy")

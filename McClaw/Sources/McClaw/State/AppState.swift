@@ -33,6 +33,11 @@ final class AppState {
         availableCLIs.first { $0.id == currentCLIIdentifier }
     }
 
+    /// AI provider CLIs only (excludes tool CLIs like agent-browser).
+    var installedAIProviders: [CLIProviderInfo] {
+        availableCLIs.filter { $0.isInstalled && !$0.isToolCLI }
+    }
+
     // MARK: - App State
 
     /// Whether the agent is paused (won't respond to incoming messages)
@@ -48,6 +53,9 @@ final class AppState {
 
     /// Whether to show the onboarding wizard
     var showOnboarding: Bool = false
+
+    /// Whether to navigate to settings in the main window (triggered by Cmd+,)
+    var showSettingsInMainWindow: Bool = false
 
     // MARK: - Voice
 
@@ -115,6 +123,12 @@ final class AppState {
     /// Chat font size (points). Default 16 for comfortable reading.
     var chatFontSize: CGFloat = 16
 
+    /// App color scheme (light, dark, auto)
+    var appColorScheme: AppColorScheme = .auto
+
+    /// Chat font family
+    var chatFontFamily: ChatFontFamily = .default
+
     // MARK: - Canvas & Node
 
     /// Canvas panel enabled
@@ -152,6 +166,9 @@ final class AppState {
     /// Message queued from the menu bar mini chat, to be sent when the chat window opens.
     var pendingMessage: String?
 
+    /// Text to pre-fill in the chat input bar without sending (used by quick actions).
+    var prefillText: String?
+
     /// Closure to open the chat window, set by DeepLinkAwareChat when the Scene is available.
     @ObservationIgnored var openChatWindowAction: (() -> Void)?
 
@@ -179,4 +196,72 @@ enum ConnectionMode: String, Codable, Sendable {
 enum RemoteTransport: String, Codable, Sendable {
     case ssh
     case direct
+}
+
+/// App color scheme preference.
+enum AppColorScheme: String, Codable, Sendable, CaseIterable {
+    case light
+    case auto
+    case dark
+
+    var displayName: String {
+        switch self {
+        case .light: return String(localized: "Light")
+        case .auto: return String(localized: "Auto")
+        case .dark: return String(localized: "Dark")
+        }
+    }
+
+    var swiftUIScheme: ColorScheme? {
+        switch self {
+        case .light: return .light
+        case .auto: return nil
+        case .dark: return .dark
+        }
+    }
+}
+
+/// Chat font family preference.
+enum ChatFontFamily: String, Codable, Sendable, CaseIterable {
+    case `default`
+    case serif
+    case mono
+    case dyslexic
+
+    var displayName: String {
+        switch self {
+        case .default: return String(localized: "Default")
+        case .serif: return String(localized: "Serif")
+        case .mono: return String(localized: "Mono")
+        case .dyslexic: return String(localized: "Dyslexia")
+        }
+    }
+
+    /// Returns the SwiftUI Font for the given size.
+    func font(size: CGFloat) -> Font {
+        switch self {
+        case .default:
+            return .system(size: size)
+        case .serif:
+            return .system(size: size, design: .serif)
+        case .mono:
+            return .system(size: size, design: .monospaced)
+        case .dyslexic:
+            // OpenDyslexic bundled font, fall back to system rounded
+            if NSFont(name: "OpenDyslexic", size: size) != nil {
+                return .custom("OpenDyslexic", size: size)
+            }
+            return .system(size: size, design: .rounded)
+        }
+    }
+
+    /// Preview font for the settings card.
+    var previewDesign: Font.Design {
+        switch self {
+        case .default: return .default
+        case .serif: return .serif
+        case .mono: return .monospaced
+        case .dyslexic: return .rounded
+        }
+    }
 }

@@ -96,7 +96,7 @@ actor ConnectorExecutor {
                 try await KeychainService.shared.saveCredentials(instanceId: instanceId, credentials: refreshed)
                 logger.info("Token refreshed for \(instanceId)")
             } else {
-                throw ConnectorProviderError.authenticationFailed
+                throw ConnectorProviderError.tokenExpiredReauthRequired
             }
         }
 

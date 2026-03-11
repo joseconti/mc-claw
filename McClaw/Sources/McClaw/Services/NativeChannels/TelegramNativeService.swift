@@ -36,8 +36,31 @@ actor TelegramNativeService: NativeChannel {
 
     // MARK: - NativeChannel
 
+    func clearStats() {
+        stats = NativeChannelStats()
+        state = .disconnected
+        botDisplayName = nil
+    }
+
     func setOnMessage(_ handler: @escaping @Sendable (NativeChannelMessage) async -> String?) {
         self.onMessage = handler
+    }
+
+    func sendOutbound(text: String, recipientId: String) async -> Bool {
+        guard state == .connected else {
+            logger.warning("Cannot send outbound: Telegram channel not connected")
+            return false
+        }
+        guard let instanceId = config?.connectorInstanceId,
+              let token = await loadBotToken(instanceId: instanceId) else {
+            logger.error("Cannot send outbound: no bot token available")
+            return false
+        }
+        guard let chatId = Int64(recipientId) else {
+            logger.error("Cannot send outbound: recipientId '\(recipientId)' is not a valid chat ID (Int64)")
+            return false
+        }
+        return await sendMessage(token: token, chatId: chatId, text: text)
     }
 
     func start(config: NativeChannelConfig) async {

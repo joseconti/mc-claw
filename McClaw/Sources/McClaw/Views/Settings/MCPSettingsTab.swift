@@ -3,12 +3,30 @@ import SwiftUI
 /// Settings tab for managing MCP server configurations.
 struct MCPSettingsTab: View {
     @Environment(AppState.self) private var appState
+    /// Identifies the editor sheet mode to ensure SwiftUI recreates it properly.
+    enum EditorMode: Identifiable {
+        case add
+        case edit(MCPServerConfig)
+
+        var id: String {
+            switch self {
+            case .add: "add"
+            case .edit(let server): "edit-\(server.id)"
+            }
+        }
+
+        var existingServer: MCPServerConfig? {
+            if case .edit(let server) = self { return server }
+            return nil
+        }
+    }
+
     @State private var manager = MCPConfigManager.shared
-    @State private var showEditor = false
-    @State private var editingServer: MCPServerConfig?
+    @State private var editorMode: EditorMode?
     @State private var confirmDelete: MCPServerConfig?
     @State private var selectedServerId: String?
     @State private var selectedProvider: String = "claude"
+    @Namespace private var mcpProviderNamespace
 
     private var currentProvider: String {
         appState.currentCLIIdentifier ?? "claude"
@@ -46,22 +64,20 @@ struct MCPSettingsTab: View {
             selectedProvider = currentProvider
             Task { await manager.refreshServers() }
         }
-        .sheet(isPresented: $showEditor) {
+        .sheet(item: $editorMode) { mode in
             MCPServerEditor(
-                existingServer: editingServer,
+                existingServer: mode.existingServer,
                 provider: selectedProvider,
                 onCancel: {
-                    showEditor = false
-                    editingServer = nil
+                    editorMode = nil
                 },
                 onSave: { form in
-                    if let existing = editingServer {
+                    if let existing = mode.existingServer {
                         // Remove old then add new
                         try await manager.removeServer(existing)
                     }
                     try await manager.addServer(form, provider: selectedProvider)
-                    showEditor = false
-                    editingServer = nil
+                    editorMode = nil
                 }
             )
         }
@@ -99,20 +115,45 @@ struct MCPSettingsTab: View {
                 Text("MCP Servers")
                     .font(.headline)
                 Text("Configure Model Context Protocol servers for your AI CLIs")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
             if mcpProviders.count > 1 {
-                Picker("Provider", selection: $selectedProvider) {
+                HStack(spacing: 0) {
                     ForEach(mcpProviders) { cli in
-                        Text(cli.displayName).tag(cli.id)
+                        let isSelected = cli.id == selectedProvider
+                        Button {
+                            withAnimation(.snappy(duration: 0.25)) {
+                                selectedProvider = cli.id
+                            }
+                        } label: {
+                            Text(cli.displayName)
+                                .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                                .foregroundStyle(isSelected ? .white : .secondary)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 6)
+                                .background {
+                                    if isSelected {
+                                        Capsule()
+                                            .fill(Color.accentColor.opacity(0.35))
+                                            .overlay(
+                                                Capsule()
+                                                    .strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1)
+                                            )
+                                            .matchedGeometryEffect(id: "mcpProviderPill", in: mcpProviderNamespace)
+                                    }
+                                }
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 200)
+                .padding(3)
+                .background(.quaternary.opacity(0.5))
+                .clipShape(Capsule())
+                .liquidGlassCapsule()
             }
 
             Button {
@@ -123,8 +164,7 @@ struct MCPSettingsTab: View {
             .disabled(manager.isLoading)
 
             Button {
-                editingServer = nil
-                showEditor = true
+                editorMode = .add
             } label: {
                 Image(systemName: "plus")
             }
@@ -161,7 +201,7 @@ struct MCPSettingsTab: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                     Text(error)
-                        .font(.caption)
+                        .font(.subheadline)
                         .lineLimit(2)
                 }
                 .padding(8)
@@ -178,19 +218,21 @@ struct MCPSettingsTab: View {
 
             HStack(spacing: 6) {
                 Text(server.transport.displayName)
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.system(.caption, design: .monospaced))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(.blue.opacity(0.15))
                     .clipShape(Capsule())
+                    .liquidGlassCapsule(interactive: false)
 
                 if MCPProviderSupport.supportsScope(server.provider) {
                     Text(server.scope.rawValue)
-                        .font(.system(.caption2))
+                        .font(.system(.caption))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(.green.opacity(0.15))
                         .clipShape(Capsule())
+                        .liquidGlassCapsule(interactive: false)
                 }
             }
         }
@@ -223,11 +265,12 @@ struct MCPSettingsTab: View {
                         .font(.title3.weight(.semibold))
                     Spacer()
                     Text(server.provider.capitalized)
-                        .font(.caption)
+                        .font(.subheadline)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(.quaternary)
                         .clipShape(Capsule())
+                        .liquidGlassCapsule(interactive: false)
                 }
 
                 Divider()
@@ -248,7 +291,7 @@ struct MCPSettingsTab: View {
                     if !server.args.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Arguments")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             Text(server.args.joined(separator: " "))
                                 .font(.system(.body, design: .monospaced))
@@ -266,7 +309,7 @@ struct MCPSettingsTab: View {
                 if !server.envVars.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Environment Variables")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                         ForEach(server.envVars.keys.sorted(), id: \.self) { key in
                             HStack {
@@ -282,13 +325,46 @@ struct MCPSettingsTab: View {
                     }
                 }
 
+                // Auth info
+                if server.authType != .none {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Authentication")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        switch server.authType {
+                        case .headers:
+                            ForEach(server.headers.keys.sorted(), id: \.self) { key in
+                                HStack {
+                                    Text(key)
+                                        .font(.system(.caption, design: .monospaced))
+                                        .fontWeight(.medium)
+                                    Text(":")
+                                        .foregroundStyle(.secondary)
+                                    Text("••••••••")
+                                        .font(.system(.caption, design: .monospaced))
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                        case .oauth:
+                            if let clientId = server.oauthClientId {
+                                detailRow("Client ID", value: clientId)
+                            }
+                            if let port = server.oauthCallbackPort {
+                                detailRow("Callback Port", value: String(port))
+                            }
+                        case .none:
+                            EmptyView()
+                        }
+                    }
+                }
+
                 Divider()
 
                 // Actions
                 HStack {
                     Button("Edit") {
-                        editingServer = server
-                        showEditor = true
+                        editorMode = .edit(server)
                     }
                     Button("Remove", role: .destructive) {
                         confirmDelete = server
@@ -303,7 +379,7 @@ struct MCPSettingsTab: View {
     private func detailRow(_ label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(value)
                 .font(.body)

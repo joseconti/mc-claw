@@ -23,8 +23,40 @@ actor ZulipNativeService: NativeChannel {
 
     private init() {}
 
+    func clearStats() {
+        stats = NativeChannelStats()
+        state = .disconnected
+        botDisplayName = nil
+    }
+
     func setOnMessage(_ handler: @escaping @Sendable (NativeChannelMessage) async -> String?) {
         self.onMessage = handler
+    }
+
+    func sendOutbound(text: String, recipientId: String) async -> Bool {
+        guard state == .connected else {
+            logger.warning("Cannot send outbound: Zulip channel not connected")
+            return false
+        }
+        guard let serverURL = config?.serverURL,
+              let botEmail = config?.botEmail,
+              let apiKey = await loadToken(instanceId: config?.connectorInstanceId ?? "") else {
+            logger.error("Cannot send outbound: no credentials available")
+            return false
+        }
+        let authHeader = ZulipKit.basicAuthHeader(email: botEmail, apiKey: apiKey)
+        let truncated = ZulipKit.truncateForZulip(text)
+
+        // recipientId format: "stream:topic" for stream messages, or an email for direct messages
+        if recipientId.contains(":") {
+            let parts = recipientId.split(separator: ":", maxSplits: 1)
+            let stream = String(parts[0])
+            let topic = parts.count > 1 ? String(parts[1]) : "general"
+            await sendStreamReply(serverURL: serverURL, authHeader: authHeader, stream: stream, topic: topic, content: truncated)
+        } else {
+            await sendDirectReply(serverURL: serverURL, authHeader: authHeader, to: recipientId, content: truncated)
+        }
+        return true
     }
 
     func start(config: NativeChannelConfig) async {

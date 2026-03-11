@@ -27,8 +27,28 @@ actor MatrixNativeService: NativeChannel {
     private init() {}
 
     // NativeChannel conformance
+    func clearStats() {
+        stats = NativeChannelStats()
+        state = .disconnected
+        botDisplayName = nil
+    }
+
     func setOnMessage(_ handler: @escaping @Sendable (NativeChannelMessage) async -> String?) {
         self.onMessage = handler
+    }
+
+    func sendOutbound(text: String, recipientId: String) async -> Bool {
+        guard state == .connected else {
+            logger.warning("Cannot send outbound: Matrix channel not connected")
+            return false
+        }
+        guard let serverURL = config?.serverURL,
+              let token = await loadToken(instanceId: config?.connectorInstanceId ?? "") else {
+            logger.error("Cannot send outbound: no credentials available")
+            return false
+        }
+        await sendRoomMessage(serverURL: serverURL, token: token, roomId: recipientId, text: text)
+        return true
     }
 
     func start(config: NativeChannelConfig) async {

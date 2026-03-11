@@ -24,8 +24,31 @@ actor TwitchNativeService: NativeChannel {
 
     private init() {}
 
+    func clearStats() {
+        stats = NativeChannelStats()
+        state = .disconnected
+        botDisplayName = nil
+    }
+
     func setOnMessage(_ handler: @escaping @Sendable (NativeChannelMessage) async -> String?) {
         self.onMessage = handler
+    }
+
+    func sendOutbound(text: String, recipientId: String) async -> Bool {
+        guard state == .connected else {
+            logger.warning("Cannot send outbound: Twitch channel not connected")
+            return false
+        }
+        guard let token = accessToken,
+              let clientId = twitchClientId,
+              let userId = botUserId else {
+            logger.error("Cannot send outbound: no credentials available")
+            return false
+        }
+        let truncated = TwitchKit.truncateForTwitch(text)
+        // recipientId is the broadcaster user ID
+        await sendChatMessage(token: token, clientId: clientId, broadcasterId: recipientId, senderId: userId, message: truncated)
+        return true
     }
 
     func start(config: NativeChannelConfig) async {

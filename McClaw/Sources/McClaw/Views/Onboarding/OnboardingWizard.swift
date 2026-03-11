@@ -94,7 +94,7 @@ struct OnboardingWizard: View {
 
             // Privacy notice
             Label("Your email stays on your device. Only a hash is used to fetch the avatar.", systemImage: "lock.shield")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: 380)
 
@@ -119,7 +119,7 @@ struct OnboardingWizard: View {
 
             HStack(spacing: 10) {
                 TextField("your@email.com", text: $emailInput)
-                    .textFieldStyle(.roundedBorder)
+                    .mcclawTextField()
                     .frame(maxWidth: 260)
                     .onSubmit { fetchAvatarPreview() }
 
@@ -137,7 +137,7 @@ struct OnboardingWizard: View {
             }
 
             Text("This is completely optional. If you skip it, your initials will be used as avatar.")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
         }
         .padding()
@@ -181,7 +181,7 @@ struct OnboardingWizard: View {
                         if cli.isInstalled {
                             Label("Installed", systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                                .font(.caption)
+                                .font(.subheadline)
                         } else {
                             Button("Install") {
                                 // TODO: trigger installation
@@ -311,7 +311,7 @@ struct OnboardingWizard: View {
 
                     if gatewayReachable == false {
                         Text("No Gateway detected. You can set one up later or use McClaw without it.")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -395,7 +395,7 @@ struct PermissionRow: View {
                 Text(title)
                     .font(.body.weight(.medium))
                 Text(description)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         }
@@ -420,7 +420,7 @@ struct OnboardingPermissionRow: View {
                 Text(title)
                     .font(.body.weight(.medium))
                 Text(description)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -433,7 +433,7 @@ struct OnboardingPermissionRow: View {
                     .buttonStyle(.bordered)
             } else {
                 Text("Denied")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         }

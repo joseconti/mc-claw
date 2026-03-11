@@ -1,6 +1,33 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - McClaw Text Field Modifier
+
+/// Custom ViewModifier matching the chat input bar appearance.
+/// Applies `.plain` style first to remove default bezel, then adds dark background with subtle border.
+struct McClawTextFieldModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(nsColor: NSColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1.0)))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color(nsColor: NSColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)), lineWidth: 1)
+            )
+    }
+}
+
+extension View {
+    func mcclawTextField() -> some View {
+        modifier(McClawTextFieldModifier())
+    }
+}
+
 /// Settings window with sidebar navigation, styled like Claude Desktop.
 struct SettingsWindow: View {
     @Environment(AppState.self) private var appState
@@ -12,7 +39,7 @@ struct SettingsWindow: View {
             Divider()
             settingsDetail
         }
-        .frame(width: 800, height: 560)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Sidebar
@@ -39,6 +66,7 @@ struct SettingsWindow: View {
         }
         .frame(width: 200)
         .background(.ultraThinMaterial)
+        .liquidGlass(cornerRadius: 0)
     }
 
     private func sidebarRow(_ section: SettingsSection) -> some View {
@@ -62,7 +90,7 @@ struct SettingsWindow: View {
 
     private func sidebarHeader(_ title: String) -> some View {
         Text(title)
-            .font(.caption)
+            .font(.subheadline)
             .foregroundStyle(.tertiary)
             .textCase(.uppercase)
             .padding(.leading, 8)
@@ -109,6 +137,8 @@ struct SettingsWindow: View {
         case .channels:
             ChannelsSettingsTab()
                 .environment(appState)
+        case .nativeChannels:
+            NativeChannelsSettingsTab()
         case .plugins:
             PluginsSettingsTab()
                 .environment(appState)
@@ -135,24 +165,25 @@ struct SettingsWindow: View {
 
 enum SettingsSection: String, Hashable, CaseIterable {
     case general, clis, mcp, security
-    case connectors, channels, plugins, skills, voice, cron, remote
+    case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote
     case logs, advanced
 
     var title: String {
         switch self {
-        case .general: "General"
-        case .clis: "CLIs"
-        case .mcp: "MCP"
-        case .security: "Security"
-        case .connectors: "Connectors"
-        case .channels: "Channels"
-        case .plugins: "Plugins"
-        case .skills: "Skills"
-        case .voice: "Voice"
-        case .cron: "Cron"
-        case .remote: "Remote"
-        case .logs: "Logs"
-        case .advanced: "Advanced"
+        case .general: String(localized: "General")
+        case .clis: String(localized: "CLIs")
+        case .mcp: String(localized: "MCP")
+        case .security: String(localized: "Security")
+        case .connectors: String(localized: "Connectors")
+        case .channels: String(localized: "Channels")
+        case .nativeChannels: String(localized: "Native Channels")
+        case .plugins: String(localized: "Plugins")
+        case .skills: String(localized: "Skills")
+        case .voice: String(localized: "Voice")
+        case .cron: String(localized: "Cron")
+        case .remote: String(localized: "Remote")
+        case .logs: String(localized: "Logs")
+        case .advanced: String(localized: "Advanced")
         }
     }
 
@@ -164,6 +195,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .security: "lock.shield"
         case .connectors: "cable.connector"
         case .channels: "message"
+        case .nativeChannels: "bubble.left.and.bubble.right"
         case .plugins: "puzzlepiece"
         case .skills: "sparkles"
         case .voice: "waveform"
@@ -175,8 +207,8 @@ enum SettingsSection: String, Hashable, CaseIterable {
     }
 
     static let mainSections: [SettingsSection] = [.general, .clis, .mcp, .security]
-    static let integrationSections: [SettingsSection] = [.connectors, .skills, .voice]
-    static let advancedSections: [SettingsSection] = [.logs, .advanced]
+    static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice]
+    static let advancedSections: [SettingsSection] = [.logs]
 }
 
 // MARK: - Settings Tabs
@@ -187,130 +219,264 @@ struct GeneralSettingsTab: View {
 
     var body: some View {
         @Bindable var state = appState
-        Form {
-            Section("Profile") {
-                HStack(spacing: 16) {
-                    // Gravatar avatar
-                    Group {
-                        if let avatar = appState.userAvatarImage {
-                            Image(nsImage: avatar)
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(width: 56, height: 56)
-                    .clipShape(Circle())
+        VStack(alignment: .leading, spacing: 0) {
+            // MARK: - Profile
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(appState.userName ?? "Set your name")
-                            .font(.headline)
-                            .foregroundStyle(appState.userName == nil ? .secondary : .primary)
-                        Text(appState.userEmail ?? "Set your email")
-                            .font(.caption)
+            sectionHeader("Profile")
+
+            HStack(spacing: 16) {
+                Group {
+                    if let avatar = appState.userAvatarImage {
+                        Image(nsImage: avatar)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
                             .foregroundStyle(.secondary)
                     }
                 }
-                .padding(.vertical, 4)
+                .frame(width: 56, height: 56)
+                .clipShape(Circle())
 
-                TextField("Name", text: Binding(
-                    get: { state.userName ?? "" },
-                    set: { state.userName = $0.isEmpty ? nil : $0 }
-                ), prompt: Text("Your name"))
-
-                TextField("Email", text: Binding(
-                    get: { state.userEmail ?? "" },
-                    set: { state.userEmail = $0.isEmpty ? nil : $0 }
-                ), prompt: Text("your@email.com (used for Gravatar)"))
-
-                TextField("About you", text: Binding(
-                    get: { state.userDescription ?? "" },
-                    set: { state.userDescription = $0.isEmpty ? nil : $0 }
-                ), prompt: Text("Brief description of your work and goals"), axis: .vertical)
-                    .lineLimit(2...4)
-            }
-
-            Section("Appearance") {
-                Toggle("Launch at login", isOn: $state.launchAtLogin)
-                Toggle("Keep in menu bar", isOn: $state.keepInMenuBar)
-                    .help("When enabled, closing or quitting McClaw hides it to the menu bar instead of terminating")
-                Toggle("Show dock icon", isOn: $state.showDockIcon)
-                Toggle("Icon animations", isOn: $state.iconAnimationsEnabled)
-            }
-
-            Section("Chat") {
-                LabeledContent("Font size") {
-                    HStack(spacing: 12) {
-                        Text("A")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                        Slider(value: $state.chatFontSize, in: 12...24, step: 1)
-                            .frame(maxWidth: 200)
-                        Text("A")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.secondary)
-                        Text("\(Int(state.chatFontSize)) pt")
-                            .monospacedDigit()
-                            .foregroundStyle(.primary)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                }
-            }
-
-            Section("Gateway") {
-                LabeledContent("Connection", value: state.connectionMode.rawValue.capitalized)
-                LabeledContent("Status", value: state.gatewayStatus.rawValue.capitalized)
-            }
-
-            Section("Updates") {
-                LabeledContent("Version", value: "\(updater.currentVersion) (\(updater.currentBuild))")
-
-                Toggle("Check automatically", isOn: Binding(
-                    get: { updater.automaticallyChecksForUpdates },
-                    set: { updater.automaticallyChecksForUpdates = $0 }
-                ))
-
-                HStack {
-                    Button {
-                        updater.checkForUpdates()
-                    } label: {
-                        if updater.isChecking {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Check for Updates…")
-                        }
-                    }
-                    .disabled(!updater.canCheckForUpdates || updater.isChecking)
-
-                    Spacer()
-
-                    if let lastCheck = updater.lastCheckDate {
-                        Text("Last: \(lastCheck, format: .relative(presentation: .named))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if let status = updater.statusMessage {
-                    Text(status)
-                        .font(.caption)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(appState.userName ?? "Set your name")
+                        .font(.headline)
+                        .foregroundStyle(appState.userName == nil ? .secondary : .primary)
+                    Text(appState.userEmail ?? "Set your email")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
+            .padding(.bottom, 12)
+
+            TextField("Name", text: Binding(
+                get: { state.userName ?? "" },
+                set: { state.userName = $0.isEmpty ? nil : $0 }
+            ), prompt: Text("Your name"))
+                .mcclawTextField()
+                .padding(.bottom, 8)
+
+            TextField("Email", text: Binding(
+                get: { state.userEmail ?? "" },
+                set: { state.userEmail = $0.isEmpty ? nil : $0 }
+            ), prompt: Text("your@email.com (used for Gravatar)"))
+                .mcclawTextField()
+                .padding(.bottom, 8)
+
+            TextField("About you", text: Binding(
+                get: { state.userDescription ?? "" },
+                set: { state.userDescription = $0.isEmpty ? nil : $0 }
+            ), prompt: Text("Brief description of your work and goals"), axis: .vertical)
+                .mcclawTextField()
+                .lineLimit(2...4)
+
+            sectionDivider()
+
+            // MARK: - Appearance
+
+            sectionHeader("Appearance")
+
+            // Color mode
+            Text("Color mode")
+                .font(.callout.weight(.medium))
+                .padding(.bottom, 8)
+
+            HStack(spacing: 16) {
+                ForEach(AppColorScheme.allCases, id: \.self) { scheme in
+                    colorSchemeCard(scheme, selected: state.appColorScheme == scheme)
+                        .onTapGesture { state.appColorScheme = scheme }
+                }
+            }
+            .padding(.bottom, 16)
+
+            // Chat font
+            Text("Chat font")
+                .font(.callout.weight(.medium))
+                .padding(.bottom, 8)
+
+            HStack(spacing: 16) {
+                ForEach(ChatFontFamily.allCases, id: \.self) { family in
+                    fontFamilyCard(family, selected: state.chatFontFamily == family)
+                        .onTapGesture { state.chatFontFamily = family }
+                }
+            }
+            .padding(.bottom, 16)
+
+            // Font size slider
+            HStack(spacing: 12) {
+                Text("Font size")
+                    .font(.callout.weight(.medium))
+                Spacer()
+                Text("A")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                Slider(value: $state.chatFontSize, in: 12...24, step: 1)
+                    .frame(maxWidth: 180)
+                Text("A")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.secondary)
+                Text("\(Int(state.chatFontSize)) pt")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .frame(width: 40, alignment: .trailing)
+            }
+            .padding(.bottom, 16)
+
+            // Font preview
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Preview")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("McClaw — Your AI assistant")
+                        .font(state.chatFontFamily.font(size: state.chatFontSize))
+                    Text("The quick brown fox jumps over the lazy dog. 0123456789")
+                        .font(state.chatFontFamily.font(size: state.chatFontSize))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(.controlBackgroundColor))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+
+                if state.chatFontFamily == .dyslexic {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.pink.opacity(0.7))
+                        Text("Font: [OpenDyslexic](https://opendyslexic.org) — Thanks to Abbie Gonzalez for making reading more accessible for everyone.")
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.top, 4)
+                }
+            }
+
+            sectionDivider()
+
+            // MARK: - Behavior
+
+            sectionHeader("Behavior")
+
+            settingsToggleRow(
+                title: "Launch at login",
+                description: "Start McClaw automatically when you log in to your Mac.",
+                isOn: $state.launchAtLogin
+            )
+            settingsToggleRow(
+                title: "Keep in menu bar",
+                description: "When closing the window, McClaw stays in the menu bar instead of quitting.",
+                isOn: $state.keepInMenuBar
+            )
+            settingsToggleRow(
+                title: "Show dock icon",
+                description: "Display the McClaw icon in the Dock.",
+                isOn: $state.showDockIcon
+            )
+            settingsToggleRow(
+                title: "Icon animations",
+                description: "Animate the menu bar icon when the AI is working.",
+                isOn: $state.iconAnimationsEnabled
+            )
+
+            sectionDivider()
+
+            // MARK: - Features
+
+            sectionHeader("Features")
+
+            settingsToggleRow(
+                title: "Canvas panel",
+                description: "Enable the Canvas panel for visual AI interactions.",
+                isOn: $state.canvasEnabled
+            )
+            settingsToggleRow(
+                title: "Camera capture",
+                description: "Allow the AI to capture photos via the camera when requested.",
+                isOn: $state.cameraEnabled
+            )
+            settingsToggleRow(
+                title: "Screen recording",
+                description: "Allow the AI to capture the screen when requested.",
+                isOn: $state.screenEnabled
+            )
+
+            sectionDivider()
+
+            // MARK: - Updates
+
+            sectionHeader("Updates")
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Version \(updater.currentVersion) (\(updater.currentBuild))")
+                        .font(.body)
+                }
+                Spacer()
+                Button {
+                    updater.checkForUpdates()
+                } label: {
+                    if updater.isChecking {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("Check for Updates…")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!updater.canCheckForUpdates || updater.isChecking)
+            }
+            .padding(.bottom, 8)
+
+            settingsToggleRow(
+                title: "Check automatically",
+                description: "Periodically check for new McClaw versions in the background.",
+                isOn: Binding(
+                    get: { updater.automaticallyChecksForUpdates },
+                    set: { updater.automaticallyChecksForUpdates = $0 }
+                )
+            )
+
+            if let lastCheck = updater.lastCheckDate {
+                Text("Last checked: \(lastCheck, format: .relative(presentation: .named))")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 4)
+            }
+
+            if let status = updater.statusMessage {
+                Text(status)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
         }
         .onChange(of: appState.voiceWakeEnabled) { _, _ in saveConfig() }
-        .onChange(of: appState.connectionMode) { _, _ in saveConfig() }
         .onChange(of: appState.canvasEnabled) { _, _ in saveConfig() }
+        .onChange(of: appState.cameraEnabled) { _, newValue in
+            NodeMode.shared.cameraEnabled = newValue
+            saveConfig()
+        }
+        .onChange(of: appState.screenEnabled) { _, newValue in
+            NodeMode.shared.screenEnabled = newValue
+            saveConfig()
+        }
         .onChange(of: appState.chatFontSize) { _, _ in saveConfig() }
+        .onChange(of: appState.chatFontFamily) { _, _ in saveConfig() }
+        .onChange(of: appState.appColorScheme) { _, _ in saveConfig() }
         .onChange(of: appState.keepInMenuBar) { _, _ in saveConfig() }
         .onChange(of: appState.userName) { _, _ in saveProfileDebounced() }
         .onChange(of: appState.userEmail) { _, newEmail in
             saveProfileDebounced()
-            // Fetch Gravatar when email changes
             if let email = newEmail, !email.isEmpty, email.contains("@") {
                 Task {
                     let updated = await GravatarService.shared.fetchAvatar(for: email)
@@ -321,6 +487,137 @@ struct GeneralSettingsTab: View {
             }
         }
         .onChange(of: appState.userDescription) { _, _ in saveProfileDebounced() }
+    }
+
+    // MARK: - Layout Helpers
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.headline)
+            .padding(.bottom, 12)
+    }
+
+    private func sectionDivider() -> some View {
+        Divider()
+            .padding(.vertical, 20)
+    }
+
+    /// A toggle row with title, description, and a small switch on the trailing side.
+    private func settingsToggleRow(title: String, description: String, isOn: Binding<Bool>) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Toggle("", isOn: isOn)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
+        }
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Color Scheme Card
+
+    @ViewBuilder
+    private func colorSchemeCard(_ scheme: AppColorScheme, selected: Bool) -> some View {
+        VStack(spacing: 8) {
+            // Preview card — larger like Claude
+            RoundedRectangle(cornerRadius: 10)
+                .fill(colorSchemePreviewBackground(scheme))
+                .frame(width: 110, height: 72)
+                .overlay {
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(colorSchemePreviewForeground(scheme))
+                            .frame(width: 60, height: 7)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(colorSchemePreviewForeground(scheme).opacity(0.5))
+                            .frame(width: 44, height: 7)
+                        HStack(spacing: 6) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(colorSchemePreviewForeground(scheme).opacity(0.3))
+                                .frame(width: 28, height: 14)
+                            Circle()
+                                .fill(.orange.opacity(0.7))
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(selected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: selected ? 1.5 : 1)
+                }
+
+            Text(scheme.displayName)
+                .font(.subheadline)
+                .foregroundStyle(selected ? .primary : .secondary)
+        }
+        .contentShape(Rectangle())
+        .accessibilityLabel(scheme.displayName)
+    }
+
+    private func colorSchemePreviewBackground(_ scheme: AppColorScheme) -> Color {
+        switch scheme {
+        case .light: return Color(nsColor: NSColor(white: 0.95, alpha: 1.0))
+        case .dark: return Color(nsColor: NSColor(white: 0.15, alpha: 1.0))
+        case .auto: return Color(nsColor: NSColor(white: 0.15, alpha: 1.0))
+        }
+    }
+
+    private func colorSchemePreviewForeground(_ scheme: AppColorScheme) -> Color {
+        switch scheme {
+        case .light: return Color(nsColor: NSColor(white: 0.2, alpha: 1.0))
+        case .dark: return Color(nsColor: NSColor(white: 0.85, alpha: 1.0))
+        case .auto: return Color(nsColor: NSColor(white: 0.85, alpha: 1.0))
+        }
+    }
+
+    // MARK: - Font Family Card
+
+    @ViewBuilder
+    private func fontFamilyCard(_ family: ChatFontFamily, selected: Bool) -> some View {
+        VStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(.controlBackgroundColor))
+                    .frame(width: 110, height: 72)
+
+                Text("Aa")
+                    .font(fontCardPreviewFont(family))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(selected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: selected ? 1.5 : 1)
+            }
+
+            Text(family.displayName)
+                .font(.subheadline)
+                .foregroundStyle(selected ? .primary : .secondary)
+        }
+        .contentShape(Rectangle())
+        .accessibilityLabel(family.displayName)
+    }
+
+    private func fontCardPreviewFont(_ family: ChatFontFamily) -> Font {
+        switch family {
+        case .default:
+            return .system(size: 26)
+        case .serif:
+            return .system(size: 26, design: .serif)
+        case .mono:
+            return .system(size: 26, design: .monospaced)
+        case .dyslexic:
+            if NSFont(name: "OpenDyslexic", size: 26) != nil {
+                return .custom("OpenDyslexic", size: 26)
+            }
+            return .system(size: 26, design: .rounded)
+        }
     }
 
     private func saveConfig() {
@@ -343,62 +640,40 @@ struct GeneralSettingsTab: View {
 struct CLIsSettingsTab: View {
     @Environment(AppState.self) private var appState
     @State private var installingCLI: String?
+    @State private var uninstallingCLI: String?
     @State private var installLog: [String] = []
+
+    private var aiProviders: [CLIProviderInfo] {
+        appState.availableCLIs.filter { !$0.isToolCLI }
+    }
+
+    private var toolCLIs: [CLIProviderInfo] {
+        appState.availableCLIs.filter { $0.isToolCLI }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("AI Provider CLIs")
                 .font(.headline)
 
-            ForEach(appState.availableCLIs) { cli in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(cli.displayName)
-                            .font(.body.weight(.medium))
-                        if let version = cli.version {
-                            Text("v\(version)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    if cli.isInstalled {
-                        if cli.isAuthenticated {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        } else {
-                            Text("Not authenticated")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                        }
-                    } else {
-                        Button("Install") {
-                            installCLI(cli)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        .disabled(installingCLI != nil)
-                    }
-
-                    if installingCLI == cli.id {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-
-                    if cli.id == appState.currentCLIIdentifier {
-                        Text("Default")
-                            .font(.caption)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.blue.opacity(0.2))
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 4)
+            ForEach(aiProviders) { cli in
+                cliRow(cli)
                 Divider()
+            }
+
+            if !toolCLIs.isEmpty {
+                Text("Optional Tools")
+                    .font(.headline)
+                    .padding(.top, 8)
+
+                Text("Extend McClaw capabilities. These are not AI providers.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                ForEach(toolCLIs) { cli in
+                    cliRow(cli)
+                    Divider()
+                }
             }
 
             if !installLog.isEmpty {
@@ -434,6 +709,91 @@ struct CLIsSettingsTab: View {
         }
     }
 
+    private func cliRow(_ cli: CLIProviderInfo) -> some View {
+        HStack {
+            VStack(alignment: .leading) {
+                HStack(spacing: 6) {
+                    Text(cli.displayName)
+                        .font(.body.weight(.medium))
+                    if cli.isToolCLI {
+                        Text("Tool")
+                            .font(.subheadline)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(.purple.opacity(0.15))
+                            .foregroundStyle(.purple)
+                            .clipShape(Capsule())
+                            .liquidGlassCapsule(interactive: false)
+                    }
+                }
+                if let version = cli.version {
+                    Text("v\(version)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                if cli.isToolCLI && !cli.isInstalled {
+                    Text("Enhances web browsing for all AI providers")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            Spacer()
+
+            if cli.isInstalled {
+                if !cli.isToolCLI {
+                    if cli.isAuthenticated {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("Not authenticated")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                    }
+                } else {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+
+                // Uninstall button
+                Button {
+                    uninstallCLI(cli)
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red.opacity(0.7))
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .help("Uninstall \(cli.displayName)")
+                .disabled(installingCLI != nil || uninstallingCLI != nil)
+            } else {
+                Button("Install") {
+                    installCLI(cli)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(installingCLI != nil || uninstallingCLI != nil)
+            }
+
+            if installingCLI == cli.id || uninstallingCLI == cli.id {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            if !cli.isToolCLI && cli.id == appState.currentCLIIdentifier {
+                Text("Default")
+                    .font(.subheadline)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.blue.opacity(0.2))
+                    .clipShape(Capsule())
+                    .liquidGlassCapsule(interactive: false)
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
+    }
+
     private func installCLI(_ cli: CLIProviderInfo) {
         installingCLI = cli.id
         installLog = []
@@ -447,6 +807,24 @@ struct CLIsSettingsTab: View {
             installingCLI = nil
 
             // Rescan after installation
+            let detector = CLIDetector()
+            appState.availableCLIs = await detector.scan()
+        }
+    }
+
+    private func uninstallCLI(_ cli: CLIProviderInfo) {
+        uninstallingCLI = cli.id
+        installLog = []
+
+        Task {
+            let installer = CLIInstaller()
+            let stream = await installer.uninstall(provider: cli)
+            for await line in stream {
+                installLog.append(line)
+            }
+            uninstallingCLI = nil
+
+            // Rescan after uninstall
             let detector = CLIDetector()
             appState.availableCLIs = await detector.scan()
         }
@@ -507,13 +885,13 @@ struct ChannelsSettingsTab: View {
                 Text(store.resolveChannelLabel(id))
                     .font(.body.weight(.medium))
                 Text(channelSummary(id))
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if let error = channelError(id) {
                 Text(error)
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.red)
                     .lineLimit(1)
             }
@@ -534,7 +912,7 @@ struct ChannelsSettingsTab: View {
 
             if let error = channelError(id) {
                 Text(error)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.red)
             }
         }
@@ -579,7 +957,7 @@ struct ChannelsSettingsTab: View {
             VStack(alignment: .leading, spacing: 10) {
                 if let message = store.whatsappLoginMessage {
                     Text(message)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -611,7 +989,7 @@ struct ChannelsSettingsTab: View {
                     .buttonStyle(.bordered)
                     .disabled(store.whatsappBusy)
                 }
-                .font(.caption)
+                .font(.subheadline)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -634,7 +1012,7 @@ struct ChannelsSettingsTab: View {
 
         if let status = store.configStatus {
             Text(status)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
 
@@ -659,7 +1037,7 @@ struct ChannelsSettingsTab: View {
 
             Spacer()
         }
-        .font(.caption)
+        .font(.subheadline)
     }
 
     // MARK: - Helpers
@@ -672,6 +1050,7 @@ struct ChannelsSettingsTab: View {
             .background(color.opacity(0.16))
             .foregroundStyle(color)
             .clipShape(Capsule())
+            .liquidGlassCapsule(interactive: false)
     }
 
     private func isChannelConfigured(_ id: String) -> Bool {
@@ -848,7 +1227,7 @@ private struct PluginRow: View {
                     Text(plugin.name)
                         .font(.body.weight(.medium))
                     Text("v\(plugin.version)")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(plugin.kind.rawValue)
                         .font(.caption2.weight(.semibold))
@@ -857,10 +1236,11 @@ private struct PluginRow: View {
                         .padding(.vertical, 2)
                         .background(Color.secondary.opacity(0.12))
                         .clipShape(Capsule())
+                        .liquidGlassCapsule(interactive: false)
                 }
                 if let desc = plugin.description {
                     Text(desc)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
@@ -884,7 +1264,7 @@ private struct PluginRow: View {
                 onUninstall()
             } label: {
                 Image(systemName: "trash")
-                    .font(.caption)
+                    .font(.subheadline)
             }
             .buttonStyle(.borderless)
             .disabled(isBusy)
@@ -905,10 +1285,10 @@ private struct PluginInstallSheet: View {
             Text("Install Plugin")
                 .font(.headline)
             Text("Enter the npm package name of a compatible plugin.")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
             TextField("e.g. mcclaw-plugin-memory-sqlite", text: $packageName)
-                .textFieldStyle(.roundedBorder)
+                .mcclawTextField()
                 .font(.system(.body, design: .monospaced))
             HStack {
                 Button("Cancel") { dismiss() }
@@ -953,7 +1333,7 @@ struct SecuritySettingsTab: View {
                         .pickerStyle(.segmented)
 
                         Text(securityModeDescription)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
@@ -964,7 +1344,7 @@ struct SecuritySettingsTab: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Allowlist")
-                                .font(.subheadline.weight(.semibold))
+                                .font(.callout.weight(.semibold))
                             Spacer()
                             Button {
                                 showAddPattern = true
@@ -976,7 +1356,7 @@ struct SecuritySettingsTab: View {
 
                         if execApprovals.allowList.isEmpty {
                             Text("No patterns. Commands matching allowlist patterns are auto-approved.")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 8)
@@ -988,7 +1368,7 @@ struct SecuritySettingsTab: View {
                                             .font(.system(.caption, design: .monospaced))
                                         if let lastUsed = entry.lastUsedCommand {
                                             Text("Last: \(lastUsed)")
-                                                .font(.caption2)
+                                                .font(.subheadline)
                                                 .foregroundStyle(.secondary)
                                                 .lineLimit(1)
                                         }
@@ -998,7 +1378,7 @@ struct SecuritySettingsTab: View {
                                         execApprovals.removeAllowlistEntry(id: entry.id)
                                     } label: {
                                         Image(systemName: "trash")
-                                            .font(.caption)
+                                            .font(.subheadline)
                                     }
                                     .buttonStyle(.borderless)
                                 }
@@ -1013,11 +1393,11 @@ struct SecuritySettingsTab: View {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Deny List")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.callout.weight(.semibold))
 
                         if execApprovals.denyList.isEmpty {
                             Text("No deny rules. Deny rules block commands even in Allow All mode.")
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 8)
@@ -1028,7 +1408,7 @@ struct SecuritySettingsTab: View {
                                         .font(.system(.caption, design: .monospaced))
                                     if let reason = rule.reason {
                                         Text("(\(reason))")
-                                            .font(.caption2)
+                                            .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
                                     Spacer()
@@ -1036,7 +1416,7 @@ struct SecuritySettingsTab: View {
                                         execApprovals.removeDenyRule(id: rule.id)
                                     } label: {
                                         Image(systemName: "trash")
-                                            .font(.caption)
+                                            .font(.subheadline)
                                     }
                                     .buttonStyle(.borderless)
                                 }
@@ -1099,7 +1479,7 @@ private struct SecurityPermissionRow: View {
                 .frame(width: 20)
                 .foregroundStyle(.secondary)
             Text(kind.displayName)
-                .font(.caption)
+                .font(.subheadline)
             Spacer()
             statusBadge
             actionButton
@@ -1114,7 +1494,7 @@ private struct SecurityPermissionRow: View {
                 .fill(status == .granted ? .green : status == .denied ? .red : .gray)
                 .frame(width: 6, height: 6)
             Text(status.rawValue.capitalized)
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
     }
@@ -1171,7 +1551,7 @@ private struct AddPatternSheet: View {
                 .font(.headline)
 
             TextField("Pattern (e.g., /usr/bin/python*)", text: $pattern)
-                .textFieldStyle(.roundedBorder)
+                .mcclawTextField()
                 .font(.system(.body, design: .monospaced))
                 .onChange(of: pattern) { _, newValue in
                     if !newValue.isEmpty {
@@ -1187,12 +1567,12 @@ private struct AddPatternSheet: View {
 
             if let error = validationError {
                 Text(error)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.red)
             }
 
             Text("Use glob patterns: * matches within a directory, ** matches across directories.")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             HStack {
@@ -1226,7 +1606,7 @@ struct DiagnosticsSettingsTab: View {
                     .font(.headline)
                 Spacer()
                 Text(logSize)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
@@ -1244,7 +1624,7 @@ struct DiagnosticsSettingsTab: View {
                 .toggleStyle(.switch)
 
                 Text("Writes to ~/.mcclaw/logs/mcclaw.log")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
 
@@ -1366,7 +1746,7 @@ struct AdvancedSettingsTab: View {
                     DisclosureGroup("Node Capabilities") {
                         ForEach(nodeMode.capabilities) { cap in
                             LabeledContent(cap.id, value: cap.description)
-                                .font(.caption)
+                                .font(.subheadline)
                         }
                     }
                 }
@@ -1376,7 +1756,7 @@ struct AdvancedSettingsTab: View {
                 LabeledContent("Status", value: appState.gatewayStatus.rawValue.capitalized)
                 if nodeMode.isActive {
                     LabeledContent("Node ID", value: nodeMode.nodeId)
-                        .font(.caption)
+                        .font(.subheadline)
                 }
             }
         }

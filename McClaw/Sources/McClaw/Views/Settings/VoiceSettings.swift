@@ -36,7 +36,7 @@ struct VoiceSettingsTab: View {
                 Image(systemName: "mic")
                     .foregroundStyle(.secondary)
                 Text("Microphone access is required for Voice Mode.")
-                    .font(.caption)
+                    .font(.subheadline)
                 Spacer()
 
                 let status = permissionManager.microphoneStatus
@@ -45,7 +45,7 @@ struct VoiceSettingsTab: View {
                         .fill(status == .granted ? .green : status == .denied ? .red : .gray)
                         .frame(width: 6, height: 6)
                     Text(status.rawValue.capitalized)
-                        .font(.caption2)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
@@ -69,7 +69,7 @@ struct VoiceSettingsTab: View {
                 // Language
                 HStack {
                     Text("Language")
-                        .font(.caption)
+                        .font(.subheadline)
                     Spacer()
                     Picker("", selection: Binding(
                         get: { recognition.locale?.identifier ?? "system" },
@@ -90,10 +90,10 @@ struct VoiceSettingsTab: View {
                 // Silence threshold
                 HStack {
                     Text("Auto-send delay")
-                        .font(.caption)
+                        .font(.subheadline)
                     Spacer()
                     Text(String(format: "%.1fs", recognition.silenceThreshold))
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 36, alignment: .trailing)
                 }
@@ -106,7 +106,7 @@ struct VoiceSettingsTab: View {
                     if !editing { saveConfig() }
                 }
                 Text("Time of silence before auto-sending the message.")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 4)
@@ -121,7 +121,7 @@ struct VoiceSettingsTab: View {
                 // Voice selection
                 HStack {
                     Text("Voice")
-                        .font(.caption)
+                        .font(.subheadline)
                     Spacer()
                     Picker("", selection: Binding(
                         get: { synthesis.selectedVoice ?? "default" },
@@ -149,10 +149,10 @@ struct VoiceSettingsTab: View {
                 // Speed
                 HStack {
                     Text("Speed")
-                        .font(.caption)
+                        .font(.subheadline)
                     Spacer()
                     Text("\(Int(synthesis.rate)) wpm")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 60, alignment: .trailing)
                 }
@@ -168,10 +168,10 @@ struct VoiceSettingsTab: View {
                 // Volume
                 HStack {
                     Text("Volume")
-                        .font(.caption)
+                        .font(.subheadline)
                     Spacer()
                     Text("\(Int(synthesis.volume * 100))%")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 40, alignment: .trailing)
                 }
@@ -205,13 +205,13 @@ struct VoiceSettingsTab: View {
                     }
 
                 Text("Hold Right Option key to record, release to send.")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
 
                 if appState.voicePushToTalkEnabled {
                     HStack {
                         Text("Requires Accessibility permission")
-                            .font(.caption2)
+                            .font(.subheadline)
                             .foregroundStyle(.orange)
                         Spacer()
                         if permissionManager.accessibilityStatus != .granted {
@@ -246,7 +246,7 @@ struct VoiceSettingsTab: View {
 
                 HStack {
                     Text("Trigger phrase:")
-                        .font(.caption)
+                        .font(.subheadline)
                     TextField("hey claw", text: Binding(
                         get: { appState.triggerWords.first ?? "hey claw" },
                         set: { newValue in
@@ -254,12 +254,12 @@ struct VoiceSettingsTab: View {
                             saveConfig()
                         }
                     ))
-                    .textFieldStyle(.roundedBorder)
+                    .mcclawTextField()
                     .frame(maxWidth: 200)
                 }
 
                 Text("Say the trigger phrase to activate Voice Mode hands-free.")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 4)
@@ -272,7 +272,7 @@ struct VoiceSettingsTab: View {
         GroupBox("Test") {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Say something to test speech recognition:")
-                    .font(.caption)
+                    .font(.subheadline)
 
                 HStack {
                     if isTesting {

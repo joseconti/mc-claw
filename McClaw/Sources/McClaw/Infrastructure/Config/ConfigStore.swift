@@ -107,6 +107,12 @@ actor ConfigStore {
         if let fontSize = config.chatFontSize {
             state.chatFontSize = fontSize
         }
+        if let colorScheme = config.appColorScheme {
+            state.appColorScheme = colorScheme
+        }
+        if let fontFamily = config.chatFontFamily {
+            state.chatFontFamily = fontFamily
+        }
 
         // Apply file logging
         state.fileLoggingEnabled = config.fileLoggingEnabled
@@ -148,6 +154,8 @@ actor ConfigStore {
             userDescription: state.userDescription,
             keepInMenuBar: state.keepInMenuBar,
             chatFontSize: state.chatFontSize,
+            appColorScheme: state.appColorScheme,
+            chatFontFamily: state.chatFontFamily,
             fileLoggingEnabled: state.fileLoggingEnabled,
             lastSessionId: state.currentSessionId
         )
@@ -194,6 +202,8 @@ struct McClawConfig: Codable, Sendable {
     // UI preferences
     var keepInMenuBar: Bool
     var chatFontSize: CGFloat?
+    var appColorScheme: AppColorScheme?
+    var chatFontFamily: ChatFontFamily?
 
     // Diagnostics
     var fileLoggingEnabled: Bool
@@ -227,6 +237,8 @@ struct McClawConfig: Codable, Sendable {
         userDescription: String? = nil,
         keepInMenuBar: Bool = false,
         chatFontSize: CGFloat? = nil,
+        appColorScheme: AppColorScheme? = nil,
+        chatFontFamily: ChatFontFamily? = nil,
         fileLoggingEnabled: Bool = false,
         lastSessionId: String? = nil
     ) {
@@ -255,6 +267,8 @@ struct McClawConfig: Codable, Sendable {
         self.userDescription = userDescription
         self.keepInMenuBar = keepInMenuBar
         self.chatFontSize = chatFontSize
+        self.appColorScheme = appColorScheme
+        self.chatFontFamily = chatFontFamily
         self.fileLoggingEnabled = fileLoggingEnabled
         self.lastSessionId = lastSessionId
     }
@@ -286,6 +300,8 @@ struct McClawConfig: Codable, Sendable {
         userDescription = try container.decodeIfPresent(String.self, forKey: .userDescription)
         keepInMenuBar = try container.decodeIfPresent(Bool.self, forKey: .keepInMenuBar) ?? false
         chatFontSize = try container.decodeIfPresent(CGFloat.self, forKey: .chatFontSize)
+        appColorScheme = try container.decodeIfPresent(AppColorScheme.self, forKey: .appColorScheme)
+        chatFontFamily = try container.decodeIfPresent(ChatFontFamily.self, forKey: .chatFontFamily)
         fileLoggingEnabled = try container.decodeIfPresent(Bool.self, forKey: .fileLoggingEnabled) ?? false
         lastSessionId = try container.decodeIfPresent(String.self, forKey: .lastSessionId)
     }

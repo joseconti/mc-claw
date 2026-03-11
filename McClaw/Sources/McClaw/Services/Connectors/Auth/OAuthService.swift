@@ -26,6 +26,12 @@ final class OAuthService: NSObject {
         config: OAuthConfig,
         instanceId: String
     ) async throws -> ConnectorCredentials {
+        // Validate client ID is configured
+        let resolvedClientId = clientId(for: config)
+        guard !resolvedClientId.isEmpty else {
+            throw OAuthError.invalidConfiguration("OAuth Client ID is not configured. Enter it in the connector settings before connecting.")
+        }
+
         // Generate PKCE values
         let codeVerifier = ConnectorsKit.generateCodeVerifier()
         let codeChallenge = ConnectorsKit.computeCodeChallenge(from: codeVerifier)
@@ -62,9 +68,11 @@ final class OAuthService: NSObject {
                 url: authURL,
                 callbackURLScheme: config.redirectScheme
             ) { [weak self] callbackURL, error in
-                guard let self else { return }
+                // IMPORTANT: This closure runs on an arbitrary XPC queue.
+                // Do NOT access @MainActor self here — hop to MainActor first.
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
 
-                Task { @MainActor in
                     if let error {
                         self.cleanupPendingState()
                         self.pendingContinuation?.resume(throwing: OAuthError.userCancelled(error.localizedDescription))
@@ -110,11 +118,15 @@ final class OAuthService: NSObject {
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
-        let params: [String: String] = [
+        var params: [String: String] = [
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
             "client_id": clientId(for: config),
         ]
+
+        if let secret = clientSecret(for: config) {
+            params["client_secret"] = secret
+        }
         request.httpBody = params.urlEncodedData
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -182,6 +194,10 @@ final class OAuthService: NSObject {
             "client_id": clientId(for: config),
         ]
 
+        if let secret = clientSecret(for: config) {
+            params["client_secret"] = secret
+        }
+
         if config.usePKCE, let verifier = pendingCodeVerifier {
             params["code_verifier"] = verifier
         }
@@ -227,12 +243,17 @@ final class OAuthService: NSObject {
 
     // MARK: - Helpers
 
-    /// Get the OAuth client ID. In a real app this would come from a config file or build settings.
-    /// For now, stored in the connector instance config or a plist.
+    /// Get the OAuth client ID: per-config first, then global fallback.
     private func clientId(for config: OAuthConfig) -> String {
-        // Client ID loaded from config. The user sets this in Settings > Connectors.
-        // Each Google/Microsoft app registration has its own client ID.
-        ConnectorStore.shared.oauthClientId ?? "CONFIGURE_CLIENT_ID"
+        if let id = config.clientId, !id.isEmpty { return id }
+        return ConnectorStore.shared.oauthClientId ?? ""
+    }
+
+    /// Get the OAuth client secret: per-config first, then global fallback.
+    private func clientSecret(for config: OAuthConfig) -> String? {
+        if let secret = config.clientSecret, !secret.isEmpty { return secret }
+        if let secret = ConnectorStore.shared.oauthClientSecret, !secret.isEmpty { return secret }
+        return nil
     }
 
     private func cleanupPendingState() {

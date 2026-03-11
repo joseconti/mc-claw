@@ -11,6 +11,12 @@ struct ConnectorDetailView: View {
     @State private var testResult: TestResult?
     @State private var apiKeyInput = ""
     @State private var domainInput = ""
+    @State private var serverURLInput = ""
+    @State private var botEmailInput = ""
+    @State private var userIdInput = ""
+    @State private var clientIdInput = ""
+    @State private var oauthClientIdInput = ""
+    @State private var oauthClientSecretInput = ""
     @State private var errorMessage: String?
     @State private var authMode: AuthMode = .token
 
@@ -23,6 +29,17 @@ struct ConnectorDetailView: View {
     private var needsDomain: Bool {
         definition.id == "dev.jira"
     }
+
+    /// Connectors that need a server URL (self-hosted platforms).
+    private static let needsServerURL: Set<String> = [
+        "comm.matrix", "comm.mattermost", "comm.mastodon",
+        "comm.zulip", "comm.rocketchat",
+    ]
+
+    /// Connectors that need additional identity fields.
+    private static let needsBotEmail: Set<String> = ["comm.zulip"]
+    private static let needsUserId: Set<String> = ["comm.rocketchat"]
+    private static let needsClientId: Set<String> = ["comm.twitch"]
 
     @Environment(\.dismiss) private var dismiss
 
@@ -70,13 +87,14 @@ struct ConnectorDetailView: View {
                 .frame(width: 40, height: 40)
                 .background(Color.accentColor.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .liquidGlass(cornerRadius: 8)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(definition.name)
                     .font(.title2.bold())
 
                 Text(definition.description)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
@@ -92,7 +110,7 @@ struct ConnectorDetailView: View {
                 .fill(statusColor)
                 .frame(width: 8, height: 8)
             Text(statusText)
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
     }
@@ -142,14 +160,14 @@ struct ConnectorDetailView: View {
 
             if let error = errorMessage {
                 Text(error)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
             }
 
             if let inst = instance, let lastSync = inst.lastSyncAt {
                 Text("Last sync: \(lastSync, style: .relative) ago")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
         }
@@ -181,7 +199,7 @@ struct ConnectorDetailView: View {
                     .disabled(isConnecting)
                 } else {
                     SecureField("Personal Access Token", text: $apiKeyInput)
-                        .textFieldStyle(.roundedBorder)
+                        .mcclawTextField()
                         .frame(maxWidth: 400)
 
                     tokenFormatHint
@@ -212,11 +230,11 @@ struct ConnectorDetailView: View {
     private var tokenFormatHint: some View {
         if definition.id == "dev.github" {
             Text("Format: ghp_... (classic) or github_pat_... (fine-grained)")
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
         } else if definition.id == "dev.gitlab" {
             Text("Format: glpat-... (GitLab PAT)")
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
         }
     }
@@ -228,6 +246,22 @@ struct ConnectorDetailView: View {
             if instance?.isConnected == true {
                 connectedActions
             } else {
+                TextField("OAuth Client ID", text: $oauthClientIdInput)
+                    .mcclawTextField()
+                    .frame(maxWidth: 400)
+
+                SecureField("OAuth Client Secret", text: $oauthClientSecretInput)
+                    .mcclawTextField()
+                    .frame(maxWidth: 400)
+
+                Text("From your \(definition.category == .google ? "Google Cloud Console" : definition.category == .microsoft ? "Azure App Registration" : "developer console") OAuth credentials.")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+
+                Link("How to get these credentials →",
+                     destination: URL(string: "https://mcclaw.app/docs/#connectors")!)
+                    .font(.subheadline)
+
                 Button {
                     Task { await connectOAuth() }
                 } label: {
@@ -236,13 +270,17 @@ struct ConnectorDetailView: View {
                         Text("Sign in with \(definition.category == .google ? "Google" : definition.name)")
                     }
                 }
-                .disabled(isConnecting)
+                .disabled(isConnecting || oauthClientIdInput.isEmpty || oauthClientSecretInput.isEmpty)
 
                 if isConnecting {
                     ProgressView()
                         .controlSize(.small)
                 }
             }
+        }
+        .onAppear {
+            oauthClientIdInput = store.oauthClientId ?? ""
+            oauthClientSecretInput = store.oauthClientSecret ?? ""
         }
     }
 
@@ -253,15 +291,52 @@ struct ConnectorDetailView: View {
             if instance?.isConnected == true {
                 connectedActions
             } else {
-                SecureField(definition.authType == .pat ? "Personal Access Token" : "API Key", text: $apiKeyInput)
-                    .textFieldStyle(.roundedBorder)
+                // Server URL for self-hosted platforms
+                if Self.needsServerURL.contains(definition.id) {
+                    TextField(serverURLPlaceholder, text: $serverURLInput)
+                        .mcclawTextField()
+                        .frame(maxWidth: 400)
+                    Text(serverURLHint)
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+
+                SecureField(tokenLabel, text: $apiKeyInput)
+                    .mcclawTextField()
                     .frame(maxWidth: 400)
+
+                tokenHint
+
+                // Extra identity fields
+                if Self.needsBotEmail.contains(definition.id) {
+                    TextField("Bot email (e.g. mybot-bot@org.zulipchat.com)", text: $botEmailInput)
+                        .mcclawTextField()
+                        .frame(maxWidth: 400)
+                }
+
+                if Self.needsUserId.contains(definition.id) {
+                    TextField("User ID", text: $userIdInput)
+                        .mcclawTextField()
+                        .frame(maxWidth: 400)
+                    Text("Found in Administration > Users or your profile.")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+
+                if Self.needsClientId.contains(definition.id) {
+                    TextField("Client ID", text: $clientIdInput)
+                        .mcclawTextField()
+                        .frame(maxWidth: 400)
+                    Text("From your Twitch Developer Console application.")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
 
                 HStack {
                     Button("Save & Connect") {
                         Task { await connectWithKey() }
                     }
-                    .disabled(apiKeyInput.isEmpty || isConnecting)
+                    .disabled(apiKeyInput.isEmpty || isConnecting || !extraFieldsValid)
 
                     if isConnecting {
                         ProgressView()
@@ -269,6 +344,81 @@ struct ConnectorDetailView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// Validate that required extra fields are filled.
+    private var extraFieldsValid: Bool {
+        if Self.needsServerURL.contains(definition.id) && serverURLInput.isEmpty { return false }
+        if Self.needsBotEmail.contains(definition.id) && botEmailInput.isEmpty { return false }
+        if Self.needsUserId.contains(definition.id) && userIdInput.isEmpty { return false }
+        if Self.needsClientId.contains(definition.id) && clientIdInput.isEmpty { return false }
+        return true
+    }
+
+    private var tokenLabel: String {
+        switch definition.id {
+        case "comm.matrix": return "Access Token"
+        case "comm.mattermost": return "Personal Access Token"
+        case "comm.mastodon": return "Access Token"
+        case "comm.zulip": return "API Key"
+        case "comm.rocketchat": return "Auth Token"
+        case "comm.twitch": return "OAuth Token"
+        default: return definition.authType == .pat ? "Personal Access Token" : "API Key"
+        }
+    }
+
+    @ViewBuilder
+    private var tokenHint: some View {
+        switch definition.id {
+        case "comm.matrix":
+            Text("Matrix access token. Generate via Element or the Matrix API.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+        case "comm.mattermost":
+            Text("Create in Account Settings > Security > Personal Access Tokens.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+        case "comm.mastodon":
+            Text("From your instance's Preferences > Development > New Application.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+        case "comm.zulip":
+            Text("Found in Settings > Your Bots on your Zulip server.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+        case "comm.rocketchat":
+            Text("Personal Access Token from My Account > Security.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+        case "comm.twitch":
+            Text("OAuth token with chat scopes from Twitch Developer Console.")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+        default:
+            EmptyView()
+        }
+    }
+
+    private var serverURLPlaceholder: String {
+        switch definition.id {
+        case "comm.matrix": return "https://matrix.org"
+        case "comm.mattermost": return "https://your-server.mattermost.com"
+        case "comm.mastodon": return "https://mastodon.social"
+        case "comm.zulip": return "https://your-org.zulipchat.com"
+        case "comm.rocketchat": return "https://your-server.rocket.chat"
+        default: return "https://..."
+        }
+    }
+
+    private var serverURLHint: String {
+        switch definition.id {
+        case "comm.matrix": return "Your Matrix homeserver URL."
+        case "comm.mattermost": return "Your Mattermost server URL (self-hosted or cloud)."
+        case "comm.mastodon": return "Your Mastodon instance URL."
+        case "comm.zulip": return "Your Zulip server URL."
+        case "comm.rocketchat": return "Your Rocket.Chat server URL."
+        default: return "Server URL."
         }
     }
 
@@ -280,19 +430,19 @@ struct ConnectorDetailView: View {
                 connectedActions
             } else {
                 TextField("Jira domain (e.g. mycompany)", text: $domainInput)
-                    .textFieldStyle(.roundedBorder)
+                    .mcclawTextField()
                     .frame(maxWidth: 400)
 
                 Text("Your Jira URL: https://\(domainInput.isEmpty ? "domain" : domainInput).atlassian.net")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
 
                 SecureField("API Token (email:token format)", text: $apiKeyInput)
-                    .textFieldStyle(.roundedBorder)
+                    .mcclawTextField()
                     .frame(maxWidth: 400)
 
                 Text("Format: your-email@example.com:your-api-token")
-                    .font(.caption2)
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
 
                 HStack {
@@ -318,7 +468,7 @@ struct ConnectorDetailView: View {
                 connectedActions
             } else {
                 SecureField("Bot Token", text: $apiKeyInput)
-                    .textFieldStyle(.roundedBorder)
+                    .mcclawTextField()
                     .frame(maxWidth: 400)
 
                 botTokenFormatHint
@@ -344,15 +494,15 @@ struct ConnectorDetailView: View {
         switch definition.id {
         case "comm.slack":
             Text("Format: xoxb-... (Bot User OAuth Token from Slack App settings)")
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
         case "comm.discord":
             Text("Format: Bot token from Discord Developer Portal > Bot section")
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
         case "comm.telegram":
             Text("Format: 123456789:ABCdefGHIjklMNOpqrSTUvwxYZ (from @BotFather)")
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
         default:
             EmptyView()
@@ -372,29 +522,30 @@ struct ConnectorDetailView: View {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Detected WordPress Sites", systemImage: "checkmark.circle.fill")
-                            .font(.caption.bold())
+                            .font(.subheadline.bold())
                             .foregroundStyle(.green)
 
                         ForEach(detectedSites) { site in
                             HStack(spacing: 6) {
                                 Image(systemName: "globe")
-                                    .font(.caption2)
+                                    .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(site.serverName)
-                                        .font(.caption)
+                                        .font(.subheadline)
                                     Text(site.siteUrl)
-                                        .font(.caption2)
+                                        .font(.subheadline)
                                         .foregroundStyle(.tertiary)
                                 }
                                 Spacer()
                                 Text(site.transport.rawValue)
-                                    .font(.caption2)
+                                    .font(.subheadline)
                                     .foregroundStyle(.tertiary)
                                     .padding(.horizontal, 4)
                                     .padding(.vertical, 1)
                                     .background(Color.secondary.opacity(0.1))
                                     .clipShape(RoundedRectangle(cornerRadius: 3))
+                                    .liquidGlass(cornerRadius: 3)
                             }
                         }
                     }
@@ -409,26 +560,26 @@ struct ConnectorDetailView: View {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Setup Required", systemImage: "exclamationmark.triangle")
-                            .font(.caption.bold())
+                            .font(.subheadline.bold())
                             .foregroundStyle(.orange)
 
                         Text("To connect WordPress, you need:")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
 
                         VStack(alignment: .leading, spacing: 4) {
                             Label("Install MCP Content Manager plugin on your WordPress site", systemImage: "1.circle")
-                                .font(.caption)
+                                .font(.subheadline)
                             Label("Configure the MCP server in McClaw Settings → MCP", systemImage: "2.circle")
-                                .font(.caption)
+                                .font(.subheadline)
                             Label("Come back here and click Connect", systemImage: "3.circle")
-                                .font(.caption)
+                                .font(.subheadline)
                         }
                         .foregroundStyle(.tertiary)
 
                         Link("Get MCP Content Manager",
                              destination: URL(string: "https://plugins.joseconti.com/en/product/mcp-content-manager-for-wordpress/")!)
-                            .font(.caption)
+                            .font(.subheadline)
                     }
                     .padding(4)
                 }
@@ -453,21 +604,21 @@ struct ConnectorDetailView: View {
             ForEach(MCMAbilitiesCatalog.subConnectors, id: \.id) { sub in
                 HStack(spacing: 8) {
                     Image(systemName: sub.icon)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 18)
 
                     Text(sub.name)
-                        .font(.caption)
+                        .font(.subheadline)
 
                     Text("(\(sub.abilities.count))")
-                        .font(.caption2)
+                        .font(.subheadline)
                         .foregroundStyle(.tertiary)
 
                     Spacer()
 
                     Text(sub.description)
-                        .font(.caption2)
+                        .font(.subheadline)
                         .foregroundStyle(.quaternary)
                         .lineLimit(1)
                 }
@@ -500,7 +651,7 @@ struct ConnectorDetailView: View {
     private var noAuthView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("This connector does not require authentication.")
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             if instance == nil {
@@ -538,7 +689,7 @@ struct ConnectorDetailView: View {
                 Image(systemName: result.success ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(result.success ? .green : .red)
                 Text(result.message)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(result.success ? .green : .red)
             }
         }
@@ -571,11 +722,11 @@ struct ConnectorDetailView: View {
                         Text(action.name)
                             .font(.body)
                         Text(action.description)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
                         if !action.parameters.isEmpty {
                             Text("Params: \(action.parameters.map(\.name).joined(separator: ", "))")
-                                .font(.caption2)
+                                .font(.subheadline)
                                 .foregroundStyle(.quaternary)
                         }
                     }
@@ -594,7 +745,7 @@ struct ConnectorDetailView: View {
             ForEach(MCMAbilitiesCatalog.subConnectors, id: \.id) { sub in
                 HStack(spacing: 8) {
                     Image(systemName: sub.icon)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 20)
 
@@ -602,7 +753,7 @@ struct ConnectorDetailView: View {
                         Text(sub.name)
                             .font(.body)
                         Text("\(sub.abilities.count) abilities — \(sub.description)")
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
                     }
@@ -610,7 +761,7 @@ struct ConnectorDetailView: View {
                     Spacer()
 
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.green)
                 }
                 .padding(.vertical, 2)
@@ -625,6 +776,14 @@ struct ConnectorDetailView: View {
         instance = inst
         isConnecting = true
         errorMessage = nil
+
+        // Save OAuth credentials globally
+        if !oauthClientIdInput.isEmpty {
+            store.oauthClientId = oauthClientIdInput
+        }
+        if !oauthClientSecretInput.isEmpty {
+            store.oauthClientSecret = oauthClientSecretInput
+        }
 
         let config = oauthConfig(for: definition)
 
@@ -656,6 +815,24 @@ struct ConnectorDetailView: View {
             apiKey: definition.authType != .botToken ? apiKeyInput : nil,
             expiresAt: nil
         )
+
+        // Store extra fields in the connector instance config
+        var config = inst.config
+        if !serverURLInput.isEmpty {
+            config["serverURL"] = serverURLInput
+        }
+        if !botEmailInput.isEmpty {
+            config["botEmail"] = botEmailInput
+        }
+        if !userIdInput.isEmpty {
+            config["userId"] = userIdInput
+        }
+        if !clientIdInput.isEmpty {
+            config["clientId"] = clientIdInput
+        }
+        if config != inst.config {
+            store.updateConfig(id: inst.id, config: config)
+        }
 
         do {
             try await KeychainService.shared.saveCredentials(instanceId: inst.id, credentials: credentials)
