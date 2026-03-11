@@ -41,6 +41,15 @@ struct ConnectorDetailView: View {
     private static let needsUserId: Set<String> = ["comm.rocketchat"]
     private static let needsClientId: Set<String> = ["comm.twitch"]
 
+    /// Docs URL anchor for the current connector's setup guide.
+    private var docsAnchor: String {
+        switch definition.category {
+        case .google: return "https://mcclaw.app/docs/#google-setup"
+        case .microsoft: return "https://mcclaw.app/docs/#microsoft-setup"
+        default: return "https://mcclaw.app/docs/#connector-tokens"
+        }
+    }
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -259,7 +268,7 @@ struct ConnectorDetailView: View {
                     .foregroundStyle(.tertiary)
 
                 Link("How to get these credentials →",
-                     destination: URL(string: "https://mcclaw.app/docs/#connectors")!)
+                     destination: URL(string: docsAnchor)!)
                     .font(.subheadline)
 
                 Button {
@@ -306,6 +315,10 @@ struct ConnectorDetailView: View {
                     .frame(maxWidth: 400)
 
                 tokenHint
+
+                Link("How to get these credentials →",
+                     destination: URL(string: docsAnchor)!)
+                    .font(.subheadline)
 
                 // Extra identity fields
                 if Self.needsBotEmail.contains(definition.id) {
@@ -445,6 +458,10 @@ struct ConnectorDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
 
+                Link("How to get these credentials →",
+                     destination: URL(string: docsAnchor)!)
+                    .font(.subheadline)
+
                 HStack {
                     Button("Save & Connect") {
                         Task { await connectWithDomainKey() }
@@ -472,6 +489,10 @@ struct ConnectorDetailView: View {
                     .frame(maxWidth: 400)
 
                 botTokenFormatHint
+
+                Link("How to get this token →",
+                     destination: URL(string: docsAnchor)!)
+                    .font(.subheadline)
 
                 HStack {
                     Button("Validate & Connect") {
