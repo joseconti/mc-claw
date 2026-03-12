@@ -116,54 +116,80 @@ actor CLIBridge {
                 print("[DEBUG] CLIBridge: launching \(binaryPath) with args: \(args)")
                 print("[DEBUG] CLIBridge: CLAUDECODE in env? \(env["CLAUDECODE"] != nil)")
 
+                // Collect stderr in background for error reporting
+                let stderrHandle = stderrPipe.fileHandleForReading
+                let stderrBuffer = LineBuffer()
+                stderrHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    if data.isEmpty {
+                        stderrHandle.readabilityHandler = nil
+                        return
+                    }
+                    if let text = String(data: data, encoding: .utf8) {
+                        stderrBuffer.append(text)
+                    }
+                }
+
+                // Use readabilityHandler for real-time streaming instead of bytes.lines.
+                // bytes.lines buffers internally and delivers data late; readabilityHandler
+                // fires as soon as data arrives in the pipe.
+                let providerId = provider.id
+                let lineBuffer = LineBuffer()
+                stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    if data.isEmpty {
+                        // EOF — flush remaining buffer
+                        let remaining = lineBuffer.flush()
+                        if !remaining.isEmpty {
+                            let parsed = CLIParser.parseLine(remaining, provider: providerId)
+                            if case .passthrough(let s) = parsed, s.isEmpty { /* skip */ } else {
+                                continuation.yield(CLIBridge.mapParserEvent(parsed))
+                            }
+                        }
+                        stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                        return
+                    }
+                    if let text = String(data: data, encoding: .utf8) {
+                        // Split into lines; the last segment may be incomplete
+                        let lines = lineBuffer.feed(text)
+                        for line in lines {
+                            let parsed = CLIParser.parseLine(line, provider: providerId)
+                            if case .passthrough(let s) = parsed, s.isEmpty { continue }
+                            continuation.yield(CLIBridge.mapParserEvent(parsed))
+                        }
+                    }
+                }
+
                 do {
                     try process.run()
                     print("[DEBUG] CLIBridge: process started, PID=\(process.processIdentifier)")
+                } catch {
+                    stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                    stderrHandle.readabilityHandler = nil
+                    continuation.yield(.error(error.localizedDescription))
+                    continuation.yield(.done)
+                    self.activeProcess = nil
+                    continuation.finish()
+                    return
+                }
 
-                    // Read stderr concurrently so we can see errors immediately
-                    let stderrHandle = stderrPipe.fileHandleForReading
-                    let stderrTask = Task.detached {
-                        var stderrLines: [String] = []
-                        for try await line in stderrHandle.bytes.lines {
-                            print("[DEBUG] CLIBridge stderr: \(line.prefix(200))")
-                            stderrLines.append(line)
-                        }
-                        return stderrLines
-                    }
-
-                    let handle = stdoutPipe.fileHandleForReading
-                    for try await line in handle.bytes.lines {
-                        print("[DEBUG] CLIBridge: received line: \(line.prefix(100))")
-                        let parsed = CLIParser.parseLine(line, provider: provider.id)
-                        // Skip empty passthroughs (ignored verbose events)
-                        if case .passthrough(let s) = parsed, s.isEmpty { continue }
-                        let event = CLIBridge.mapParserEvent(parsed)
-                        continuation.yield(event)
-                    }
-
-                    // Process has finished writing (bytes.lines hit EOF).
-                    // Wait for process to actually terminate before reading status.
-                    process.waitUntilExit()
-                    print("[DEBUG] CLIBridge: stream ended, status=\(process.terminationStatus)")
-                    if process.terminationStatus != 0 {
-                        let stderrLines = (try? await stderrTask.value) ?? []
-                        let stderrText = stderrLines.joined(separator: "\n")
+                // Wait for process in a detached task to avoid blocking the actor
+                let processRef = process
+                Task.detached {
+                    processRef.waitUntilExit()
+                    print("[DEBUG] CLIBridge: stream ended, status=\(processRef.terminationStatus)")
+                    if processRef.terminationStatus != 0 {
+                        let stderrText = stderrBuffer.flush()
                         if !stderrText.isEmpty {
-                            print("[DEBUG] CLIBridge: stderr output: \(stderrText.prefix(500))")
+                            print("[DEBUG] CLIBridge: stderr: \(stderrText.prefix(500))")
                             continuation.yield(.error(stderrText))
                         }
                     }
-                    stderrTask.cancel()
-
                     continuation.yield(.done)
-                } catch {
-                    print("[DEBUG] CLIBridge: error: \(error)")
-                    continuation.yield(.error(error.localizedDescription))
-                    continuation.yield(.done)
+                    continuation.finish()
                 }
 
-                self.activeProcess = nil
-                continuation.finish()
+                // activeProcess cleared when stream finishes (not here)
             }
         }
     }
@@ -279,5 +305,35 @@ actor CLIBridge {
         case .done: .done
         case .passthrough(let line): .text(line)
         }
+    }
+}
+
+/// Accumulates partial line data from readabilityHandler and splits on newlines.
+/// readabilityHandler delivers arbitrary byte chunks that may split across line boundaries.
+private final class LineBuffer: Sendable {
+    nonisolated(unsafe) var buffer = ""
+
+    /// Feed new text, return complete lines (split by \n). Incomplete trailing data is kept.
+    func feed(_ text: String) -> [String] {
+        buffer += text
+        var lines: [String] = []
+        while let range = buffer.range(of: "\n") {
+            let line = String(buffer[buffer.startIndex..<range.lowerBound])
+            lines.append(line)
+            buffer = String(buffer[range.upperBound...])
+        }
+        return lines
+    }
+
+    /// Append text to buffer (for stderr collection).
+    func append(_ text: String) {
+        buffer += text
+    }
+
+    /// Return and clear remaining buffer.
+    func flush() -> String {
+        let result = buffer
+        buffer = ""
+        return result
     }
 }
