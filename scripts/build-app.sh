@@ -84,6 +84,9 @@ if [ -d "$SPM_RESOURCE_BUNDLE" ]; then
             LPROJ_COUNT=$((LPROJ_COUNT + 1))
         fi
     done
+    # Copy the entire SPM resource bundle so Bundle.module resolves correctly
+    cp -R "$SPM_RESOURCE_BUNDLE" "$RESOURCES/"
+    echo "==> SPM resource bundle embedded"
     echo "==> Localizations copied: $LPROJ_COUNT .lproj directories"
 else
     echo "WARNING: SPM resource bundle not found at $SPM_RESOURCE_BUNDLE"

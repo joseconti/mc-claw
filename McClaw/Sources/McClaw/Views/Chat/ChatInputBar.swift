@@ -155,11 +155,13 @@ struct ChatInputBar: View {
     let onAbort: () -> Void
     let isWorking: Bool
     var compact: Bool = false
+    var onImageGenerate: ((String) -> Void)?
 
     @Environment(AppState.self) private var appState
     @State private var text: String = ""
     @State private var attachments: [Attachment] = []
     @State private var voiceMode = VoiceModeService.shared
+    @State private var imageMode: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -168,24 +170,16 @@ struct ChatInputBar: View {
                 attachmentsRow
             }
 
-            // Voice transcript preview
-            if voiceMode.isActive && !voiceMode.currentTranscript.isEmpty {
-                Text(voiceMode.currentTranscript)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .italic()
-                    .lineLimit(2)
-                    .frame(maxWidth: 780, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .transition(.opacity)
-            }
-
             // Main input area
             VStack(spacing: 0) {
                 // Text field
                 MultiLineTextInput(
                     text: $text,
-                    placeholder: voiceMode.isActive ? String(localized: "Voice Mode active...", bundle: .module) : String(localized: "Type / for commands", bundle: .module),
+                    placeholder: voiceMode.isActive
+                        ? String(localized: "Voice Mode active...", bundle: .module)
+                        : imageMode
+                            ? String(localized: "Describe the image you want to create...", bundle: .module)
+                            : String(localized: "Type / for commands", bundle: .module),
                     font: .systemFont(ofSize: compact ? 14 : 16),
                     minHeight: compact ? 36 : 80,
                     maxHeight: compact ? 120 : 200,
@@ -203,31 +197,13 @@ struct ChatInputBar: View {
                 // Bottom row: attach + voice on left, send on right
                 HStack(spacing: 8) {
                     // Attach
-                    Button(action: openFilePicker) {
-                        Image(systemName: "plus")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 26, height: 26)
-                            .background(.quaternary.opacity(0.5))
-                            .clipShape(Circle())
-                            .liquidGlassCircle()
-                    }
-                    .buttonStyle(.plain)
-                    .help("Attach files")
+                    attachButton
 
                     // Voice toggle
-                    Button {
-                        voiceMode.toggle()
-                    } label: {
-                        Image(systemName: voiceModeIcon)
-                            .font(.caption)
-                            .foregroundStyle(voiceModeColor)
-                            .frame(width: 26, height: 26)
-                            .symbolEffect(.pulse, isActive: voiceMode.state == .listening)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Voice Mode (Cmd+Shift+V)")
-                    .keyboardShortcut("v", modifiers: [.command, .shift])
+                    voiceButton
+
+                    // Image generation toggle
+                    imageGenButton
 
                     Spacer()
 
@@ -239,11 +215,11 @@ struct ChatInputBar: View {
             }
             .background {
                 RoundedRectangle(cornerRadius: compact ? 16 : 20)
-                    .fill(Color(nsColor: NSColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1.0)))
+                    .fill(Theme.cardBackground)
                     .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
                     .overlay {
                         RoundedRectangle(cornerRadius: compact ? 16 : 20)
-                            .strokeBorder(Color(nsColor: NSColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)), lineWidth: 1)
+                            .strokeBorder(Theme.border, lineWidth: 1)
                     }
             }
             .frame(maxWidth: 780)
@@ -255,6 +231,11 @@ struct ChatInputBar: View {
             if let newValue, !newValue.isEmpty {
                 text = newValue
                 appState.prefillText = nil
+            }
+        }
+        .onChange(of: voiceMode.currentTranscript) { _, transcript in
+            if voiceMode.isActive {
+                text = transcript
             }
         }
     }
@@ -289,6 +270,87 @@ struct ChatInputBar: View {
         }
         .frame(maxWidth: 780)
         .padding(.horizontal, 20)
+    }
+
+    @ViewBuilder
+    private var attachButton: some View {
+        Button(action: openFilePicker) {
+            Image(systemName: "plus")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 26, height: 26)
+                .background(.quaternary.opacity(0.5))
+                .clipShape(Circle())
+                .liquidGlassCircle()
+        }
+        .buttonStyle(.plain)
+        .help(String(localized: "Attach files", bundle: .module))
+    }
+
+    @ViewBuilder
+    private var voiceButton: some View {
+        Button {
+            voiceMode.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: voiceModeIcon)
+                    .font(.subheadline)
+                    .foregroundStyle(voiceMode.isActive ? .white : .secondary)
+                    .symbolEffect(.pulse, isActive: voiceMode.state == .listening)
+                Text(String(localized: "Voice", bundle: .module))
+                    .font(.callout.weight(voiceMode.isActive ? .semibold : .regular))
+                    .foregroundStyle(voiceMode.isActive ? .white : .secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background {
+                if voiceMode.isActive {
+                    Capsule()
+                        .fill(Color.accentColor.opacity(0.35))
+                        .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1))
+                } else {
+                    Capsule().fill(.quaternary.opacity(0.5))
+                }
+            }
+            .clipShape(Capsule())
+            .liquidGlassCapsule(interactive: false)
+        }
+        .buttonStyle(.plain)
+        .help("Voice Mode (Cmd+Shift+V)")
+        .keyboardShortcut("v", modifiers: [.command, .shift])
+    }
+
+    @ViewBuilder
+    private var imageGenButton: some View {
+        if hasImageCapableCLI {
+            Button {
+                imageMode.toggle()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: imageMode ? "photo.fill" : "photo")
+                        .font(.subheadline)
+                        .foregroundStyle(imageMode ? .white : .secondary)
+                    Text(String(localized: "Image", bundle: .module))
+                        .font(.callout)
+                        .foregroundStyle(imageMode ? .white : .secondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background {
+                    if imageMode {
+                        Capsule()
+                            .fill(Color.accentColor.opacity(0.35))
+                            .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1))
+                    } else {
+                        Capsule().fill(.quaternary.opacity(0.5))
+                    }
+                }
+                .clipShape(Capsule())
+                .liquidGlassCapsule(interactive: false)
+            }
+            .buttonStyle(.plain)
+            .help(String(localized: "Generate Image", bundle: .module))
+        }
     }
 
     @ViewBuilder
@@ -335,12 +397,25 @@ struct ChatInputBar: View {
         }
     }
 
+    private var hasImageCapableCLI: Bool {
+        appState.availableCLIs.contains {
+            $0.isInstalled && $0.isAuthenticated && $0.capabilities.supportsImageGeneration
+        }
+    }
+
     private func sendMessage() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        onSend(trimmed, attachments)
-        text = ""
-        attachments = []
+
+        if imageMode, let onImage = onImageGenerate {
+            onImage(trimmed)
+            text = ""
+            imageMode = false
+        } else {
+            onSend(trimmed, attachments)
+            text = ""
+            attachments = []
+        }
     }
 
     private func openFilePicker() {

@@ -44,8 +44,24 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "maxResults", description: "Max results", defaultValue: "10"),
                 ]),
                 ConnectorActionDef(id: "list_labels", name: "List labels", description: "List all Gmail labels"),
+                ConnectorActionDef(id: "send_email", name: "Send email", description: "Send a new email", parameters: [
+                    ConnectorActionParam(name: "to", description: "Recipient email address", required: true),
+                    ConnectorActionParam(name: "subject", description: "Email subject", required: true),
+                    ConnectorActionParam(name: "body", description: "Email body", required: true),
+                    ConnectorActionParam(name: "cc", description: "CC recipients (comma-separated)"),
+                    ConnectorActionParam(name: "bcc", description: "BCC recipients (comma-separated)"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "reply_to_email", name: "Reply to email", description: "Reply to an existing email", parameters: [
+                    ConnectorActionParam(name: "messageId", description: "Gmail message ID to reply to", required: true),
+                    ConnectorActionParam(name: "body", description: "Reply body", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_draft", name: "Create draft", description: "Create a draft email", parameters: [
+                    ConnectorActionParam(name: "to", description: "Recipient email address", required: true),
+                    ConnectorActionParam(name: "subject", description: "Email subject", required: true),
+                    ConnectorActionParam(name: "body", description: "Email body", required: true),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["https://www.googleapis.com/auth/gmail.readonly"]
+            requiredScopes: ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.compose"]
         ),
         ConnectorDefinition(
             id: "google.calendar",
@@ -65,8 +81,29 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "calendarId", description: "Calendar ID", defaultValue: "primary"),
                 ]),
                 ConnectorActionDef(id: "list_calendars", name: "List calendars", description: "List all calendars"),
+                ConnectorActionDef(id: "create_event", name: "Create event", description: "Create a new calendar event", parameters: [
+                    ConnectorActionParam(name: "summary", description: "Event title", required: true),
+                    ConnectorActionParam(name: "startDateTime", description: "Start date/time (ISO 8601)", required: true),
+                    ConnectorActionParam(name: "endDateTime", description: "End date/time (ISO 8601)", required: true),
+                    ConnectorActionParam(name: "location", description: "Event location"),
+                    ConnectorActionParam(name: "description", description: "Event description"),
+                    ConnectorActionParam(name: "calendarId", description: "Calendar ID", defaultValue: "primary"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "update_event", name: "Update event", description: "Update an existing calendar event", parameters: [
+                    ConnectorActionParam(name: "eventId", description: "Event ID", required: true),
+                    ConnectorActionParam(name: "summary", description: "Event title"),
+                    ConnectorActionParam(name: "startDateTime", description: "Start date/time (ISO 8601)"),
+                    ConnectorActionParam(name: "endDateTime", description: "End date/time (ISO 8601)"),
+                    ConnectorActionParam(name: "location", description: "Event location"),
+                    ConnectorActionParam(name: "description", description: "Event description"),
+                    ConnectorActionParam(name: "calendarId", description: "Calendar ID", defaultValue: "primary"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "delete_event", name: "Delete event", description: "Delete a calendar event", parameters: [
+                    ConnectorActionParam(name: "eventId", description: "Event ID", required: true),
+                    ConnectorActionParam(name: "calendarId", description: "Calendar ID", defaultValue: "primary"),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["https://www.googleapis.com/auth/calendar.readonly"]
+            requiredScopes: ["https://www.googleapis.com/auth/calendar.events"]
         ),
         ConnectorDefinition(
             id: "google.drive",
@@ -85,8 +122,16 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "get_file_metadata", name: "File metadata", description: "Get metadata of a file", parameters: [
                     ConnectorActionParam(name: "fileId", description: "File ID", required: true),
                 ]),
+                ConnectorActionDef(id: "create_folder", name: "Create folder", description: "Create a new folder in Drive", parameters: [
+                    ConnectorActionParam(name: "name", description: "Folder name", required: true),
+                    ConnectorActionParam(name: "parentId", description: "Parent folder ID"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "move_file", name: "Move file", description: "Move a file to a different folder", parameters: [
+                    ConnectorActionParam(name: "fileId", description: "File ID", required: true),
+                    ConnectorActionParam(name: "newParentId", description: "New parent folder ID", required: true),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["https://www.googleapis.com/auth/drive.readonly"]
+            requiredScopes: ["https://www.googleapis.com/auth/drive.file"]
         ),
         ConnectorDefinition(
             id: "google.sheets",
@@ -103,8 +148,13 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "list_sheets", name: "List sheets", description: "List all sheets in a spreadsheet", parameters: [
                     ConnectorActionParam(name: "spreadsheetId", description: "Spreadsheet ID", required: true),
                 ]),
+                ConnectorActionDef(id: "write_range", name: "Write range", description: "Write values to a cell range", parameters: [
+                    ConnectorActionParam(name: "spreadsheetId", description: "Spreadsheet ID", required: true),
+                    ConnectorActionParam(name: "range", description: "Cell range (e.g. 'Sheet1!A1:D10')", required: true),
+                    ConnectorActionParam(name: "values", description: "Values to write (JSON array of arrays)", required: true),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+            requiredScopes: ["https://www.googleapis.com/auth/spreadsheets"]
         ),
         ConnectorDefinition(
             id: "google.contacts",
@@ -118,8 +168,14 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "query", description: "Search query", required: true),
                 ]),
                 ConnectorActionDef(id: "list_groups", name: "List groups", description: "List contact groups"),
+                ConnectorActionDef(id: "create_contact", name: "Create contact", description: "Create a new contact", parameters: [
+                    ConnectorActionParam(name: "givenName", description: "First name", required: true),
+                    ConnectorActionParam(name: "familyName", description: "Last name"),
+                    ConnectorActionParam(name: "email", description: "Email address"),
+                    ConnectorActionParam(name: "phone", description: "Phone number"),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["https://www.googleapis.com/auth/contacts.readonly"]
+            requiredScopes: ["https://www.googleapis.com/auth/contacts"]
         ),
     ]
 
@@ -145,8 +201,24 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "query", description: "Search query", required: true),
                 ]),
                 ConnectorActionDef(id: "list_folders", name: "List folders", description: "List mail folders"),
+                ConnectorActionDef(id: "send_email", name: "Send email", description: "Send a new email", parameters: [
+                    ConnectorActionParam(name: "to", description: "Recipient email address", required: true),
+                    ConnectorActionParam(name: "subject", description: "Email subject", required: true),
+                    ConnectorActionParam(name: "body", description: "Email body", required: true),
+                    ConnectorActionParam(name: "cc", description: "CC recipients (comma-separated)"),
+                    ConnectorActionParam(name: "bcc", description: "BCC recipients (comma-separated)"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "reply_to_email", name: "Reply to email", description: "Reply to an existing email", parameters: [
+                    ConnectorActionParam(name: "messageId", description: "Message ID to reply to", required: true),
+                    ConnectorActionParam(name: "body", description: "Reply body", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_draft", name: "Create draft", description: "Create a draft email", parameters: [
+                    ConnectorActionParam(name: "to", description: "Recipient email address", required: true),
+                    ConnectorActionParam(name: "subject", description: "Email subject", required: true),
+                    ConnectorActionParam(name: "body", description: "Email body", required: true),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["Mail.Read"]
+            requiredScopes: ["Mail.Read", "Mail.Send"]
         ),
         ConnectorDefinition(
             id: "microsoft.calendar",
@@ -164,8 +236,26 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "eventId", description: "Event ID", required: true),
                 ]),
                 ConnectorActionDef(id: "list_calendars", name: "List calendars", description: "List all calendars"),
+                ConnectorActionDef(id: "create_event", name: "Create event", description: "Create a new calendar event", parameters: [
+                    ConnectorActionParam(name: "subject", description: "Event subject", required: true),
+                    ConnectorActionParam(name: "start", description: "Start date/time (ISO 8601)", required: true),
+                    ConnectorActionParam(name: "end", description: "End date/time (ISO 8601)", required: true),
+                    ConnectorActionParam(name: "location", description: "Event location"),
+                    ConnectorActionParam(name: "body", description: "Event body/description"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "update_event", name: "Update event", description: "Update an existing calendar event", parameters: [
+                    ConnectorActionParam(name: "eventId", description: "Event ID", required: true),
+                    ConnectorActionParam(name: "subject", description: "Event subject"),
+                    ConnectorActionParam(name: "start", description: "Start date/time (ISO 8601)"),
+                    ConnectorActionParam(name: "end", description: "End date/time (ISO 8601)"),
+                    ConnectorActionParam(name: "location", description: "Event location"),
+                    ConnectorActionParam(name: "body", description: "Event body/description"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "delete_event", name: "Delete event", description: "Delete a calendar event", parameters: [
+                    ConnectorActionParam(name: "eventId", description: "Event ID", required: true),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["Calendars.Read"]
+            requiredScopes: ["Calendars.ReadWrite"]
         ),
         ConnectorDefinition(
             id: "microsoft.onedrive",
@@ -182,8 +272,12 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "get_item", name: "Get item", description: "Get file/folder metadata", parameters: [
                     ConnectorActionParam(name: "itemId", description: "Item ID", required: true),
                 ]),
+                ConnectorActionDef(id: "create_folder", name: "Create folder", description: "Create a new folder in OneDrive", parameters: [
+                    ConnectorActionParam(name: "name", description: "Folder name", required: true),
+                    ConnectorActionParam(name: "parentPath", description: "Parent folder path"),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["Files.Read"]
+            requiredScopes: ["Files.ReadWrite"]
         ),
         ConnectorDefinition(
             id: "microsoft.todo",
@@ -201,8 +295,22 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "listId", description: "Task list ID", required: true),
                     ConnectorActionParam(name: "taskId", description: "Task ID", required: true),
                 ]),
+                ConnectorActionDef(id: "create_task", name: "Create task", description: "Create a new task", parameters: [
+                    ConnectorActionParam(name: "listId", description: "Task list ID", required: true),
+                    ConnectorActionParam(name: "title", description: "Task title", required: true),
+                    ConnectorActionParam(name: "body", description: "Task body/notes"),
+                    ConnectorActionParam(name: "dueDateTime", description: "Due date/time (ISO 8601)"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "complete_task", name: "Complete task", description: "Mark a task as completed", parameters: [
+                    ConnectorActionParam(name: "listId", description: "Task list ID", required: true),
+                    ConnectorActionParam(name: "taskId", description: "Task ID", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "delete_task", name: "Delete task", description: "Delete a task", parameters: [
+                    ConnectorActionParam(name: "listId", description: "Task list ID", required: true),
+                    ConnectorActionParam(name: "taskId", description: "Task ID", required: true),
+                ], isWriteAction: true),
             ],
-            requiredScopes: ["Tasks.Read"]
+            requiredScopes: ["Tasks.ReadWrite"]
         ),
     ]
 
@@ -232,6 +340,39 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "query", description: "Search query", required: true),
                 ]),
                 ConnectorActionDef(id: "get_notifications", name: "Notifications", description: "Get unread notifications"),
+                ConnectorActionDef(id: "create_issue", name: "Create issue", description: "Create a new issue in a repository", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "title", description: "Issue title", required: true),
+                    ConnectorActionParam(name: "body", description: "Issue body"),
+                    ConnectorActionParam(name: "labels", description: "Comma-separated labels"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_comment", name: "Create comment", description: "Add a comment to an issue or PR", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "issueNumber", description: "Issue or PR number", required: true),
+                    ConnectorActionParam(name: "body", description: "Comment body", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_pr", name: "Create PR", description: "Create a pull request", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "title", description: "PR title", required: true),
+                    ConnectorActionParam(name: "head", description: "Source branch", required: true),
+                    ConnectorActionParam(name: "base", description: "Target branch", required: true),
+                    ConnectorActionParam(name: "body", description: "PR description"),
+                    ConnectorActionParam(name: "draft", description: "Create as draft (true/false)"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "merge_pr", name: "Merge PR", description: "Merge a pull request", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "pullNumber", description: "PR number", required: true),
+                    ConnectorActionParam(name: "mergeMethod", description: "Merge method (merge, squash, rebase)", defaultValue: "merge"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "close_issue", name: "Close issue", description: "Close an issue", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "issueNumber", description: "Issue number", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "add_labels", name: "Add labels", description: "Add labels to an issue or PR", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "issueNumber", description: "Issue or PR number", required: true),
+                    ConnectorActionParam(name: "labels", description: "Comma-separated labels", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -251,6 +392,31 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "state", description: "State filter", defaultValue: "opened"),
                 ]),
                 ConnectorActionDef(id: "list_projects", name: "List projects", description: "List your projects"),
+                ConnectorActionDef(id: "create_issue", name: "Create issue", description: "Create a new issue in a project", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "title", description: "Issue title", required: true),
+                    ConnectorActionParam(name: "description", description: "Issue description"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_comment", name: "Create comment", description: "Add a comment to an issue", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "issueIid", description: "Issue IID", required: true),
+                    ConnectorActionParam(name: "body", description: "Comment body", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_mr", name: "Create MR", description: "Create a merge request", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "title", description: "MR title", required: true),
+                    ConnectorActionParam(name: "sourceBranch", description: "Source branch", required: true),
+                    ConnectorActionParam(name: "targetBranch", description: "Target branch", required: true),
+                    ConnectorActionParam(name: "description", description: "MR description"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "merge_mr", name: "Merge MR", description: "Merge a merge request", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "mrIid", description: "MR IID", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "close_issue", name: "Close issue", description: "Close an issue", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "issueIid", description: "Issue IID", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -267,6 +433,19 @@ enum ConnectorRegistry {
                 ]),
                 ConnectorActionDef(id: "list_projects", name: "List projects", description: "List all projects"),
                 ConnectorActionDef(id: "my_assigned", name: "My assigned", description: "List issues assigned to you"),
+                ConnectorActionDef(id: "create_issue", name: "Create issue", description: "Create a new issue", parameters: [
+                    ConnectorActionParam(name: "teamId", description: "Team ID", required: true),
+                    ConnectorActionParam(name: "title", description: "Issue title", required: true),
+                    ConnectorActionParam(name: "description", description: "Issue description"),
+                    ConnectorActionParam(name: "priority", description: "Priority (0=none, 1=urgent, 2=high, 3=medium, 4=low)"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "update_issue", name: "Update issue", description: "Update an existing issue", parameters: [
+                    ConnectorActionParam(name: "issueId", description: "Issue ID", required: true),
+                    ConnectorActionParam(name: "title", description: "Issue title"),
+                    ConnectorActionParam(name: "description", description: "Issue description"),
+                    ConnectorActionParam(name: "stateId", description: "State ID"),
+                    ConnectorActionParam(name: "priority", description: "Priority (0=none, 1=urgent, 2=high, 3=medium, 4=low)"),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -284,6 +463,24 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "jql", description: "JQL query", required: true),
                 ]),
                 ConnectorActionDef(id: "my_assigned", name: "My assigned", description: "Issues assigned to you"),
+                ConnectorActionDef(id: "create_issue", name: "Create issue", description: "Create a new Jira issue", parameters: [
+                    ConnectorActionParam(name: "projectKey", description: "Project key (e.g. PROJ)", required: true),
+                    ConnectorActionParam(name: "summary", description: "Issue summary", required: true),
+                    ConnectorActionParam(name: "issueType", description: "Issue type (Bug, Task, Story, etc.)", required: true),
+                    ConnectorActionParam(name: "description", description: "Issue description"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "add_comment", name: "Add comment", description: "Add a comment to an issue", parameters: [
+                    ConnectorActionParam(name: "issueKey", description: "Issue key (e.g. PROJ-123)", required: true),
+                    ConnectorActionParam(name: "body", description: "Comment body", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "transition_issue", name: "Transition issue", description: "Change issue status/state", parameters: [
+                    ConnectorActionParam(name: "issueKey", description: "Issue key (e.g. PROJ-123)", required: true),
+                    ConnectorActionParam(name: "transitionId", description: "Transition ID", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "assign_issue", name: "Assign issue", description: "Assign an issue to a user", parameters: [
+                    ConnectorActionParam(name: "issueKey", description: "Issue key (e.g. PROJ-123)", required: true),
+                    ConnectorActionParam(name: "accountId", description: "User account ID", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -301,6 +498,15 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "query_database", name: "Query database", description: "Query a specific database", parameters: [
                     ConnectorActionParam(name: "databaseId", description: "Database ID", required: true),
                 ]),
+                ConnectorActionDef(id: "create_page", name: "Create page", description: "Create a new page", parameters: [
+                    ConnectorActionParam(name: "parentId", description: "Parent page or database ID", required: true),
+                    ConnectorActionParam(name: "title", description: "Page title", required: true),
+                    ConnectorActionParam(name: "content", description: "Page content (Markdown)"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "append_block", name: "Append block", description: "Append content to a block", parameters: [
+                    ConnectorActionParam(name: "blockId", description: "Block or page ID", required: true),
+                    ConnectorActionParam(name: "content", description: "Content to append", required: true),
+                ], isWriteAction: true),
             ]
         ),
     ]
@@ -324,6 +530,15 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "search_messages", name: "Search messages", description: "Search messages across workspace", parameters: [
                     ConnectorActionParam(name: "query", description: "Search query", required: true),
                 ]),
+                ConnectorActionDef(id: "send_message", name: "Send message", description: "Send a message to a channel", parameters: [
+                    ConnectorActionParam(name: "channelId", description: "Channel ID", required: true),
+                    ConnectorActionParam(name: "text", description: "Message text", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "reply_to_thread", name: "Reply to thread", description: "Reply to a message thread", parameters: [
+                    ConnectorActionParam(name: "channelId", description: "Channel ID", required: true),
+                    ConnectorActionParam(name: "threadTs", description: "Thread timestamp", required: true),
+                    ConnectorActionParam(name: "text", description: "Reply text", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -342,6 +557,10 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "channelId", description: "Channel ID", required: true),
                     ConnectorActionParam(name: "limit", description: "Number of messages", defaultValue: "20"),
                 ]),
+                ConnectorActionDef(id: "send_message", name: "Send message", description: "Send a message to a channel", parameters: [
+                    ConnectorActionParam(name: "channelId", description: "Channel ID", required: true),
+                    ConnectorActionParam(name: "content", description: "Message content", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -356,6 +575,10 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "limit", description: "Max updates", defaultValue: "20"),
                 ]),
                 ConnectorActionDef(id: "get_me", name: "Bot info", description: "Get bot information"),
+                ConnectorActionDef(id: "send_message", name: "Send message", description: "Send a message via the bot", parameters: [
+                    ConnectorActionParam(name: "chatId", description: "Chat ID", required: true),
+                    ConnectorActionParam(name: "text", description: "Message text", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -465,6 +688,18 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "get_task", name: "Get task", description: "Get task details", parameters: [
                     ConnectorActionParam(name: "taskId", description: "Task ID", required: true),
                 ]),
+                ConnectorActionDef(id: "create_task", name: "Create task", description: "Create a new task", parameters: [
+                    ConnectorActionParam(name: "content", description: "Task content/title", required: true),
+                    ConnectorActionParam(name: "projectId", description: "Project ID"),
+                    ConnectorActionParam(name: "dueString", description: "Due date (e.g. 'tomorrow', '2024-12-31')"),
+                    ConnectorActionParam(name: "priority", description: "Priority (1=normal, 2=high, 3=very high, 4=urgent)"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "complete_task", name: "Complete task", description: "Mark a task as completed", parameters: [
+                    ConnectorActionParam(name: "taskId", description: "Task ID", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "delete_task", name: "Delete task", description: "Delete a task", parameters: [
+                    ConnectorActionParam(name: "taskId", description: "Task ID", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -482,6 +717,18 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "list_lists", name: "List lists", description: "List lists in a board", parameters: [
                     ConnectorActionParam(name: "boardId", description: "Board ID", required: true),
                 ]),
+                ConnectorActionDef(id: "create_card", name: "Create card", description: "Create a new card", parameters: [
+                    ConnectorActionParam(name: "listId", description: "List ID", required: true),
+                    ConnectorActionParam(name: "name", description: "Card name", required: true),
+                    ConnectorActionParam(name: "desc", description: "Card description"),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "move_card", name: "Move card", description: "Move a card to a different list", parameters: [
+                    ConnectorActionParam(name: "cardId", description: "Card ID", required: true),
+                    ConnectorActionParam(name: "listId", description: "Destination list ID", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "archive_card", name: "Archive card", description: "Archive a card", parameters: [
+                    ConnectorActionParam(name: "cardId", description: "Card ID", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -502,6 +749,17 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "tableId", description: "Table ID", required: true),
                     ConnectorActionParam(name: "recordId", description: "Record ID", required: true),
                 ]),
+                ConnectorActionDef(id: "create_record", name: "Create record", description: "Create a new record in a table", parameters: [
+                    ConnectorActionParam(name: "baseId", description: "Base ID", required: true),
+                    ConnectorActionParam(name: "tableId", description: "Table ID or name", required: true),
+                    ConnectorActionParam(name: "fields", description: "Record fields (JSON object)", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "update_record", name: "Update record", description: "Update an existing record", parameters: [
+                    ConnectorActionParam(name: "baseId", description: "Base ID", required: true),
+                    ConnectorActionParam(name: "tableId", description: "Table ID or name", required: true),
+                    ConnectorActionParam(name: "recordId", description: "Record ID", required: true),
+                    ConnectorActionParam(name: "fields", description: "Fields to update (JSON object)", required: true),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -521,6 +779,9 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "get_metadata", name: "Get metadata", description: "Get file metadata", parameters: [
                     ConnectorActionParam(name: "path", description: "File path", required: true),
                 ]),
+                ConnectorActionDef(id: "create_folder", name: "Create folder", description: "Create a new folder", parameters: [
+                    ConnectorActionParam(name: "path", description: "Folder path", required: true),
+                ], isWriteAction: true),
             ]
         ),
     ]

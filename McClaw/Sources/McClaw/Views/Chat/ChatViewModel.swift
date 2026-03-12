@@ -128,6 +128,73 @@ final class ChatViewModel {
         )
     }
 
+    /// Find the first installed image-capable CLI provider.
+    func imageCapableProvider() -> CLIProviderInfo? {
+        AppState.shared.availableCLIs.first {
+            $0.isInstalled && $0.isAuthenticated && $0.capabilities.supportsImageGeneration
+        }
+    }
+
+    /// Send an image generation request. Uses Vertex AI Imagen 3 directly
+    /// (same approach as project cover images) instead of routing through a CLI.
+    func sendImageGeneration(prompt: String) async {
+        let appState = AppState.shared
+        let sessionId = appState.currentSessionId ?? "main"
+
+        // Check that Gemini CLI is installed (needed for OAuth token)
+        guard imageCapableProvider() != nil else {
+            postSystem("No image-capable CLI detected. Install Gemini CLI to generate images.", sessionId: sessionId)
+            return
+        }
+
+        // Show user message
+        let userMessage = ChatMessage(
+            role: .user,
+            content: "🎨 \(prompt)",
+            sessionId: sessionId,
+            providerId: "gemini"
+        )
+        messages.append(userMessage)
+
+        // Create assistant placeholder
+        var assistantMessage = ChatMessage(
+            role: .assistant,
+            content: String(localized: "Generating image with Imagen 3...", bundle: .module),
+            sessionId: sessionId,
+            isStreaming: true,
+            providerId: "gemini"
+        )
+        messages.append(assistantMessage)
+
+        isStreaming = true
+        appState.isWorking = true
+
+        // Call Vertex AI Imagen 3 directly (not through CLI)
+        let filePath = await ImageGenerationService.shared.generate(
+            prompt: prompt,
+            aspectRatio: "1:1"
+        )
+
+        if let filePath {
+            let generated = GeneratedImage(
+                filePath: filePath,
+                prompt: prompt,
+                providerUsed: "Imagen 3"
+            )
+            assistantMessage.generatedImages.append(generated)
+            assistantMessage.content = ""
+        } else {
+            assistantMessage.content = String(localized: "Image generation failed. Make sure Gemini CLI is authenticated and Vertex AI API is enabled in your GCP project.", bundle: .module)
+        }
+
+        assistantMessage.isStreaming = false
+        updateLastMessage(assistantMessage)
+
+        isStreaming = false
+        appState.isWorking = false
+        persistCurrentSession()
+    }
+
     /// Stream a message to the CLI and handle @fetch enrichment loops.
     private func streamAndEnrich(
         message: String,

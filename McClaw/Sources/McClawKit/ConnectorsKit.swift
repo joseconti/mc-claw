@@ -103,22 +103,25 @@ public enum ConnectorsKit {
     // MARK: - Connectors Header
 
     /// Build the connectors header for prompt injection.
-    /// - Parameter connectors: List of (name, [actions]) tuples for active connectors.
+    /// - Parameter connectors: List of (name, readActions, writeActions) tuples for active connectors.
     /// - Returns: Formatted header string.
     public static func buildConnectorsHeader(
-        connectors: [(name: String, actions: [String])]
+        connectors: [(name: String, readActions: [String], writeActions: [String])]
     ) -> String? {
         guard !connectors.isEmpty else { return nil }
 
         var lines: [String] = ["[McClaw Connectors] Available data sources:"]
 
-        for (name, actions) in connectors {
-            let actionList = actions.joined(separator: ", ")
+        for (name, readActions, writeActions) in connectors {
+            var allActions: [String] = readActions
+            allActions.append(contentsOf: writeActions.map { "[W] \($0)" })
+            let actionList = allActions.joined(separator: ", ")
             lines.append("- \(name): \(actionList)")
         }
 
         lines.append("")
         lines.append("To request data, reply with: @fetch(connector.action, param=value)")
+        lines.append("To execute a write action, reply with: @action(connector.action, param=value)")
         lines.append("The user can also use: /fetch connector.action")
 
         return lines.joined(separator: "\n")
@@ -262,12 +265,128 @@ public enum ConnectorsKit {
         return components.url
     }
 
+    // MARK: - @action Command Parsing
+
+    /// A parsed @action command from an AI response (write operations).
+    public struct ActionCommand: Equatable, Sendable {
+        public let connector: String
+        public let action: String
+        public let params: [String: String]
+
+        public init(connector: String, action: String, params: [String: String] = [:]) {
+            self.connector = connector
+            self.action = action
+            self.params = params
+        }
+    }
+
+    /// Maximum number of @action commands allowed per execution (anti-loop).
+    public static let maxActionCommandsPerTurn = 10
+
+    /// Parse a @action command string.
+    /// Format: `@action(connector.action, param1=value1, param2=value2)`
+    public static func parseActionCommand(_ text: String) -> ActionCommand? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmed.hasPrefix("@action("), trimmed.hasSuffix(")") else { return nil }
+
+        let inner = String(trimmed.dropFirst(8).dropLast(1))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !inner.isEmpty else { return nil }
+
+        let parts = inner.split(separator: ",", maxSplits: 1).map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let connectorAction = parts[0]
+
+        let caParts = connectorAction.split(separator: ".", maxSplits: 1)
+        guard caParts.count == 2 else { return nil }
+
+        let connector = String(caParts[0])
+        let action = String(caParts[1])
+
+        var params: [String: String] = [:]
+        if parts.count > 1 {
+            let paramString = parts[1]
+            let paramPairs = paramString.split(separator: ",")
+            for pair in paramPairs {
+                let kv = pair.split(separator: "=", maxSplits: 1)
+                if kv.count == 2 {
+                    let key = kv[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                    let value = kv[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                    params[key] = value
+                }
+            }
+        }
+
+        return ActionCommand(connector: connector, action: action, params: params)
+    }
+
+    /// Check if a text contains any @action commands.
+    public static func containsActionCommand(_ text: String) -> Bool {
+        text.contains("@action(")
+    }
+
+    /// Extract all @action commands from a text.
+    public static func extractActionCommands(_ text: String) -> [ActionCommand] {
+        var commands: [ActionCommand] = []
+        let pattern = "@action\\([^)]+\\)"
+
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+
+        for match in matches {
+            guard let range = Range(match.range, in: text) else { continue }
+            let matchText = String(text[range])
+            if let cmd = parseActionCommand(matchText) {
+                commands.append(cmd)
+            }
+        }
+
+        return commands
+    }
+
+    /// Remove @action commands from text, returning the clean response.
+    public static func removeActionCommands(_ text: String) -> String {
+        let pattern = "@action\\([^)]+\\)"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
+        let cleaned = regex.stringByReplacingMatches(
+            in: text,
+            range: NSRange(text.startIndex..., in: text),
+            withTemplate: ""
+        )
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Detect all @action commands in an AI response.
+    public static func detectActionInResponse(_ text: String) -> [ActionCommand] {
+        extractActionCommands(text)
+    }
+
+    /// Build a summary of executed action results for appending to the response.
+    public static func buildActionResultsSummary(
+        results: [(connector: String, action: String, success: Bool, message: String)]
+    ) -> String {
+        guard !results.isEmpty else { return "" }
+
+        var lines: [String] = ["--- Actions Executed ---"]
+        for (i, result) in results.enumerated() {
+            let status = result.success ? "OK" : "FAILED"
+            lines.append("\(i + 1). \(result.connector).\(result.action): \(status) — \(result.message)")
+        }
+        lines.append("--- End of actions ---")
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: - Sanitization
 
     /// Sanitize connector data to prevent prompt injection.
-    /// Escapes any @fetch() patterns that might exist in external data.
+    /// Escapes any @fetch() and @action() patterns that might exist in external data.
     public static func sanitizeConnectorData(_ data: String) -> String {
         data.replacingOccurrences(of: "@fetch(", with: "@fetch\\(")
+            .replacingOccurrences(of: "@action(", with: "@action\\(")
     }
 
     // MARK: - PKCE (Proof Key for Code Exchange)

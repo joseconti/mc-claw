@@ -19,9 +19,15 @@ actor CLIBridge {
         model: String? = nil,
         sessionId: String? = nil,
         isResume: Bool = false,
-        systemPrompt: String? = nil
+        systemPrompt: String? = nil,
+        allowedTools: [String]? = nil
     ) -> AsyncStream<CLIStreamEvent> {
-        AsyncStream { continuation in
+        // BitNet uses REST API server instead of CLI process
+        if provider.id == "bitnet" {
+            return sendViaBitNet(message: message, model: model, systemPrompt: systemPrompt)
+        }
+
+        return AsyncStream { continuation in
             Task {
                 guard let binaryPath = provider.binaryPath else {
                     continuation.yield(.error("CLI not installed: \(provider.displayName)"))
@@ -36,7 +42,8 @@ actor CLIBridge {
                     model: model,
                     sessionId: sessionId,
                     isResume: isResume,
-                    systemPrompt: systemPrompt
+                    systemPrompt: systemPrompt,
+                    allowedTools: allowedTools
                 )
 
                 // CLI provider binaries are always approved (they're what McClaw wraps)
@@ -156,6 +163,80 @@ actor CLIBridge {
                 }
 
                 self.activeProcess = nil
+                continuation.finish()
+            }
+        }
+    }
+
+    // MARK: - BitNet REST Server
+
+    /// Send a message via the BitNet REST API server.
+    private func sendViaBitNet(
+        message: String,
+        model: String?,
+        systemPrompt: String?
+    ) -> AsyncStream<CLIStreamEvent> {
+        AsyncStream { continuation in
+            Task {
+                let selectedModel = model ?? BitNetKit.defaultModel?.modelId ?? "BitNet-b1.58-2B-4T"
+
+                do {
+                    // Validate model supports chat (instruct models only)
+                    if let modelInfo = BitNetKit.registryModel(for: selectedModel),
+                       !modelInfo.isInstruct {
+                        continuation.yield(.error(
+                            "\(modelInfo.displayName) is a base model and does not support chat. " +
+                            "Please select an Instruct model in Settings → BitNet."
+                        ))
+                        continuation.yield(.done)
+                        continuation.finish()
+                        return
+                    }
+
+                    // Ensure server is running (on-demand fallback)
+                    let server = BitNetServerManager.shared
+                    if await !server.isRunning {
+                        continuation.yield(.text("Starting BitNet server..."))
+                        let (alwaysOn, serverConfig) = await MainActor.run {
+                            let s = AppState.shared
+                            return (s.bitnetAlwaysOn, BitNetKit.ServerConfig(
+                                port: s.bitnetServerPort,
+                                threads: s.bitnetThreads,
+                                contextSize: s.bitnetContextSize,
+                                maxTokens: s.bitnetMaxTokens,
+                                temperature: s.bitnetTemperature
+                            ))
+                        }
+                        try await server.start(
+                            model: selectedModel,
+                            config: serverConfig,
+                            trackIdle: !alwaysOn
+                        )
+                    } else {
+                        await server.touch()
+                    }
+
+                    // Get stream from server (sets up process)
+                    let stream = try await server.chatStream(
+                        message: message,
+                        systemPrompt: systemPrompt
+                    )
+                    // Consume stream in a detached task to avoid actor isolation issues
+                    let textTask = Task.detached { () -> String in
+                        var full = ""
+                        for await chunk in stream {
+                            continuation.yield(.text(chunk))
+                            full += chunk
+                        }
+                        return full
+                    }
+                    _ = await textTask.value
+                } catch {
+                    logger.error("BitNet error: \(error)")
+                    continuation.yield(.error(error.localizedDescription))
+                }
+
+                continuation.yield(.done)
                 continuation.finish()
             }
         }

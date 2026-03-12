@@ -120,6 +120,17 @@ struct CronJobEditor: View {
             }
         }
 
+        var singularName: String {
+            switch self {
+            case .minutes: String(localized: "minute")
+            case .hours: String(localized: "hour")
+            case .days: String(localized: "day")
+            case .weeks: String(localized: "week")
+            case .months: String(localized: "month")
+            case .years: String(localized: "year")
+            }
+        }
+
         /// Whether this unit supports a "at HH:MM" time picker.
         var supportsTime: Bool {
             switch self {
@@ -663,7 +674,7 @@ struct CronJobEditor: View {
             // Save in history toggle
             deliverToggleCard(
                 icon: "tray.full",
-                title: String(localized: "Save only in history"),
+                title: String(localized: "Save in history"),
                 subtitle: String(localized: "Results are saved in the schedule's run history"),
                 isOn: $deliverSaveHistory
             )
@@ -898,6 +909,14 @@ struct CronJobEditor: View {
         case .repeating:
             if repeatPreset == .scheduled {
                 let unit = scheduledUnit.displayName.lowercased()
+                let singularUnit = scheduledUnit.singularName.lowercased()
+                if scheduledAmount == 1 {
+                    if scheduledUnit.supportsTime {
+                        let time = scheduledTime.formatted(date: .omitted, time: .shortened)
+                        return String(localized: "Every \(singularUnit) at \(time)")
+                    }
+                    return String(localized: "Every \(singularUnit)")
+                }
                 if scheduledUnit.supportsTime {
                     let time = scheduledTime.formatted(date: .omitted, time: .shortened)
                     return String(localized: "Every \(scheduledAmount) \(unit) at \(time)")

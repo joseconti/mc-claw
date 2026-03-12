@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import Logging
 import McClawDiscovery
+import McClawKit
 import Observation
 
 /// Manages app lifecycle events, menu bar status item, and system-level setup.
@@ -87,6 +88,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
                 appState.showOnboarding = true
             }
 
+            // 4b. Auto-start BitNet server if installed, enabled, and always-on mode
+            if appState.showExperimentalProviders,
+               appState.bitnetAlwaysOn,
+               detected.first(where: { $0.id == "bitnet" && $0.isInstalled }) != nil {
+                let model = appState.bitnetDefaultModel ?? BitNetKit.defaultModel?.modelId ?? "BitNet-b1.58-2B-4T"
+                let serverConfig = BitNetKit.ServerConfig(
+                    host: "127.0.0.1",
+                    port: appState.bitnetServerPort,
+                    threads: appState.bitnetThreads,
+                    contextSize: appState.bitnetContextSize,
+                    maxTokens: appState.bitnetMaxTokens,
+                    temperature: appState.bitnetTemperature
+                )
+                Task.detached {
+                    do {
+                        try await BitNetServerManager.shared.start(model: model, config: serverConfig)
+                    } catch {
+                        print("[DEBUG] BitNet auto-start failed: \(error)")
+                    }
+                }
+            }
+
             // 5. Start Gateway connection only if Gateway is reachable
             if appState.hasCompletedOnboarding {
                 let discovery = GatewayDiscovery()
@@ -153,6 +176,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
         }
     }
 
+    // MARK: - Menu Bar Icon
+
+    /// Load the custom menu bar icon from bundle resources with @2x support.
+    private func loadMenuBarIcon() -> NSImage? {
+        let bundle = Bundle.module
+
+        // Try @2x first (36x36 px displayed at 18x18 pt)
+        let url2x = bundle.bundleURL.appendingPathComponent("macclaw-black@2x.png")
+        if let nsImage = NSImage(contentsOf: url2x) {
+            nsImage.size = NSSize(width: 18, height: 18)
+            return nsImage
+        }
+
+        // Try @1x
+        if let url1x = bundle.url(forResource: "macclaw-black", withExtension: "png"),
+           let nsImage = NSImage(contentsOf: url1x) {
+            nsImage.size = NSSize(width: 18, height: 18)
+            return nsImage
+        }
+
+        // Fallback to SF Symbol
+        return NSImage(systemSymbolName: "brain", accessibilityDescription: "McClaw")
+    }
+
     // MARK: - Status Item Setup
 
     /// Create the NSStatusItem so it appears in the menu bar.
@@ -163,9 +210,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
 
         guard let button = item.button else { return }
 
-        if let img = NSImage(systemSymbolName: "brain", accessibilityDescription: "McClaw") {
+        if let img = loadMenuBarIcon() {
             img.isTemplate = true
-            img.size = NSSize(width: 18, height: 18)
             button.image = img
             button.imagePosition = .imageOnly
         }
@@ -243,20 +289,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
     private func startIconObservation() {
         let state = AppState.shared
         withObservationTracking {
-            let iconName: String
             if state.isPaused {
-                iconName = "pause.circle"
+                let img = NSImage(systemSymbolName: "pause.circle", accessibilityDescription: "McClaw")
+                img?.isTemplate = true
+                self.statusItem?.button?.image = img
             } else if state.isWorking {
-                iconName = "brain.head.profile"
+                let img = NSImage(systemSymbolName: "brain.head.profile", accessibilityDescription: "McClaw")
+                img?.isTemplate = true
+                self.statusItem?.button?.image = img
             } else if state.talkModeEnabled {
-                iconName = "waveform.circle"
+                let img = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "McClaw")
+                img?.isTemplate = true
+                self.statusItem?.button?.image = img
             } else {
-                iconName = "brain"
+                // Idle state: use custom McClaw icon
+                if let customIcon = self.loadMenuBarIcon() {
+                    customIcon.isTemplate = true
+                    self.statusItem?.button?.image = customIcon
+                }
             }
-            self.statusItem?.button?.image = NSImage(
-                systemSymbolName: iconName,
-                accessibilityDescription: "McClaw"
-            )
         } onChange: {
             Task { @MainActor [weak self] in
                 self?.startIconObservation()

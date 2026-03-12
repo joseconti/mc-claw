@@ -8,7 +8,7 @@ final class FloatingChatPanel: NSPanel {
 
     init(contentView swiftUIView: some View) {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 100),
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 120),
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false

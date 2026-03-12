@@ -23,6 +23,18 @@ struct TodoistProvider: ConnectorProvider {
             guard let taskId = params["taskId"] else { throw ConnectorProviderError.missingParameter("taskId") }
             data = try await getTask(taskId: taskId, credentials: credentials)
 
+        case "create_task":
+            guard let content = params["content"] else { throw ConnectorProviderError.missingParameter("content") }
+            data = try await createTask(content: content, projectId: params["projectId"], dueString: params["dueString"], priority: params["priority"], credentials: credentials)
+
+        case "complete_task":
+            guard let taskId = params["taskId"] else { throw ConnectorProviderError.missingParameter("taskId") }
+            data = try await completeTask(taskId: taskId, credentials: credentials)
+
+        case "delete_task":
+            guard let taskId = params["taskId"] else { throw ConnectorProviderError.missingParameter("taskId") }
+            data = try await deleteTask(taskId: taskId, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -68,6 +80,58 @@ struct TodoistProvider: ConnectorProvider {
             return "(task not found)"
         }
         return ConnectorsKit.formatTodoistTaskDetail(task)
+    }
+
+    private func createTask(content: String, projectId: String?, dueString: String?, priority: String?, credentials: ConnectorCredentials) async throws -> String {
+        var body: [String: Any] = ["content": content]
+        if let projectId, !projectId.isEmpty { body["project_id"] = projectId }
+        if let dueString, !dueString.isEmpty { body["due_string"] = dueString }
+        if let priority, let p = Int(priority) { body["priority"] = p }
+        let _ = try await todoistPost(path: "/rest/v2/tasks", body: body, credentials: credentials)
+        return "Task created: \(content)"
+    }
+
+    private func completeTask(taskId: String, credentials: ConnectorCredentials) async throws -> String {
+        let _ = try await todoistPost(path: "/rest/v2/tasks/\(taskId)/close", body: nil, credentials: credentials)
+        return "Task completed"
+    }
+
+    private func deleteTask(taskId: String, credentials: ConnectorCredentials) async throws -> String {
+        let _ = try await todoistRequest(method: "DELETE", path: "/rest/v2/tasks/\(taskId)", body: nil, credentials: credentials)
+        return "Task deleted"
+    }
+
+    private func todoistPost(path: String, body: [String: Any]?, credentials: ConnectorCredentials) async throws -> (Data, Int) {
+        return try await todoistRequest(method: "POST", path: path, body: body, credentials: credentials)
+    }
+
+    private func todoistRequest(method: String, path: String, body: [String: Any]?, credentials: ConnectorCredentials) async throws -> (Data, Int) {
+        guard let token = credentials.apiKey ?? credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+        guard let url = URL(string: "https://api.todoist.com" + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+        switch http.statusCode {
+        case 200...299: return (data, http.statusCode)
+        case 401, 403: throw ConnectorProviderError.authenticationFailed
+        case 429:
+            let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw ConnectorProviderError.rateLimited(retryAfter: retryAfter)
+        default:
+            throw ConnectorProviderError.apiError(statusCode: http.statusCode, message: "Todoist API error")
+        }
     }
 
     private func todoistGet(path: String, queryItems: [URLQueryItem] = [], credentials: ConnectorCredentials) async throws -> (Data, Int) {
@@ -119,6 +183,20 @@ struct TrelloProvider: ConnectorProvider {
             guard let boardId = params["boardId"] else { throw ConnectorProviderError.missingParameter("boardId") }
             data = try await listLists(boardId: boardId, credentials: credentials)
 
+        case "create_card":
+            guard let listId = params["listId"] else { throw ConnectorProviderError.missingParameter("listId") }
+            guard let name = params["name"] else { throw ConnectorProviderError.missingParameter("name") }
+            data = try await createCard(listId: listId, name: name, desc: params["desc"], credentials: credentials)
+
+        case "move_card":
+            guard let cardId = params["cardId"] else { throw ConnectorProviderError.missingParameter("cardId") }
+            guard let listId = params["listId"] else { throw ConnectorProviderError.missingParameter("listId") }
+            data = try await moveCard(cardId: cardId, listId: listId, credentials: credentials)
+
+        case "archive_card":
+            guard let cardId = params["cardId"] else { throw ConnectorProviderError.missingParameter("cardId") }
+            data = try await archiveCard(cardId: cardId, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -138,6 +216,30 @@ struct TrelloProvider: ConnectorProvider {
     }
 
     // MARK: - API Calls
+
+    private func createCard(listId: String, name: String, desc: String?, credentials: ConnectorCredentials) async throws -> String {
+        var queryItems = [
+            URLQueryItem(name: "idList", value: listId),
+            URLQueryItem(name: "name", value: name),
+        ]
+        if let desc, !desc.isEmpty {
+            queryItems.append(URLQueryItem(name: "desc", value: desc))
+        }
+        let _ = try await trelloRequest(method: "POST", path: "/1/cards", queryItems: queryItems, credentials: credentials)
+        return "Card created: \(name)"
+    }
+
+    private func moveCard(cardId: String, listId: String, credentials: ConnectorCredentials) async throws -> String {
+        let queryItems = [URLQueryItem(name: "idList", value: listId)]
+        let _ = try await trelloRequest(method: "PUT", path: "/1/cards/\(cardId)", queryItems: queryItems, credentials: credentials)
+        return "Card moved"
+    }
+
+    private func archiveCard(cardId: String, credentials: ConnectorCredentials) async throws -> String {
+        let queryItems = [URLQueryItem(name: "closed", value: "true")]
+        let _ = try await trelloRequest(method: "PUT", path: "/1/cards/\(cardId)", queryItems: queryItems, credentials: credentials)
+        return "Card archived"
+    }
 
     private func listBoards(credentials: ConnectorCredentials) async throws -> String {
         let (data, _) = try await trelloGet(path: "/1/members/me/boards", queryItems: [
@@ -196,6 +298,39 @@ struct TrelloProvider: ConnectorProvider {
             throw ConnectorProviderError.apiError(statusCode: http.statusCode, message: "Trello API error")
         }
     }
+
+    /// Trello write requests (POST/PUT/DELETE) using API Key + Token as query params.
+    private func trelloRequest(method: String, path: String, queryItems: [URLQueryItem] = [], credentials: ConnectorCredentials) async throws -> (Data, Int) {
+        guard let apiKey = credentials.apiKey, !apiKey.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+        var components = URLComponents(string: "https://api.trello.com" + path)!
+        var allItems = queryItems
+        allItems.append(URLQueryItem(name: "key", value: apiKey))
+        allItems.append(URLQueryItem(name: "token", value: token))
+        components.queryItems = (components.queryItems ?? []) + allItems
+        guard let url = components.url else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+        switch http.statusCode {
+        case 200...299: return (data, http.statusCode)
+        case 401: throw ConnectorProviderError.authenticationFailed
+        case 429:
+            let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw ConnectorProviderError.rateLimited(retryAfter: retryAfter)
+        default:
+            throw ConnectorProviderError.apiError(statusCode: http.statusCode, message: "Trello API error")
+        }
+    }
 }
 
 // MARK: - Airtable Provider
@@ -220,6 +355,19 @@ struct AirtableProvider: ConnectorProvider {
             guard let tableId = params["tableId"] else { throw ConnectorProviderError.missingParameter("tableId") }
             guard let recordId = params["recordId"] else { throw ConnectorProviderError.missingParameter("recordId") }
             data = try await getRecord(baseId: baseId, tableId: tableId, recordId: recordId, credentials: credentials)
+
+        case "create_record":
+            guard let baseId = params["baseId"] else { throw ConnectorProviderError.missingParameter("baseId") }
+            guard let tableId = params["tableId"] else { throw ConnectorProviderError.missingParameter("tableId") }
+            guard let fields = params["fields"] else { throw ConnectorProviderError.missingParameter("fields") }
+            data = try await createRecord(baseId: baseId, tableId: tableId, fieldsJSON: fields, credentials: credentials)
+
+        case "update_record":
+            guard let baseId = params["baseId"] else { throw ConnectorProviderError.missingParameter("baseId") }
+            guard let tableId = params["tableId"] else { throw ConnectorProviderError.missingParameter("tableId") }
+            guard let recordId = params["recordId"] else { throw ConnectorProviderError.missingParameter("recordId") }
+            guard let fields = params["fields"] else { throw ConnectorProviderError.missingParameter("fields") }
+            data = try await updateRecord(baseId: baseId, tableId: tableId, recordId: recordId, fieldsJSON: fields, credentials: credentials)
 
         default:
             throw ConnectorProviderError.unknownAction(action)
@@ -269,6 +417,55 @@ struct AirtableProvider: ConnectorProvider {
         return ConnectorsKit.formatAirtableRecordDetail(record)
     }
 
+    private func createRecord(baseId: String, tableId: String, fieldsJSON: String, credentials: ConnectorCredentials) async throws -> String {
+        guard let fieldsData = fieldsJSON.data(using: .utf8),
+              let fields = try JSONSerialization.jsonObject(with: fieldsData) as? [String: Any] else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid fields JSON")
+        }
+        let encodedTable = tableId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? tableId
+        let body: [String: Any] = ["fields": fields]
+        let _ = try await airtableRequest(method: "POST", path: "/v0/\(baseId)/\(encodedTable)", body: body, credentials: credentials)
+        return "Record created in \(tableId)"
+    }
+
+    private func updateRecord(baseId: String, tableId: String, recordId: String, fieldsJSON: String, credentials: ConnectorCredentials) async throws -> String {
+        guard let fieldsData = fieldsJSON.data(using: .utf8),
+              let fields = try JSONSerialization.jsonObject(with: fieldsData) as? [String: Any] else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid fields JSON")
+        }
+        let encodedTable = tableId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? tableId
+        let body: [String: Any] = ["fields": fields]
+        let _ = try await airtableRequest(method: "PATCH", path: "/v0/\(baseId)/\(encodedTable)/\(recordId)", body: body, credentials: credentials)
+        return "Record updated: \(recordId)"
+    }
+
+    private func airtableRequest(method: String, path: String, body: [String: Any], credentials: ConnectorCredentials) async throws -> (Data, Int) {
+        guard let token = credentials.apiKey ?? credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+        guard let url = URL(string: "https://api.airtable.com" + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+        switch http.statusCode {
+        case 200...299: return (data, http.statusCode)
+        case 401, 403: throw ConnectorProviderError.authenticationFailed
+        case 429:
+            let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
+            throw ConnectorProviderError.rateLimited(retryAfter: retryAfter)
+        default:
+            throw ConnectorProviderError.apiError(statusCode: http.statusCode, message: "Airtable API error")
+        }
+    }
+
     private func airtableGet(path: String, credentials: ConnectorCredentials) async throws -> (Data, Int) {
         guard let token = credentials.apiKey ?? credentials.accessToken, !token.isEmpty else {
             throw ConnectorProviderError.noCredentials
@@ -315,6 +512,10 @@ struct DropboxProvider: ConnectorProvider {
             guard let path = params["path"] else { throw ConnectorProviderError.missingParameter("path") }
             data = try await getMetadata(path: path, credentials: credentials)
 
+        case "create_folder":
+            guard let path = params["path"] else { throw ConnectorProviderError.missingParameter("path") }
+            data = try await createFolder(path: path, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -348,6 +549,15 @@ struct DropboxProvider: ConnectorProvider {
     }
 
     // MARK: - API Calls
+
+    private func createFolder(path: String, credentials: ConnectorCredentials) async throws -> String {
+        let body: [String: Any] = [
+            "path": path,
+            "autorename": true,
+        ]
+        let _ = try await dropboxPost(path: "/2/files/create_folder_v2", body: body, credentials: credentials)
+        return "Folder created: \(path)"
+    }
 
     private func listFiles(path: String, credentials: ConnectorCredentials) async throws -> String {
         let body: [String: Any] = [

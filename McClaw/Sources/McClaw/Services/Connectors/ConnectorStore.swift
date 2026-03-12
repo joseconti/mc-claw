@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import McClawKit
 
 /// Manages connector instances: CRUD, persistence, and header generation.
 @MainActor
@@ -122,19 +123,16 @@ final class ConnectorStore {
         let active = connectedInstances
         guard !active.isEmpty else { return nil }
 
-        var lines: [String] = ["[McClaw Connectors] Available data sources:"]
+        var tuples: [(name: String, readActions: [String], writeActions: [String])] = []
 
         for instance in active {
             guard let def = ConnectorRegistry.definition(for: instance.definitionId) else { continue }
-            let actionNames = def.actions.map(\.id).joined(separator: ", ")
-            lines.append("- \(instance.name.lowercased()): \(actionNames)")
+            let readActions = def.actions.filter { !$0.isWriteAction }.map(\.id)
+            let writeActions = def.actions.filter { $0.isWriteAction }.map(\.id)
+            tuples.append((name: instance.name.lowercased(), readActions: readActions, writeActions: writeActions))
         }
 
-        lines.append("")
-        lines.append("To request data, reply with: @fetch(connector.action, param=value)")
-        lines.append("The user can also use: /fetch connector.action")
-
-        return lines.joined(separator: "\n")
+        return ConnectorsKit.buildConnectorsHeader(connectors: tuples)
     }
 
     // MARK: - Persistence

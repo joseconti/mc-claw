@@ -36,10 +36,96 @@ struct MicrosoftGraphClient: Sendable {
             throw ConnectorProviderError.networkError(URLError(.badServerResponse))
         }
 
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Execute a POST request with JSON body against Microsoft Graph API.
+    static func post(
+        path: String,
+        body: Data,
+        credentials: ConnectorCredentials
+    ) async throws -> (Data, Int) {
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+
+        guard let url = URL(string: baseURL + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL: \(baseURL + path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = body
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Execute a PATCH request with JSON body against Microsoft Graph API.
+    static func patch(
+        path: String,
+        body: Data,
+        credentials: ConnectorCredentials
+    ) async throws -> (Data, Int) {
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+
+        guard let url = URL(string: baseURL + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL: \(baseURL + path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.httpBody = body
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Execute a DELETE request against Microsoft Graph API.
+    static func delete(
+        path: String,
+        credentials: ConnectorCredentials
+    ) async throws -> (Data, Int) {
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+
+        guard let url = URL(string: baseURL + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL: \(baseURL + path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Shared response handler for all Microsoft Graph API methods.
+    private static func handleResponse(data: Data, httpResponse: HTTPURLResponse) throws -> (Data, Int) {
         let statusCode = httpResponse.statusCode
 
         switch statusCode {
-        case 200...299:
+        case 200...204:
             return (data, statusCode)
         case 401:
             throw ConnectorProviderError.authenticationFailed
@@ -102,6 +188,23 @@ struct OutlookMailProvider: ConnectorProvider {
         case "list_folders":
             data = try await listFolders(credentials: credentials)
 
+        case "send_email":
+            guard let to = params["to"] else { throw ConnectorProviderError.missingParameter("to") }
+            guard let subject = params["subject"] else { throw ConnectorProviderError.missingParameter("subject") }
+            guard let body = params["body"] else { throw ConnectorProviderError.missingParameter("body") }
+            data = try await sendEmail(to: to, subject: subject, body: body, cc: params["cc"], bcc: params["bcc"], credentials: credentials)
+
+        case "reply_to_email":
+            guard let messageId = params["messageId"] else { throw ConnectorProviderError.missingParameter("messageId") }
+            guard let body = params["body"] else { throw ConnectorProviderError.missingParameter("body") }
+            data = try await replyToEmail(messageId: messageId, body: body, credentials: credentials)
+
+        case "create_draft":
+            guard let to = params["to"] else { throw ConnectorProviderError.missingParameter("to") }
+            guard let subject = params["subject"] else { throw ConnectorProviderError.missingParameter("subject") }
+            guard let body = params["body"] else { throw ConnectorProviderError.missingParameter("body") }
+            data = try await createDraft(to: to, subject: subject, body: body, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -126,7 +229,7 @@ struct OutlookMailProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? microsoftOAuthConfig(scopes: ["Mail.Read"])
+            ?? microsoftOAuthConfig(scopes: ["Mail.Read", "Mail.Send"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
     }
 
@@ -187,6 +290,55 @@ struct OutlookMailProvider: ConnectorProvider {
         let folders = json["value"] as? [[String: Any]] ?? []
         return ConnectorsKit.formatOutlookFolders(folders)
     }
+
+    private func sendEmail(to: String, subject: String, body: String, cc: String?, bcc: String?, credentials: ConnectorCredentials) async throws -> String {
+        var message: [String: Any] = [
+            "subject": subject,
+            "body": ["contentType": "Text", "content": body],
+            "toRecipients": [["emailAddress": ["address": to]]],
+        ]
+        if let cc = cc, !cc.isEmpty {
+            message["ccRecipients"] = [["emailAddress": ["address": cc]]]
+        }
+        if let bcc = bcc, !bcc.isEmpty {
+            message["bccRecipients"] = [["emailAddress": ["address": bcc]]]
+        }
+        let payload: [String: Any] = ["message": message]
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.post(
+            path: "/me/sendMail",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Email sent successfully to \(to)"
+    }
+
+    private func replyToEmail(messageId: String, body: String, credentials: ConnectorCredentials) async throws -> String {
+        let payload: [String: Any] = ["comment": body]
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.post(
+            path: "/me/messages/\(messageId)/reply",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Reply sent successfully"
+    }
+
+    private func createDraft(to: String, subject: String, body: String, credentials: ConnectorCredentials) async throws -> String {
+        let payload: [String: Any] = [
+            "subject": subject,
+            "body": ["contentType": "Text", "content": body],
+            "toRecipients": [["emailAddress": ["address": to]]],
+            "isDraft": true,
+        ]
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.post(
+            path: "/me/messages",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Draft created: \(subject)"
+    }
 }
 
 // MARK: - Outlook Calendar Provider
@@ -209,6 +361,20 @@ struct OutlookCalendarProvider: ConnectorProvider {
 
         case "list_calendars":
             data = try await listCalendars(credentials: credentials)
+
+        case "create_event":
+            guard let subject = params["subject"] else { throw ConnectorProviderError.missingParameter("subject") }
+            guard let start = params["start"] else { throw ConnectorProviderError.missingParameter("start") }
+            guard let end = params["end"] else { throw ConnectorProviderError.missingParameter("end") }
+            data = try await createEvent(subject: subject, start: start, end: end, location: params["location"], body: params["body"], credentials: credentials)
+
+        case "update_event":
+            guard let eventId = params["eventId"] else { throw ConnectorProviderError.missingParameter("eventId") }
+            data = try await updateEvent(eventId: eventId, params: params, credentials: credentials)
+
+        case "delete_event":
+            guard let eventId = params["eventId"] else { throw ConnectorProviderError.missingParameter("eventId") }
+            data = try await deleteEvent(eventId: eventId, credentials: credentials)
 
         default:
             throw ConnectorProviderError.unknownAction(action)
@@ -235,7 +401,7 @@ struct OutlookCalendarProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? microsoftOAuthConfig(scopes: ["Calendars.Read"])
+            ?? microsoftOAuthConfig(scopes: ["Calendars.ReadWrite"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
     }
 
@@ -282,6 +448,61 @@ struct OutlookCalendarProvider: ConnectorProvider {
         let calendars = json["value"] as? [[String: Any]] ?? []
         return ConnectorsKit.formatOutlookCalendars(calendars)
     }
+
+    private func createEvent(subject: String, start: String, end: String, location: String?, body: String?, credentials: ConnectorCredentials) async throws -> String {
+        var payload: [String: Any] = [
+            "subject": subject,
+            "start": ["dateTime": start, "timeZone": "UTC"],
+            "end": ["dateTime": end, "timeZone": "UTC"],
+        ]
+        if let body = body, !body.isEmpty {
+            payload["body"] = ["contentType": "Text", "content": body]
+        }
+        if let location = location, !location.isEmpty {
+            payload["location"] = ["displayName": location]
+        }
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.post(
+            path: "/me/events",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Event created: \(subject)"
+    }
+
+    private func updateEvent(eventId: String, params: [String: String], credentials: ConnectorCredentials) async throws -> String {
+        var payload: [String: Any] = [:]
+        if let subject = params["subject"] {
+            payload["subject"] = subject
+        }
+        if let start = params["start"] {
+            payload["start"] = ["dateTime": start, "timeZone": "UTC"]
+        }
+        if let end = params["end"] {
+            payload["end"] = ["dateTime": end, "timeZone": "UTC"]
+        }
+        if let location = params["location"] {
+            payload["location"] = ["displayName": location]
+        }
+        if let body = params["body"] {
+            payload["body"] = ["contentType": "Text", "content": body]
+        }
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.patch(
+            path: "/me/events/\(eventId)",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Event updated"
+    }
+
+    private func deleteEvent(eventId: String, credentials: ConnectorCredentials) async throws -> String {
+        let (_, _) = try await MicrosoftGraphClient.delete(
+            path: "/me/events/\(eventId)",
+            credentials: credentials
+        )
+        return "Event deleted"
+    }
 }
 
 // MARK: - OneDrive Provider
@@ -303,6 +524,10 @@ struct OneDriveProvider: ConnectorProvider {
         case "get_item":
             guard let itemId = params["itemId"] else { throw ConnectorProviderError.missingParameter("itemId") }
             data = try await getItem(itemId: itemId, credentials: credentials)
+
+        case "create_folder":
+            guard let name = params["name"] else { throw ConnectorProviderError.missingParameter("name") }
+            data = try await createFolder(name: name, parentPath: params["parentPath"], credentials: credentials)
 
         default:
             throw ConnectorProviderError.unknownAction(action)
@@ -328,7 +553,7 @@ struct OneDriveProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? microsoftOAuthConfig(scopes: ["Files.Read"])
+            ?? microsoftOAuthConfig(scopes: ["Files.ReadWrite"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
     }
 
@@ -364,6 +589,27 @@ struct OneDriveProvider: ConnectorProvider {
         let json = try MicrosoftGraphClient.parseJSON(data)
         return ConnectorsKit.formatOneDriveItemDetail(json)
     }
+
+    private func createFolder(name: String, parentPath: String?, credentials: ConnectorCredentials) async throws -> String {
+        let path: String
+        if let parentPath = parentPath, !parentPath.isEmpty, parentPath != "root" {
+            path = "/me/drive/root:/\(parentPath):/children"
+        } else {
+            path = "/me/drive/root/children"
+        }
+        let payload: [String: Any] = [
+            "name": name,
+            "folder": [:] as [String: Any],
+            "@microsoft.graph.conflictBehavior": "rename",
+        ]
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.post(
+            path: path,
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Folder created: \(name)"
+    }
 }
 
 // MARK: - Microsoft To Do Provider
@@ -386,6 +632,21 @@ struct MicrosoftToDoProvider: ConnectorProvider {
             guard let listId = params["listId"] else { throw ConnectorProviderError.missingParameter("listId") }
             guard let taskId = params["taskId"] else { throw ConnectorProviderError.missingParameter("taskId") }
             data = try await getTask(listId: listId, taskId: taskId, credentials: credentials)
+
+        case "create_task":
+            guard let listId = params["listId"] else { throw ConnectorProviderError.missingParameter("listId") }
+            guard let title = params["title"] else { throw ConnectorProviderError.missingParameter("title") }
+            data = try await createTask(listId: listId, title: title, body: params["body"], dueDateTime: params["dueDateTime"], credentials: credentials)
+
+        case "complete_task":
+            guard let listId = params["listId"] else { throw ConnectorProviderError.missingParameter("listId") }
+            guard let taskId = params["taskId"] else { throw ConnectorProviderError.missingParameter("taskId") }
+            data = try await completeTask(listId: listId, taskId: taskId, credentials: credentials)
+
+        case "delete_task":
+            guard let listId = params["listId"] else { throw ConnectorProviderError.missingParameter("listId") }
+            guard let taskId = params["taskId"] else { throw ConnectorProviderError.missingParameter("taskId") }
+            data = try await deleteTask(listId: listId, taskId: taskId, credentials: credentials)
 
         default:
             throw ConnectorProviderError.unknownAction(action)
@@ -412,7 +673,7 @@ struct MicrosoftToDoProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? microsoftOAuthConfig(scopes: ["Tasks.Read"])
+            ?? microsoftOAuthConfig(scopes: ["Tasks.ReadWrite"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
     }
 
@@ -452,5 +713,41 @@ struct MicrosoftToDoProvider: ConnectorProvider {
         )
         let json = try MicrosoftGraphClient.parseJSON(data)
         return ConnectorsKit.formatToDoTaskDetail(json)
+    }
+
+    private func createTask(listId: String, title: String, body: String?, dueDateTime: String?, credentials: ConnectorCredentials) async throws -> String {
+        var payload: [String: Any] = ["title": title]
+        if let body = body, !body.isEmpty {
+            payload["body"] = ["content": body, "contentType": "text"]
+        }
+        if let dueDateTime = dueDateTime, !dueDateTime.isEmpty {
+            payload["dueDateTime"] = ["dateTime": dueDateTime, "timeZone": "UTC"]
+        }
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.post(
+            path: "/me/todo/lists/\(listId)/tasks",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Task created: \(title)"
+    }
+
+    private func completeTask(listId: String, taskId: String, credentials: ConnectorCredentials) async throws -> String {
+        let payload: [String: Any] = ["status": "completed"]
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await MicrosoftGraphClient.patch(
+            path: "/me/todo/lists/\(listId)/tasks/\(taskId)",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Task completed"
+    }
+
+    private func deleteTask(listId: String, taskId: String, credentials: ConnectorCredentials) async throws -> String {
+        let (_, _) = try await MicrosoftGraphClient.delete(
+            path: "/me/todo/lists/\(listId)/tasks/\(taskId)",
+            credentials: credentials
+        )
+        return "Task deleted"
     }
 }

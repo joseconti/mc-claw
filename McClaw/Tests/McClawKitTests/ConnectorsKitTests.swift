@@ -104,14 +104,15 @@ struct HeaderTests {
     @Test("Build header with connectors")
     func buildHeader() {
         let header = ConnectorsKit.buildConnectorsHeader(connectors: [
-            (name: "gmail", actions: ["search", "read", "list_unread"]),
-            (name: "calendar", actions: ["list_events", "get_event"]),
+            (name: "gmail", readActions: ["search", "read", "list_unread"], writeActions: ["send_email"]),
+            (name: "calendar", readActions: ["list_events", "get_event"], writeActions: []),
         ])
         #expect(header != nil)
         #expect(header!.contains("[McClaw Connectors]"))
-        #expect(header!.contains("gmail: search, read, list_unread"))
+        #expect(header!.contains("gmail: search, read, list_unread, [W] send_email"))
         #expect(header!.contains("calendar: list_events, get_event"))
         #expect(header!.contains("@fetch(connector.action"))
+        #expect(header!.contains("@action(connector.action"))
     }
 
     @Test("Empty connectors returns nil")

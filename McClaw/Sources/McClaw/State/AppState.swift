@@ -34,8 +34,11 @@ final class AppState {
     }
 
     /// AI provider CLIs only (excludes tool CLIs like agent-browser).
+    /// Experimental providers (e.g. BitNet) only shown when toggle is enabled.
     var installedAIProviders: [CLIProviderInfo] {
-        availableCLIs.filter { $0.isInstalled && !$0.isToolCLI }
+        availableCLIs.filter { cli in
+            cli.isInstalled && !cli.isToolCLI && (!cli.isExperimental || showExperimentalProviders)
+        }
     }
 
     // MARK: - App State
@@ -129,6 +132,27 @@ final class AppState {
     /// Chat font family
     var chatFontFamily: ChatFontFamily = .default
 
+    // MARK: - BitNet (Experimental)
+
+    /// BitNet provider enabled
+    var bitnetEnabled: Bool = false
+    /// Default BitNet model ID
+    var bitnetDefaultModel: String?
+    /// Number of threads for inference
+    var bitnetThreads: Int = 4
+    /// Context size in tokens
+    var bitnetContextSize: Int = 2048
+    /// Max tokens to generate
+    var bitnetMaxTokens: Int = 2048
+    /// Temperature for generation
+    var bitnetTemperature: Double = 0.7
+    /// REST server port
+    var bitnetServerPort: Int = 8921
+    /// Server mode: always running or on-demand
+    var bitnetAlwaysOn: Bool = true
+    /// Show experimental providers in UI
+    var showExperimentalProviders: Bool = false
+
     // MARK: - Canvas & Node
 
     /// Canvas panel enabled
@@ -165,6 +189,9 @@ final class AppState {
 
     /// Message queued from the menu bar mini chat, to be sent when the chat window opens.
     var pendingMessage: String?
+
+    /// Image prompt queued from the menu bar mini chat, to be sent as image generation when the chat window opens.
+    var pendingImagePrompt: String?
 
     /// Text to pre-fill in the chat input bar without sending (used by quick actions).
     var prefillText: String?

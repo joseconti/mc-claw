@@ -2,7 +2,7 @@ import Foundation
 
 /// Information about a detected CLI provider on the system.
 struct CLIProviderInfo: Identifiable, Codable, Sendable {
-    let id: String              // e.g. "claude", "chatgpt", "gemini", "ollama"
+    let id: String              // e.g. "claude", "chatgpt", "gemini", "ollama", "bitnet"
     let displayName: String     // e.g. "Claude CLI"
     let binaryPath: String?     // e.g. "/usr/local/bin/claude"
     let version: String?        // e.g. "1.2.3"
@@ -13,6 +13,8 @@ struct CLIProviderInfo: Identifiable, Codable, Sendable {
     let capabilities: CLICapabilities
     /// True for optional tool CLIs (e.g. agent-browser), not AI providers.
     let isToolCLI: Bool
+    /// True for experimental providers (e.g. BitNet). Hidden behind toggle in UI.
+    let isExperimental: Bool
 
     init(
         id: String,
@@ -24,7 +26,8 @@ struct CLIProviderInfo: Identifiable, Codable, Sendable {
         installMethod: CLIInstallMethod,
         supportedModels: [ModelInfo],
         capabilities: CLICapabilities,
-        isToolCLI: Bool = false
+        isToolCLI: Bool = false,
+        isExperimental: Bool = false
     ) {
         self.id = id
         self.displayName = displayName
@@ -36,16 +39,47 @@ struct CLIProviderInfo: Identifiable, Codable, Sendable {
         self.supportedModels = supportedModels
         self.capabilities = capabilities
         self.isToolCLI = isToolCLI
+        self.isExperimental = isExperimental
     }
 }
 
 /// How a CLI can be installed.
-enum CLIInstallMethod: String, Codable, Sendable {
+enum CLIInstallMethod: Codable, Sendable {
     case homebrew
     case npm
     case curl
     case appStore
     case manual
+    case multiStep(steps: [InstallStep])
+}
+
+/// A single step in a multi-step installation process (e.g. BitNet).
+struct InstallStep: Codable, Sendable {
+    let id: String
+    let description: String
+    let command: [String]
+    let workingDirectory: String?
+    let condaEnvironment: String?
+    let estimatedDuration: TimeInterval
+    let canRetry: Bool
+
+    init(
+        id: String,
+        description: String,
+        command: [String],
+        workingDirectory: String? = nil,
+        condaEnvironment: String? = nil,
+        estimatedDuration: TimeInterval = 30,
+        canRetry: Bool = true
+    ) {
+        self.id = id
+        self.description = description
+        self.command = command
+        self.workingDirectory = workingDirectory
+        self.condaEnvironment = condaEnvironment
+        self.estimatedDuration = estimatedDuration
+        self.canRetry = canRetry
+    }
 }
 
 /// Capabilities of a specific CLI provider.
@@ -55,7 +89,26 @@ struct CLICapabilities: Codable, Sendable {
     let supportsVision: Bool
     let supportsThinking: Bool
     let supportsConversation: Bool
+    let supportsImageGeneration: Bool
     let maxContextTokens: Int?
+
+    init(
+        supportsStreaming: Bool,
+        supportsToolUse: Bool,
+        supportsVision: Bool,
+        supportsThinking: Bool,
+        supportsConversation: Bool,
+        supportsImageGeneration: Bool = false,
+        maxContextTokens: Int?
+    ) {
+        self.supportsStreaming = supportsStreaming
+        self.supportsToolUse = supportsToolUse
+        self.supportsVision = supportsVision
+        self.supportsThinking = supportsThinking
+        self.supportsConversation = supportsConversation
+        self.supportsImageGeneration = supportsImageGeneration
+        self.maxContextTokens = maxContextTokens
+    }
 }
 
 /// Information about an AI model available through a CLI.

@@ -63,8 +63,8 @@ private struct CodeBlockView: View {
     @State private var isHovering = false
     @State private var copied = false
 
-    private static let bgColor = Color(nsColor: NSColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1.0))
-    private static let borderColor = Color(nsColor: NSColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0))
+    private static let bgColor = Theme.cardBackground
+    private static let borderColor = Theme.border
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

@@ -101,6 +101,21 @@ final class NativeChannelsManager {
         ),
     ]
 
+    /// IDs of all currently connected native channels.
+    var connectedChannelIds: [String] {
+        var ids: [String] = []
+        if telegramState == .connected { ids.append("telegram") }
+        if slackState == .connected { ids.append("slack") }
+        if discordState == .connected { ids.append("discord") }
+        if matrixState == .connected { ids.append("matrix") }
+        if mattermostState == .connected { ids.append("mattermost") }
+        if mastodonState == .connected { ids.append("mastodon") }
+        if zulipState == .connected { ids.append("zulip") }
+        if rocketchatState == .connected { ids.append("rocketchat") }
+        if twitchState == .connected { ids.append("twitch") }
+        return ids
+    }
+
     private var configFileURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".mcclaw")

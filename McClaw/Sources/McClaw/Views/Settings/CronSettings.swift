@@ -329,11 +329,11 @@ struct CronSettings: View {
                 .disabled(store.isLoadingRuns)
             }
 
-            if store.isLoadingRuns {
+            if store.isLoadingRuns && !store.runEntries.isEmpty {
                 ProgressView().controlSize(.small)
             }
 
-            if store.runEntries.isEmpty {
+            if store.runEntries.isEmpty && !store.isLoadingRuns {
                 Text("No run log entries yet.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -459,15 +459,86 @@ struct CronSettings: View {
         switch schedule {
         case let .at(at):
             if let date = CronSchedule.parseAtDate(at) {
-                return "at \(date.formatted(date: .abbreviated, time: .standard))"
+                return date.formatted(date: .abbreviated, time: .shortened)
             }
-            return "at \(at)"
+            return at
         case let .every(everyMs, _):
-            return "every \(DurationFormatting.concise(ms: everyMs))"
+            return "Every \(humanReadableInterval(ms: everyMs))"
         case let .cron(expr, tz):
-            if let tz, !tz.isEmpty { return "cron \(expr) (\(tz))" }
-            return "cron \(expr)"
+            let human = humanReadableCron(expr)
+            if let tz, !tz.isEmpty { return "\(human) (\(tz))" }
+            return human
         }
+    }
+
+    private func humanReadableCron(_ expr: String) -> String {
+        let parts = expr.trimmingCharacters(in: .whitespaces)
+            .components(separatedBy: .whitespaces)
+            .filter { !$0.isEmpty }
+        guard parts.count >= 5 else { return expr }
+
+        let minute = parts[0]
+        let hour = parts[1]
+        let dom = parts[2]
+        let month = parts[3]
+        let dow = parts[4]
+
+        let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let monthNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+        func timeString(_ h: String, _ m: String) -> String {
+            guard let hi = Int(h), let mi = Int(m) else { return "\(h):\(m)" }
+            let hour12 = hi == 0 ? 12 : (hi > 12 ? hi - 12 : hi)
+            let ampm = hi < 12 ? "AM" : "PM"
+            return mi == 0 ? "\(hour12) \(ampm)" : "\(hour12):\(String(format: "%02d", mi)) \(ampm)"
+        }
+
+        if hour == "*" && dom == "*" && month == "*" && dow == "*" {
+            if minute.hasPrefix("*/"), let n = Int(minute.dropFirst(2)) {
+                return "Every \(n) minutes"
+            }
+        }
+
+        if minute == "0" && hour.hasPrefix("*/") && dom == "*" && month == "*" && dow == "*" {
+            if let n = Int(hour.dropFirst(2)) {
+                return n == 1 ? "Every hour" : "Every \(n) hours"
+            }
+        }
+
+        if let _ = Int(hour), let _ = Int(minute) {
+            let time = timeString(hour, minute)
+
+            if dom == "*" && month == "*" && dow == "*" {
+                return "Every day at \(time)"
+            }
+            if dom == "*" && month == "*" && dow != "*" {
+                if dow == "1-5" { return "Weekdays at \(time)" }
+                if dow == "0,6" || dow == "6,0" { return "Weekends at \(time)" }
+                let names = dow.components(separatedBy: ",").compactMap { Int($0).flatMap { $0 < dayNames.count ? dayNames[$0] : nil } }
+                if !names.isEmpty { return "\(names.joined(separator: ", ")) at \(time)" }
+                return "Every \(dow) at \(time)"
+            }
+            if let d = Int(dom), month == "*" && dow == "*" {
+                let s = d == 1 || d == 21 || d == 31 ? "st" : d == 2 || d == 22 ? "nd" : d == 3 || d == 23 ? "rd" : "th"
+                return "\(d)\(s) of every month at \(time)"
+            }
+            if let d = Int(dom), let mo = Int(month), dow == "*", mo > 0, mo < monthNames.count {
+                let s = d == 1 || d == 21 || d == 31 ? "st" : d == 2 || d == 22 ? "nd" : d == 3 || d == 23 ? "rd" : "th"
+                return "\(monthNames[mo]) \(d)\(s) at \(time)"
+            }
+        }
+
+        return "Cron: \(expr)"
+    }
+
+    private func humanReadableInterval(ms: Int) -> String {
+        if ms < 60_000 { return "\(ms / 1000) seconds" }
+        let minutes = ms / 60_000
+        if minutes < 60 { return minutes == 1 ? "minute" : "\(minutes) minutes" }
+        let hours = minutes / 60
+        if hours < 24 { return hours == 1 ? "hour" : "\(hours) hours" }
+        let days = hours / 24
+        return days == 1 ? "day" : "\(days) days"
     }
 
     private func nextRunLabel(_ date: Date, now: Date = .init()) -> String {

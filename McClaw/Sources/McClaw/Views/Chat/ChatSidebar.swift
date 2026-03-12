@@ -124,7 +124,7 @@ struct ChatSidebar: View {
             Divider()
             sidebarFooter
         }
-        .background(.background)
+        .background(Theme.sidebarBackground)
         .onAppear {
             sessionStore.refreshIndex()
             projectStore.refreshIndex()
@@ -311,7 +311,7 @@ private struct SidebarNavItem: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
-            .background(isActive ? Color.accentColor.opacity(0.1) : Color.clear)
+            .background(isActive ? Theme.sidebarSelection : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .contentShape(Rectangle())
         }
@@ -335,7 +335,7 @@ private struct SidebarSessionRow: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
-            .background(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+            .background(isSelected ? Theme.sidebarSelection : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)

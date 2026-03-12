@@ -19,6 +19,14 @@ public enum CLIParser {
     ///   - provider: The CLI provider identifier (e.g. "claude", "chatgpt")
     /// - Returns: A parsed stream event
     public static func parseLine(_ line: String, provider: String) -> StreamEvent {
+        // BitNet outputs plain text (no structured JSON)
+        if provider == "bitnet" {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { return .passthrough("") }
+            if trimmed.hasSuffix("> ") || trimmed == ">" { return .done }
+            return .text(trimmed)
+        }
+
         if provider == "claude", let data = line.data(using: .utf8) {
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 if let type = json["type"] as? String {
@@ -74,6 +82,32 @@ public enum CLIParser {
             }
         }
 
+        // Gemini stream-json: {"type":"message","role":"assistant","content":"...","delta":true}
+        if provider == "gemini", let data = line.data(using: .utf8) {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let type = json["type"] as? String {
+                switch type {
+                case "message":
+                    if let role = json["role"] as? String, role == "assistant",
+                       let content = json["content"] as? String, !content.isEmpty {
+                        return .text(content)
+                    }
+                    return .passthrough("")
+                case "result":
+                    return .done
+                case "init", "tool_use", "tool_result":
+                    return .passthrough("")
+                case "error":
+                    if let output = json["output"] as? String {
+                        return .text("[Error] \(output)")
+                    }
+                    return .passthrough("")
+                default:
+                    break
+                }
+            }
+        }
+
         return .passthrough(line)
     }
 
@@ -95,15 +129,22 @@ public enum CLIParser {
         model: String? = nil,
         sessionId: String? = nil,
         isResume: Bool = false,
-        systemPrompt: String? = nil
+        systemPrompt: String? = nil,
+        allowedTools: [String]? = nil
     ) -> [String] {
         switch providerId {
         case "claude":
-            // Claude uses stream-json, no formatting hint needed
+            // Claude requires --verbose with stream-json.
+            // Streaming comes from content_block_delta events within verbose output.
             var args = ["--print", "--verbose", "--output-format", "stream-json"]
             if let model { args += ["--model", model] }
             if let systemPrompt, !systemPrompt.isEmpty {
                 args += ["--system-prompt", systemPrompt]
+            }
+            if let allowedTools, !allowedTools.isEmpty {
+                for tool in allowedTools {
+                    args += ["--allowedTools", tool]
+                }
             }
             if let sessionId {
                 if isResume {
@@ -126,7 +167,7 @@ public enum CLIParser {
             return args
 
         case "gemini":
-            var args: [String] = []
+            var args = ["-o", "stream-json"]
             if let model { args += ["--model", model] }
             let prefix = systemPromptPrefix(systemPrompt, provider: "gemini")
             args += [prefix + message + formattingHint]
@@ -138,6 +179,14 @@ public enum CLIParser {
             let prefix = systemPromptPrefix(systemPrompt, provider: "ollama")
             args += [prefix + message + formattingHint]
             return args
+
+        case "bitnet":
+            // BitNet primarily uses REST server (handled in CLIBridge).
+            // This builds fallback CLI args for direct inference via run_inference.py.
+            return BitNetKit.buildInferenceArgs(
+                modelPath: BitNetKit.Paths.resolveModelPath(model ?? "BitNet-b1.58-2B-4T"),
+                prompt: message
+            )
 
         default:
             let prefix = systemPromptPrefix(systemPrompt, provider: "unknown")

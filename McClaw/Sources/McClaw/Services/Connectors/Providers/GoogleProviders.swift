@@ -36,10 +36,134 @@ struct GoogleAPIClient: Sendable {
             throw ConnectorProviderError.networkError(URLError(.badServerResponse))
         }
 
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Execute a POST request with JSON body against a Google API endpoint.
+    static func post(
+        path: String,
+        baseURL: String = "https://www.googleapis.com",
+        body: Data,
+        credentials: ConnectorCredentials
+    ) async throws -> (Data, Int) {
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+
+        guard let url = URL(string: baseURL + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL: \(baseURL + path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = body
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Execute a PATCH request with JSON body against a Google API endpoint.
+    static func patch(
+        path: String,
+        baseURL: String = "https://www.googleapis.com",
+        body: Data,
+        credentials: ConnectorCredentials
+    ) async throws -> (Data, Int) {
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+
+        guard let url = URL(string: baseURL + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL: \(baseURL + path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.httpBody = body
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Execute a PUT request with JSON body against a Google API endpoint.
+    static func put(
+        path: String,
+        baseURL: String = "https://www.googleapis.com",
+        body: Data,
+        queryItems: [URLQueryItem] = [],
+        credentials: ConnectorCredentials
+    ) async throws -> (Data, Int) {
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+
+        var components = URLComponents(string: baseURL + path)!
+        if !queryItems.isEmpty {
+            components.queryItems = (components.queryItems ?? []) + queryItems
+        }
+
+        guard let url = components.url else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL: \(baseURL + path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.httpBody = body
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Execute a DELETE request against a Google API endpoint.
+    static func delete(
+        path: String,
+        baseURL: String = "https://www.googleapis.com",
+        credentials: ConnectorCredentials
+    ) async throws -> (Data, Int) {
+        guard let token = credentials.accessToken, !token.isEmpty else {
+            throw ConnectorProviderError.noCredentials
+        }
+
+        guard let url = URL(string: baseURL + path) else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid URL: \(baseURL + path)")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ConnectorProviderError.networkError(URLError(.badServerResponse))
+        }
+
+        return try handleResponse(data: data, httpResponse: httpResponse)
+    }
+
+    /// Shared response handler for all Google API methods.
+    private static func handleResponse(data: Data, httpResponse: HTTPURLResponse) throws -> (Data, Int) {
         let statusCode = httpResponse.statusCode
 
         switch statusCode {
-        case 200...299:
+        case 200...204:
             return (data, statusCode)
         case 401:
             throw ConnectorProviderError.authenticationFailed
@@ -47,9 +171,7 @@ struct GoogleAPIClient: Sendable {
             let msg = ConnectorsKit.parseGoogleAPIError(statusCode: statusCode, body: data)
             throw ConnectorProviderError.apiError(statusCode: 403, message: "Forbidden: \(msg)")
         case 429:
-            let retryAfter = (response as? HTTPURLResponse)?
-                .value(forHTTPHeaderField: "Retry-After")
-                .flatMap(Int.init)
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(Int.init)
             throw ConnectorProviderError.rateLimited(retryAfter: retryAfter)
         default:
             let msg = ConnectorsKit.parseGoogleAPIError(statusCode: statusCode, body: data)
@@ -90,6 +212,24 @@ struct GmailProvider: ConnectorProvider {
         case "list_labels":
             data = try await listLabels(credentials: credentials)
 
+        // Write actions
+        case "send_email":
+            guard let to = params["to"] else { throw ConnectorProviderError.missingParameter("to") }
+            guard let subject = params["subject"] else { throw ConnectorProviderError.missingParameter("subject") }
+            guard let body = params["body"] else { throw ConnectorProviderError.missingParameter("body") }
+            data = try await sendEmail(to: to, subject: subject, body: body, cc: params["cc"], bcc: params["bcc"], credentials: credentials)
+
+        case "reply_to_email":
+            guard let messageId = params["messageId"] else { throw ConnectorProviderError.missingParameter("messageId") }
+            guard let body = params["body"] else { throw ConnectorProviderError.missingParameter("body") }
+            data = try await replyToEmail(messageId: messageId, body: body, credentials: credentials)
+
+        case "create_draft":
+            guard let to = params["to"] else { throw ConnectorProviderError.missingParameter("to") }
+            guard let subject = params["subject"] else { throw ConnectorProviderError.missingParameter("subject") }
+            guard let body = params["body"] else { throw ConnectorProviderError.missingParameter("body") }
+            data = try await createDraft(to: to, subject: subject, body: body, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -114,7 +254,7 @@ struct GmailProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/gmail.readonly"])
+            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.compose"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
     }
 
@@ -175,6 +315,85 @@ struct GmailProvider: ConnectorProvider {
         guard let labels = json["labels"] as? [[String: Any]] else { return "(no labels)" }
         return labels.compactMap { $0["name"] as? String }.joined(separator: "\n")
     }
+
+    // MARK: - Write Actions
+
+    /// Build an RFC 2822 message and base64url-encode it for the Gmail API.
+    private func buildRawMessage(to: String, subject: String, body: String, cc: String? = nil, bcc: String? = nil, inReplyTo: String? = nil, references: String? = nil, threadId: String? = nil) -> String {
+        var headers = "To: \(to)\r\nSubject: \(subject)\r\nContent-Type: text/plain; charset=utf-8\r\n"
+        if let cc = cc, !cc.isEmpty { headers += "Cc: \(cc)\r\n" }
+        if let bcc = bcc, !bcc.isEmpty { headers += "Bcc: \(bcc)\r\n" }
+        if let inReplyTo = inReplyTo { headers += "In-Reply-To: \(inReplyTo)\r\nReferences: \(references ?? inReplyTo)\r\n" }
+        let raw = headers + "\r\n" + body
+        return Data(raw.utf8).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private func sendEmail(to: String, subject: String, body: String, cc: String?, bcc: String?, credentials: ConnectorCredentials) async throws -> String {
+        let raw = buildRawMessage(to: to, subject: subject, body: body, cc: cc, bcc: bcc)
+        let payload: [String: Any] = ["raw": raw]
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await GoogleAPIClient.post(
+            path: "/gmail/v1/users/me/messages/send",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Email sent successfully to \(to)"
+    }
+
+    private func replyToEmail(messageId: String, body: String, credentials: ConnectorCredentials) async throws -> String {
+        // Fetch original message to get threadId, Subject, and From
+        let (origData, _) = try await GoogleAPIClient.get(
+            path: "/gmail/v1/users/me/messages/\(messageId)",
+            queryItems: [
+                URLQueryItem(name: "format", value: "metadata"),
+                URLQueryItem(name: "metadataHeaders", value: "Subject"),
+                URLQueryItem(name: "metadataHeaders", value: "From"),
+                URLQueryItem(name: "metadataHeaders", value: "Message-ID"),
+            ],
+            credentials: credentials
+        )
+        let origJSON = try GoogleAPIClient.parseJSON(origData)
+        let threadId = origJSON["threadId"] as? String
+        let headers = origJSON["payload"].flatMap { ($0 as? [String: Any])?["headers"] as? [[String: Any]] } ?? []
+
+        let fromHeader = headers.first { ($0["name"] as? String) == "From" }?["value"] as? String ?? ""
+        let subjectHeader = headers.first { ($0["name"] as? String) == "Subject" }?["value"] as? String ?? ""
+        let messageIdHeader = headers.first { ($0["name"] as? String) == "Message-ID" }?["value"] as? String
+
+        let replySubject = subjectHeader.hasPrefix("Re: ") ? subjectHeader : "Re: \(subjectHeader)"
+        let raw = buildRawMessage(
+            to: fromHeader,
+            subject: replySubject,
+            body: body,
+            inReplyTo: messageIdHeader,
+            references: messageIdHeader
+        )
+
+        var payload: [String: Any] = ["raw": raw]
+        if let threadId { payload["threadId"] = threadId }
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await GoogleAPIClient.post(
+            path: "/gmail/v1/users/me/messages/send",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Reply sent to \(fromHeader)"
+    }
+
+    private func createDraft(to: String, subject: String, body: String, credentials: ConnectorCredentials) async throws -> String {
+        let raw = buildRawMessage(to: to, subject: subject, body: body)
+        let payload: [String: Any] = ["message": ["raw": raw]]
+        let jsonData = try JSONSerialization.data(withJSONObject: payload)
+        let (_, _) = try await GoogleAPIClient.post(
+            path: "/gmail/v1/users/me/drafts",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Draft created: \(subject)"
+    }
 }
 
 // MARK: - Google Calendar Provider
@@ -198,6 +417,24 @@ struct GoogleCalendarProvider: ConnectorProvider {
 
         case "list_calendars":
             data = try await listCalendars(credentials: credentials)
+
+        // Write actions
+        case "create_event":
+            guard let summary = params["summary"] else { throw ConnectorProviderError.missingParameter("summary") }
+            guard let startDateTime = params["startDateTime"] else { throw ConnectorProviderError.missingParameter("startDateTime") }
+            guard let endDateTime = params["endDateTime"] else { throw ConnectorProviderError.missingParameter("endDateTime") }
+            let calendarId = params["calendarId"] ?? "primary"
+            data = try await createEvent(calendarId: calendarId, summary: summary, startDateTime: startDateTime, endDateTime: endDateTime, location: params["location"], description: params["description"], credentials: credentials)
+
+        case "update_event":
+            guard let eventId = params["eventId"] else { throw ConnectorProviderError.missingParameter("eventId") }
+            let calendarId = params["calendarId"] ?? "primary"
+            data = try await updateEvent(calendarId: calendarId, eventId: eventId, params: params, credentials: credentials)
+
+        case "delete_event":
+            guard let eventId = params["eventId"] else { throw ConnectorProviderError.missingParameter("eventId") }
+            let calendarId = params["calendarId"] ?? "primary"
+            data = try await deleteEvent(calendarId: calendarId, eventId: eventId, credentials: credentials)
 
         default:
             throw ConnectorProviderError.unknownAction(action)
@@ -224,7 +461,7 @@ struct GoogleCalendarProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/calendar.readonly"])
+            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/calendar.events"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
     }
 
@@ -254,6 +491,53 @@ struct GoogleCalendarProvider: ConnectorProvider {
         )
         let json = try GoogleAPIClient.parseJSON(data)
         return ConnectorsKit.formatCalendarEvents([json])
+    }
+
+    // MARK: - Write Actions
+
+    private func createEvent(calendarId: String, summary: String, startDateTime: String, endDateTime: String, location: String?, description: String?, credentials: ConnectorCredentials) async throws -> String {
+        let encodedCal = calendarId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarId
+        var event: [String: Any] = [
+            "summary": summary,
+            "start": ["dateTime": startDateTime],
+            "end": ["dateTime": endDateTime],
+        ]
+        if let location, !location.isEmpty { event["location"] = location }
+        if let description, !description.isEmpty { event["description"] = description }
+        let jsonData = try JSONSerialization.data(withJSONObject: event)
+        let (_, _) = try await GoogleAPIClient.post(
+            path: "/calendar/v3/calendars/\(encodedCal)/events",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Event created: \(summary)"
+    }
+
+    private func updateEvent(calendarId: String, eventId: String, params: [String: String], credentials: ConnectorCredentials) async throws -> String {
+        let encodedCal = calendarId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarId
+        var patch: [String: Any] = [:]
+        if let summary = params["summary"] { patch["summary"] = summary }
+        if let location = params["location"] { patch["location"] = location }
+        if let description = params["description"] { patch["description"] = description }
+        if let start = params["startDateTime"] { patch["start"] = ["dateTime": start] }
+        if let end = params["endDateTime"] { patch["end"] = ["dateTime": end] }
+        guard !patch.isEmpty else { return "No fields to update" }
+        let jsonData = try JSONSerialization.data(withJSONObject: patch)
+        let (_, _) = try await GoogleAPIClient.patch(
+            path: "/calendar/v3/calendars/\(encodedCal)/events/\(eventId)",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Event updated: \(eventId)"
+    }
+
+    private func deleteEvent(calendarId: String, eventId: String, credentials: ConnectorCredentials) async throws -> String {
+        let encodedCal = calendarId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarId
+        let (_, _) = try await GoogleAPIClient.delete(
+            path: "/calendar/v3/calendars/\(encodedCal)/events/\(eventId)",
+            credentials: credentials
+        )
+        return "Event deleted: \(eventId)"
     }
 
     private func listCalendars(credentials: ConnectorCredentials) async throws -> String {
@@ -294,6 +578,16 @@ struct GoogleDriveProvider: ConnectorProvider {
             guard let fileId = params["fileId"] else { throw ConnectorProviderError.missingParameter("fileId") }
             data = try await getFileMetadata(fileId: fileId, credentials: credentials)
 
+        // Write actions
+        case "create_folder":
+            guard let name = params["name"] else { throw ConnectorProviderError.missingParameter("name") }
+            data = try await createFolder(name: name, parentId: params["parentId"], credentials: credentials)
+
+        case "move_file":
+            guard let fileId = params["fileId"] else { throw ConnectorProviderError.missingParameter("fileId") }
+            guard let newParentId = params["newParentId"] else { throw ConnectorProviderError.missingParameter("newParentId") }
+            data = try await moveFile(fileId: fileId, newParentId: newParentId, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -319,8 +613,43 @@ struct GoogleDriveProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/drive.readonly"])
+            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/drive.file"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
+    }
+
+    // MARK: - Write Actions
+
+    private func createFolder(name: String, parentId: String?, credentials: ConnectorCredentials) async throws -> String {
+        var body: [String: Any] = [
+            "name": name,
+            "mimeType": "application/vnd.google-apps.folder",
+        ]
+        if let parentId, !parentId.isEmpty { body["parents"] = [parentId] }
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        let (_, _) = try await GoogleAPIClient.post(
+            path: "/drive/v3/files",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Folder created: \(name)"
+    }
+
+    private func moveFile(fileId: String, newParentId: String, credentials: ConnectorCredentials) async throws -> String {
+        // First get current parents
+        let (metaData, _) = try await GoogleAPIClient.get(
+            path: "/drive/v3/files/\(fileId)",
+            queryItems: [URLQueryItem(name: "fields", value: "parents")],
+            credentials: credentials
+        )
+        let metaJSON = try GoogleAPIClient.parseJSON(metaData)
+        let currentParents = (metaJSON["parents"] as? [String])?.joined(separator: ",") ?? ""
+        // Move by adding new parent and removing old
+        let (_, _) = try await GoogleAPIClient.patch(
+            path: "/drive/v3/files/\(fileId)?addParents=\(newParentId)&removeParents=\(currentParents)",
+            body: Data("{}".utf8),
+            credentials: credentials
+        )
+        return "File moved to folder \(newParentId)"
     }
 
     private func searchFiles(query: String, credentials: ConnectorCredentials) async throws -> String {
@@ -388,6 +717,13 @@ struct GoogleSheetsProvider: ConnectorProvider {
             guard let spreadsheetId = params["spreadsheetId"] else { throw ConnectorProviderError.missingParameter("spreadsheetId") }
             data = try await listSheets(spreadsheetId: spreadsheetId, credentials: credentials)
 
+        // Write actions
+        case "write_range":
+            guard let spreadsheetId = params["spreadsheetId"] else { throw ConnectorProviderError.missingParameter("spreadsheetId") }
+            guard let range = params["range"] else { throw ConnectorProviderError.missingParameter("range") }
+            guard let values = params["values"] else { throw ConnectorProviderError.missingParameter("values") }
+            data = try await writeRange(spreadsheetId: spreadsheetId, range: range, valuesJSON: values, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -414,8 +750,29 @@ struct GoogleSheetsProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"])
+            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/spreadsheets"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
+    }
+
+    // MARK: - Write Actions
+
+    private func writeRange(spreadsheetId: String, range: String, valuesJSON: String, credentials: ConnectorCredentials) async throws -> String {
+        let encodedRange = range.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? range
+        // values should be JSON array of arrays, e.g. [["A","B"],["C","D"]]
+        guard let valuesData = valuesJSON.data(using: .utf8),
+              let parsedValues = try JSONSerialization.jsonObject(with: valuesData) as? [[Any]] else {
+            throw ConnectorProviderError.apiError(statusCode: 0, message: "Invalid values JSON — expected array of arrays")
+        }
+        let body: [String: Any] = ["values": parsedValues]
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        let (_, _) = try await GoogleAPIClient.put(
+            path: "/v4/spreadsheets/\(spreadsheetId)/values/\(encodedRange)",
+            baseURL: "https://sheets.googleapis.com",
+            body: jsonData,
+            queryItems: [URLQueryItem(name: "valueInputOption", value: "USER_ENTERED")],
+            credentials: credentials
+        )
+        return "Values written to \(range)"
     }
 
     private func readRange(spreadsheetId: String, range: String, credentials: ConnectorCredentials) async throws -> String {
@@ -467,6 +824,11 @@ struct GoogleContactsProvider: ConnectorProvider {
         case "list_groups":
             data = try await listGroups(credentials: credentials)
 
+        // Write actions
+        case "create_contact":
+            guard let givenName = params["givenName"] else { throw ConnectorProviderError.missingParameter("givenName") }
+            data = try await createContact(givenName: givenName, familyName: params["familyName"], email: params["email"], phone: params["phone"], credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
         }
@@ -493,8 +855,30 @@ struct GoogleContactsProvider: ConnectorProvider {
     func refreshTokenIfNeeded(credentials: ConnectorCredentials) async throws -> ConnectorCredentials? {
         guard credentials.isExpired, let refreshToken = credentials.refreshToken else { return nil }
         let config = ConnectorRegistry.definition(for: Self.definitionId)?.oauthConfig
-            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/contacts.readonly"])
+            ?? googleOAuthConfig(scopes: ["https://www.googleapis.com/auth/contacts"])
         return try await OAuthService.shared.refreshAccessToken(refreshToken: refreshToken, config: config)
+    }
+
+    // MARK: - Write Actions
+
+    private func createContact(givenName: String, familyName: String?, email: String?, phone: String?, credentials: ConnectorCredentials) async throws -> String {
+        var person: [String: Any] = [
+            "names": [["givenName": givenName, "familyName": familyName ?? ""]],
+        ]
+        if let email, !email.isEmpty {
+            person["emailAddresses"] = [["value": email]]
+        }
+        if let phone, !phone.isEmpty {
+            person["phoneNumbers"] = [["value": phone]]
+        }
+        let jsonData = try JSONSerialization.data(withJSONObject: person)
+        let (_, _) = try await GoogleAPIClient.post(
+            path: "/v1/people:createContact",
+            baseURL: "https://people.googleapis.com",
+            body: jsonData,
+            credentials: credentials
+        )
+        return "Contact created: \(givenName) \(familyName ?? "")"
     }
 
     private func searchContacts(query: String, credentials: ConnectorCredentials) async throws -> String {

@@ -5,13 +5,14 @@ import SwiftUI
 struct MenuContentView: View {
     @Environment(AppState.self) private var appState
     @State private var text: String = ""
+    @State private var imageMode: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
             inputBar
             quickActionsRow
         }
-        .frame(width: 540)
+        .frame(width: 660)
         .preferredColorScheme(.dark)
     }
 
@@ -21,21 +22,18 @@ struct MenuContentView: View {
     private var inputBar: some View {
         HStack(spacing: 12) {
             // McClaw icon
-            Image(systemName: "brain")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.purple, Color.blue],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            mcclawPanelIcon
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 32, height: 32)
 
             MultiLineTextInput(
                 text: $text,
-                placeholder: "What can I help you with?",
+                placeholder: imageMode
+                    ? "Describe the image you want to create..."
+                    : "What can I help you with?",
                 font: .systemFont(ofSize: 16),
-                minHeight: 28,
+                minHeight: 36,
                 maxHeight: 120,
                 onSubmit: sendAndOpen
             )
@@ -95,7 +93,38 @@ struct MenuContentView: View {
                 .liquidGlassCapsule(interactive: false)
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
+
+            // Image generation toggle (only if an image-capable CLI is installed)
+            if hasImageCapableCLI {
+                Button {
+                    imageMode.toggle()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: imageMode ? "photo.fill" : "photo")
+                            .font(.subheadline)
+                            .foregroundStyle(imageMode ? .white : .white.opacity(0.6))
+                        Text("Image")
+                            .font(.callout)
+                            .foregroundStyle(imageMode ? .white : .white.opacity(0.6))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background {
+                        if imageMode {
+                            Capsule()
+                                .fill(Color.accentColor.opacity(0.35))
+                                .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1))
+                        } else {
+                            Capsule().fill(.white.opacity(0.08))
+                        }
+                    }
+                    .clipShape(Capsule())
+                    .liquidGlassCapsule(interactive: false)
+                }
+                .buttonStyle(.plain)
+            }
 
             Spacer()
 
@@ -113,14 +142,26 @@ struct MenuContentView: View {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var hasImageCapableCLI: Bool {
+        appState.availableCLIs.contains {
+            $0.isInstalled && $0.isAuthenticated && $0.capabilities.supportsImageGeneration
+        }
+    }
+
     private func sendAndOpen() {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
         let newId = UUID().uuidString
         appState.currentSessionId = newId
-        appState.pendingMessage = trimmed
+
+        if imageMode {
+            appState.pendingImagePrompt = trimmed
+        } else {
+            appState.pendingMessage = trimmed
+        }
         text = ""
+        imageMode = false
 
         dismissAndOpenChat()
     }
@@ -143,6 +184,23 @@ struct MenuContentView: View {
         }
         NSApp.activate(ignoringOtherApps: true)
         appState.openChatWindowAction?()
+    }
+
+    // MARK: - Panel Icon
+
+    private var mcclawPanelIcon: Image {
+        let bundle = Bundle.module
+        // Direct path access (SPM may not resolve @2x via forResource)
+        let url2x = bundle.bundleURL.appendingPathComponent("mcclaw-white@2x.png")
+        if FileManager.default.fileExists(atPath: url2x.path),
+           let nsImage = NSImage(contentsOf: url2x) {
+            return Image(nsImage: nsImage)
+        }
+        if let url = bundle.url(forResource: "mcclaw-white", withExtension: "png"),
+           let nsImage = NSImage(contentsOf: url) {
+            return Image(nsImage: nsImage)
+        }
+        return Image(systemName: "brain")
     }
 
     // MARK: - CLI Selector
@@ -186,6 +244,7 @@ struct MenuContentView: View {
                 .liquidGlassCapsule(interactive: false)
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
         } else if let cli = appState.currentCLI {
             // Single CLI: just show the name

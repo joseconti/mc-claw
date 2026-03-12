@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import McClawKit
 
 /// Local scheduler that executes scheduled jobs in the background.
 /// Works independently of Gateway — runs as long as McClaw is alive
@@ -117,6 +118,7 @@ final class LocalScheduler {
     // MARK: - Job Execution
 
     /// Execute a job by sending its message to the appropriate CLI provider.
+    /// Full pipeline: Pre-fetch → AI analysis → @fetch extra → @action writes → Delivery
     private func executeJob(_ job: CronJob) async {
         let startMs = Int(Date().timeIntervalSince1970 * 1000)
 
@@ -151,20 +153,129 @@ final class LocalScheduler {
             return
         }
 
-        // Execute via CLIBridge
+        // Build dynamic system prompt with all connected services
+        let cronSystemPrompt = buildCronSystemPrompt()
+
+        let timeout = extractTimeout(from: job)
+
+        // --- Phase 1: Initial AI execution ---
         var responseText = ""
         var hadError = false
         var errorMessage: String?
 
-        let timeout = extractTimeout(from: job)
+        (responseText, hadError, errorMessage) = await sendToCLI(
+            message: message,
+            provider: provider,
+            systemPrompt: cronSystemPrompt,
+            timeout: timeout
+        )
+
+        guard !hadError else {
+            let endMs = Int(Date().timeIntervalSince1970 * 1000)
+            updateJobState(jobId: job.id, startMs: startMs, status: "error", error: errorMessage, durationMs: endMs - startMs)
+            postNotification(job: job, summary: errorMessage ?? "Unknown error", status: .error)
+            return
+        }
+
+        // --- Phase 2: @fetch extra data (max 2 rounds) ---
+        for fetchRound in 1...2 {
+            let fetchCommands = ConnectorsKit.extractFetchCommands(responseText)
+            guard !fetchCommands.isEmpty else { break }
+
+            logger.info("Job '\(job.displayName)' @fetch round \(fetchRound): \(fetchCommands.count) commands")
+
+            let fetchResults = await executeFetchCommands(fetchCommands)
+            let cleanResponse = ConnectorsKit.removeFetchCommands(responseText)
+
+            // Re-send to AI with fetched data
+            let enrichedMessage = ConnectorsKit.buildEnrichedPrompt(
+                original: cleanResponse,
+                results: fetchResults
+            )
+
+            (responseText, hadError, errorMessage) = await sendToCLI(
+                message: enrichedMessage,
+                provider: provider,
+                systemPrompt: cronSystemPrompt,
+                timeout: timeout
+            )
+
+            guard !hadError else { break }
+        }
+
+        // --- Phase 3: @action write operations ---
+        var actionSummary: String?
+        let actionCommands = ConnectorsKit.extractActionCommands(responseText)
+        if !actionCommands.isEmpty {
+            logger.info("Job '\(job.displayName)' executing \(actionCommands.count) @action commands")
+            let actionResults = await executeActionCommands(Array(actionCommands.prefix(ConnectorsKit.maxActionCommandsPerTurn)))
+            actionSummary = ConnectorsKit.buildActionResultsSummary(results: actionResults)
+            responseText = ConnectorsKit.removeActionCommands(responseText)
+            if let summary = actionSummary {
+                responseText += "\n\n" + summary
+            }
+        }
+
+        // --- Phase 4: Finalize ---
+        let endMs = Int(Date().timeIntervalSince1970 * 1000)
+        let durationMs = endMs - startMs
+        let wasTimeout = false
+
+        let status: String
+        let notifStatus: ScheduleNotification.Status
+        if hadError {
+            status = "error"
+            notifStatus = .error
+        } else {
+            status = "ok"
+            notifStatus = .success
+        }
+
+        let summary = hadError ? (errorMessage ?? "Unknown error") :
+                       wasTimeout ? (errorMessage ?? "Timeout") :
+                       String(responseText.prefix(500))
+
+        updateJobState(
+            jobId: job.id,
+            startMs: startMs,
+            status: status,
+            error: hadError ? errorMessage : nil,
+            durationMs: durationMs
+        )
+
+        // Deliver results
+        if let delivery = job.delivery {
+            await deliverResults(delivery: delivery, job: job, summary: summary, status: notifStatus)
+        }
+
+        // Handle deleteAfterRun (one-time schedules)
+        if job.deleteAfterRun == true {
+            await CronJobsStore.shared.removeJob(id: job.id)
+        }
+
+        logger.info("Job '\(job.displayName)' completed: \(status) (\(durationMs)ms)")
+    }
+
+    // MARK: - CLI Communication
+
+    /// Send a message to CLI and collect the response.
+    private func sendToCLI(
+        message: String,
+        provider: CLIProviderInfo,
+        systemPrompt: String,
+        timeout: Int?
+    ) async -> (response: String, hadError: Bool, errorMessage: String?) {
+        var responseText = ""
+        var hadError = false
+        var errorMessage: String?
+
         let stream = await CLIBridge.shared.send(
             message: message,
             provider: provider,
             sessionId: nil,
-            systemPrompt: nil
+            systemPrompt: systemPrompt
         )
 
-        // Collect response with timeout
         let collectTask = Task {
             for await event in stream {
                 switch event {
@@ -188,52 +299,149 @@ final class LocalScheduler {
             }
             await collectTask.value
             timeoutTask.cancel()
+            if collectTask.isCancelled && !hadError {
+                hadError = true
+                errorMessage = "Timed out after \(timeout)s"
+            }
         } else {
             await collectTask.value
         }
 
-        // Update state
-        let endMs = Int(Date().timeIntervalSince1970 * 1000)
-        let durationMs = endMs - startMs
-        let wasTimeout = collectTask.isCancelled && !hadError
+        return (responseText, hadError, errorMessage)
+    }
 
-        let status: String
-        let notifStatus: ScheduleNotification.Status
-        if wasTimeout {
-            status = "timeout"
-            notifStatus = .timeout
-            errorMessage = "Timed out after \(timeout ?? 0)s"
-        } else if hadError {
-            status = "error"
-            notifStatus = .error
-        } else {
-            status = "ok"
-            notifStatus = .success
+    // MARK: - Dynamic System Prompt
+
+    /// Build a system prompt that lists all connected services with their read/write actions.
+    private func buildCronSystemPrompt() -> String {
+        var lines: [String] = [
+            "This is an automated scheduled task. Execute ALL actions directly without asking for permission.",
+            "IMPORTANT: Do NOT use any MCP tools or external tools that require user confirmation.",
+            "Use ONLY @fetch and @action commands to interact with connected services.",
+            "",
+        ]
+
+        // Gather connected services
+        let store = ConnectorStore.shared
+        let connectedInstances = store.connectedInstances
+        if !connectedInstances.isEmpty {
+            lines.append("Connected services:")
+            for instance in connectedInstances {
+                guard let def = ConnectorRegistry.definition(for: instance.definitionId) else { continue }
+                let readActions = def.actions.filter { !$0.isWriteAction }.map { $0.id }
+                let writeActions = def.actions.filter { $0.isWriteAction }.map { $0.id }
+                var actionDesc = ""
+                if !readActions.isEmpty { actionDesc += "READ: \(readActions.joined(separator: ", "))" }
+                if !writeActions.isEmpty {
+                    if !actionDesc.isEmpty { actionDesc += " | " }
+                    actionDesc += "WRITE: \(writeActions.joined(separator: ", "))"
+                }
+                lines.append("- \(instance.definitionId): \(actionDesc)")
+            }
+            lines.append("")
         }
 
-        let summary = hadError ? (errorMessage ?? "Unknown error") :
-                       wasTimeout ? (errorMessage ?? "Timeout") :
-                       String(responseText.prefix(500))
-
-        updateJobState(
-            jobId: job.id,
-            startMs: startMs,
-            status: status,
-            error: hadError || wasTimeout ? errorMessage : nil,
-            durationMs: durationMs
-        )
-
-        // Deliver results
-        if let delivery = job.delivery {
-            await deliverResults(delivery: delivery, job: job, summary: summary, status: notifStatus)
+        // Gather connected native channels
+        let channelManager = NativeChannelsManager.shared
+        let connectedChannels = channelManager.connectedChannelIds
+        if !connectedChannels.isEmpty {
+            lines.append("Connected delivery channels: \(connectedChannels.joined(separator: ", "))")
+            lines.append("")
         }
 
-        // Handle deleteAfterRun (one-time schedules)
-        if job.deleteAfterRun == true {
-            await CronJobsStore.shared.removeJob(id: job.id)
+        lines.append(contentsOf: [
+            "To read additional data: @fetch(connector.action, param=value)",
+            "To execute a write action: @action(connector.action, param=value)",
+            "",
+            "Rules:",
+            "1. Execute ALL actions directly. NEVER ask for permission or confirmation.",
+            "2. Pre-fetched data (if any) is provided above the task description.",
+            "3. The delivery channel is already configured — focus on the task, not on notifying.",
+            "4. After completing actions, summarize what you did in plain text.",
+            "5. You can chain @fetch and @action: first read more data if needed, then act.",
+        ])
+
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: - @fetch Execution
+
+    /// Execute @fetch commands and return results.
+    private func executeFetchCommands(
+        _ commands: [ConnectorsKit.FetchCommand]
+    ) async -> [(connector: String, action: String, data: String)] {
+        var results: [(connector: String, action: String, data: String)] = []
+
+        for cmd in commands {
+            guard let instance = resolveInstance(for: cmd.connector) else {
+                results.append((connector: cmd.connector, action: cmd.action, data: "Error: No connected instance for '\(cmd.connector)'"))
+                continue
+            }
+            do {
+                let result = try await ConnectorExecutor.shared.execute(
+                    instanceId: instance.id,
+                    actionId: cmd.action,
+                    params: cmd.params
+                )
+                results.append((connector: cmd.connector, action: cmd.action, data: result.data))
+            } catch {
+                results.append((connector: cmd.connector, action: cmd.action, data: "Error: \(error.localizedDescription)"))
+                logger.warning("@fetch failed: \(cmd.connector).\(cmd.action): \(error)")
+            }
         }
 
-        logger.info("Job '\(job.displayName)' completed: \(status) (\(durationMs)ms)")
+        return results
+    }
+
+    // MARK: - @action Execution
+
+    /// Execute @action commands and return results.
+    private func executeActionCommands(
+        _ commands: [ConnectorsKit.ActionCommand]
+    ) async -> [(connector: String, action: String, success: Bool, message: String)] {
+        var results: [(connector: String, action: String, success: Bool, message: String)] = []
+
+        for cmd in commands {
+            guard let instance = resolveInstance(for: cmd.connector) else {
+                results.append((connector: cmd.connector, action: cmd.action, success: false, message: "No connected instance for '\(cmd.connector)'"))
+                continue
+            }
+            do {
+                let result = try await ConnectorExecutor.shared.execute(
+                    instanceId: instance.id,
+                    actionId: cmd.action,
+                    params: cmd.params
+                )
+                results.append((connector: cmd.connector, action: cmd.action, success: true, message: result.data))
+                logger.info("@action OK: \(cmd.connector).\(cmd.action)")
+            } catch {
+                results.append((connector: cmd.connector, action: cmd.action, success: false, message: error.localizedDescription))
+                logger.warning("@action FAILED: \(cmd.connector).\(cmd.action): \(error)")
+            }
+        }
+
+        return results
+    }
+
+    /// Resolve a connector name to a connected instance. Matches by definition ID, name, or suffix.
+    private func resolveInstance(for name: String) -> ConnectorInstance? {
+        let connected = ConnectorStore.shared.connectedInstances
+        let lower = name.lowercased()
+
+        if let match = connected.first(where: { $0.definitionId.lowercased() == lower }) {
+            return match
+        }
+        if let match = connected.first(where: {
+            $0.definitionId.lowercased().hasSuffix(".\(lower)") ||
+            $0.definitionId.lowercased() == "google.\(lower)" ||
+            $0.definitionId.lowercased() == "microsoft.\(lower)"
+        }) {
+            return match
+        }
+        if let match = connected.first(where: { $0.name.lowercased() == lower }) {
+            return match
+        }
+        return nil
     }
 
     // MARK: - Manual Run

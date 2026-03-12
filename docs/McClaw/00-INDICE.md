@@ -23,6 +23,7 @@ Complete documentation for McClaw, a native macOS application (Swift/SwiftUI) th
 | 12 | [CONNECTOR-WRITE-ACTIONS.md](12-CONNECTOR-WRITE-ACTIONS.md) | Connector write actions: create events, send emails, create tasks, post messages. OAuth scope upgrades, user confirmation flow, security model |
 | 13 | [LOCALIZACION.md](13-LOCALIZACION.md) | Multi-language localization: infrastructure, Localizable.strings, SPM integration, language tiers (Tier 1: EU, Tier 2: global, Tier 3: variants) |
 | 14 | [APP-MOVIL.md](14-APP-MOVIL.md) | Mobile app study (iPhone and Android) for communicating with McClaw |
+| 15 | [BITNET-PROVIDER.md](15-BITNET-PROVIDER.md) | BitNet 1-bit LLM provider (experimental): installation flow, model management, CLI integration, session handling, configuration |
 
 ---
 

@@ -22,7 +22,7 @@ final class SpeechRecognitionService {
     var currentTranscript: String = ""
 
     /// Silence threshold in seconds before auto-finalizing.
-    var silenceThreshold: TimeInterval = 1.5
+    var silenceThreshold: TimeInterval = 2.0
 
     /// Language locale for recognition (nil = system default).
     var locale: Locale?
@@ -33,6 +33,13 @@ final class SpeechRecognitionService {
     private var recognitionTask: SFSpeechRecognitionTask?
     private var silenceTimer: Task<Void, Never>?
     private var streamContinuation: AsyncStream<SpeechEvent>.Continuation?
+
+    /// Guards against concurrent restarts cascading into each other.
+    private var isRestarting: Bool = false
+    /// Consecutive restart attempts without receiving any transcript.
+    private var consecutiveEmptyRestarts: Int = 0
+    /// Max consecutive empty restarts before pausing recognition.
+    private let maxEmptyRestarts: Int = 3
 
     // MARK: - Public API
 
@@ -82,30 +89,42 @@ final class SpeechRecognitionService {
         streamContinuation = nil
 
         isListening = false
+        isRestarting = false
+        consecutiveEmptyRestarts = 0
         currentTranscript = ""
     }
 
     // MARK: - Private
 
     private func beginRecognition() async {
-        let effectiveLocale = locale ?? Locale.current
+        // If user explicitly chose a locale in Settings, use it.
+        // Otherwise use the user's preferred language from System Settings.
+        // Note: Locale.current is affected by the app's bundle localizations
+        // and may not match the system language. Locale.preferredLanguages
+        // always returns the user's actual language preference.
+        // SFSpeechRecognizer() without params uses Siri's language instead.
+        let effectiveLocale: Locale
+        if let userLocale = locale {
+            effectiveLocale = userLocale
+        } else if let preferred = Locale.preferredLanguages.first {
+            effectiveLocale = Locale(identifier: preferred)
+        } else {
+            effectiveLocale = Locale.current
+        }
         guard let recognizer = SFSpeechRecognizer(locale: effectiveLocale),
               recognizer.isAvailable else {
             streamContinuation?.yield(.error("Speech recognizer not available for \(effectiveLocale.identifier)"))
             streamContinuation?.finish()
             return
         }
+        logger.info("SFSpeechRecognizer using locale: \(recognizer.locale.identifier) (source: \(locale != nil ? "user setting" : "preferredLanguages"), preferredLanguages[0]: \(Locale.preferredLanguages.first ?? "nil"), Locale.current: \(Locale.current.identifier))")
 
         // Check authorization
         let authStatus = SFSpeechRecognizer.authorizationStatus()
         if authStatus == .notDetermined {
             let granted = await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
-                SFSpeechRecognizer.requestAuthorization { status in
-                    // Callback fires on arbitrary thread — must not resume directly
-                    // on @MainActor. Use Task to hop back safely.
-                    Task { @MainActor in
-                        cont.resume(returning: status == .authorized)
-                    }
+                SFSpeechRecognizer.requestAuthorization { @Sendable status in
+                    cont.resume(returning: status == .authorized)
                 }
             }
             guard granted else {
@@ -132,6 +151,9 @@ final class SpeechRecognitionService {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.addsPunctuation = true
+        // Use server-side recognition to respect the locale even if
+        // on-device model for this language isn't downloaded.
+        request.requiresOnDeviceRecognition = false
 
         let inputNode = engine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
@@ -142,10 +164,23 @@ final class SpeechRecognitionService {
             return
         }
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            request.append(buffer)
-            // Calculate audio level
-            let level = Self.calculateAudioLevel(buffer: buffer)
+        // Audio tap fires on RealtimeMessenger background queue — must break
+        // @MainActor inheritance with @Sendable + nonisolated(unsafe) for
+        // non-Sendable framework types.
+        nonisolated(unsafe) let tapRequest = request
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { @Sendable [weak self] buffer, _ in
+            tapRequest.append(buffer)
+            let channelData = buffer.floatChannelData
+            let frames = Int(buffer.frameLength)
+            var level: Float = 0
+            if let channelData, frames > 0 {
+                var sum: Float = 0
+                for i in 0..<frames {
+                    let sample = channelData[0][i]
+                    sum += sample * sample
+                }
+                level = min(sqrt(sum / Float(frames)) * 10, 1.0)
+            }
             Task { @MainActor [weak self] in
                 self?.streamContinuation?.yield(.audioLevel(level))
             }
@@ -165,19 +200,29 @@ final class SpeechRecognitionService {
         self.isListening = true
 
         // Start recognition task
-        recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+        // Recognition callback fires on arbitrary thread — extract Sendable
+        // values before hopping to MainActor.
+        recognitionTask = recognizer.recognitionTask(with: request) { @Sendable [weak self] result, error in
+            // Extract Sendable values on the callback thread
+            let transcript = result?.bestTranscription.formattedString
+            let isFinal = result?.isFinal ?? false
+            let errorDesc = error?.localizedDescription
+            let errorDomain = (error as? NSError)?.domain
+            let errorCode = (error as? NSError)?.code
+
             Task { @MainActor [weak self] in
                 guard let self else { return }
 
-                if let result {
-                    let transcript = result.bestTranscription.formattedString
+                if let transcript {
                     self.currentTranscript = transcript
                     self.streamContinuation?.yield(.partialTranscript(transcript))
+                    // Got real speech — reset the empty-restart counter
+                    self.consecutiveEmptyRestarts = 0
 
                     // Reset silence timer
                     self.resetSilenceTimer()
 
-                    if result.isFinal {
+                    if isFinal {
                         let final = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !final.isEmpty {
                             self.streamContinuation?.yield(.finalTranscript(final))
@@ -188,15 +233,22 @@ final class SpeechRecognitionService {
                     }
                 }
 
-                if let error {
-                    let nsError = error as NSError
-                    // Ignore cancellation errors
-                    if nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 216 {
-                        // "Request was canceled" — expected during stop
+                if let errorDesc {
+                    // Ignore cancellation errors (user or system cancelled)
+                    if errorDomain == "kAFAssistantErrorDomain" && errorCode == 216 {
                         return
                     }
-                    self.logger.warning("Recognition error: \(error.localizedDescription)")
-                    // Try to restart on transient errors
+                    // "No speech detected" (code 1110) — not a transient error,
+                    // just means silence. Restart quietly without counting as failure.
+                    if errorDomain == "kAFAssistantErrorDomain" && errorCode == 1110 {
+                        self.logger.debug("No speech detected — restarting quietly")
+                        if self.isListening {
+                            self.restartRecognition()
+                        }
+                        return
+                    }
+                    self.logger.warning("Recognition error: \(errorDesc) (domain: \(errorDomain ?? "?"), code: \(errorCode ?? -1))")
+                    // Try to restart on transient errors (with limit)
                     if self.isListening {
                         self.restartRecognition()
                     }
@@ -222,17 +274,38 @@ final class SpeechRecognitionService {
     }
 
     private func restartRecognition() {
+        // Prevent concurrent restart cascades
+        guard !isRestarting else {
+            logger.debug("Restart already in progress — skipping")
+            return
+        }
+        isRestarting = true
+
         recognitionTask?.cancel()
         recognitionTask = nil
         recognitionRequest?.endAudio()
         recognitionRequest = nil
         cleanupAudio()
 
-        guard isListening else { return }
+        guard isListening else {
+            isRestarting = false
+            return
+        }
+
+        consecutiveEmptyRestarts += 1
+
+        if consecutiveEmptyRestarts > maxEmptyRestarts {
+            logger.info("Too many empty restarts (\(consecutiveEmptyRestarts)) — waiting longer before retry")
+        }
+
+        // Progressive backoff: 500ms normally, 3s after too many empty restarts
+        let delay = consecutiveEmptyRestarts > maxEmptyRestarts
+            ? Duration.seconds(3)
+            : Duration.milliseconds(500)
 
         Task {
-            // Brief pause before restarting
-            try? await Task.sleep(for: .milliseconds(200))
+            try? await Task.sleep(for: delay)
+            self.isRestarting = false
             guard self.isListening else { return }
             await self.beginRecognition()
         }

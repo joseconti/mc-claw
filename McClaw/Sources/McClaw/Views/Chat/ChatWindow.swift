@@ -33,6 +33,7 @@ struct ChatWindow: View {
             // Main content — depends on current section
             mainContentForSection
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.background)
         }
         .frame(minWidth: 700, minHeight: 550)
         .font(.system(size: 14))
@@ -71,6 +72,8 @@ struct ChatWindow: View {
                 viewModels[newId] = newVM
                 viewModel = newVM
             }
+            // Re-wire voice callbacks to the new viewModel
+            wireVoiceCallbacks()
             // Process any pending message from menu bar
             processPendingMessage()
         }
@@ -163,7 +166,10 @@ struct ChatWindow: View {
                     onAbort: {
                         Task { await viewModel.abort() }
                     },
-                    isWorking: viewModel.isStreaming
+                    isWorking: viewModel.isStreaming,
+                    onImageGenerate: { prompt in
+                        Task { await viewModel.sendImageGeneration(prompt: prompt) }
+                    }
                 )
                 .environment(appState)
             } else {
@@ -185,7 +191,10 @@ struct ChatWindow: View {
                         Task { await viewModel.abort() }
                     },
                     isWorking: viewModel.isStreaming,
-                    compact: true
+                    compact: true,
+                    onImageGenerate: { prompt in
+                        Task { await viewModel.sendImageGeneration(prompt: prompt) }
+                    }
                 )
                 .environment(appState)
             }
@@ -241,6 +250,25 @@ struct ChatWindow: View {
                             appState.currentCLIIdentifier = cli.id
                         }
                         Task { await ConfigStore.shared.saveFromState() }
+                        // Auto-start BitNet server when selected (on-demand mode)
+                        if cli.id == "bitnet", !appState.bitnetAlwaysOn {
+                            Task {
+                                let server = BitNetServerManager.shared
+                                if await !server.isRunning {
+                                    let model = appState.bitnetDefaultModel ?? BitNetKit.defaultModel?.modelId ?? "BitNet-b1.58-2B-4T"
+                                    let serverConfig = BitNetKit.ServerConfig(
+                                        port: appState.bitnetServerPort,
+                                        threads: appState.bitnetThreads,
+                                        contextSize: appState.bitnetContextSize,
+                                        maxTokens: appState.bitnetMaxTokens,
+                                        temperature: appState.bitnetTemperature
+                                    )
+                                    try? await server.start(model: model, config: serverConfig, trackIdle: true)
+                                } else {
+                                    await server.touch()
+                                }
+                            }
+                        }
                     } label: {
                         Text(cli.displayName)
                             .font(.subheadline.weight(isSelected ? .semibold : .regular))
@@ -318,6 +346,7 @@ struct ChatWindow: View {
         let newVM = ChatViewModel()
         viewModels[newId] = newVM
         viewModel = newVM
+        wireVoiceCallbacks()
     }
 
     /// Create a new chat that's already assigned to a project.
@@ -331,6 +360,7 @@ struct ChatWindow: View {
         let newVM = ChatViewModel()
         viewModels[sessionId] = newVM
         viewModel = newVM
+        wireVoiceCallbacks()
         // Set session ID last — onChange may fire but the VM is already set
         appState.currentSessionId = sessionId
         // Explicitly process the pending message (don't rely on onChange)
@@ -360,22 +390,13 @@ struct ChatWindow: View {
             viewModels[session.id] = restored
             viewModel = restored
         }
+        wireVoiceCallbacks()
     }
 
     // MARK: - Setup
 
     private func setupVoiceMode() {
-        voiceMode.onFinalTranscript = { [viewModel] text in
-            Task { @MainActor in
-                await viewModel.send(text)
-            }
-        }
-
-        PushToTalkService.shared.onTranscript = { [viewModel] text in
-            Task { @MainActor in
-                await viewModel.send(text)
-            }
-        }
+        wireVoiceCallbacks()
 
         VoiceWakeRuntime.shared.onWakeWordDetected = {
             Task { @MainActor in
@@ -386,8 +407,30 @@ struct ChatWindow: View {
         }
     }
 
+    /// Wire voice callbacks to the current viewModel.
+    /// Must be called again whenever viewModel is replaced (session switch, new chat).
+    private func wireVoiceCallbacks() {
+        let vm = viewModel
+        voiceMode.onFinalTranscript = { text in
+            Task { @MainActor in
+                await vm.send(text)
+            }
+        }
+
+        PushToTalkService.shared.onTranscript = { text in
+            Task { @MainActor in
+                await vm.send(text)
+            }
+        }
+    }
+
     /// Check for a pending message queued from the menu bar mini chat and send it.
     private func processPendingMessage() {
+        if let imagePrompt = appState.pendingImagePrompt {
+            appState.pendingImagePrompt = nil
+            Task { await viewModel.sendImageGeneration(prompt: imagePrompt) }
+            return
+        }
         guard let message = appState.pendingMessage else { return }
         appState.pendingMessage = nil
         Task { await viewModel.send(message) }

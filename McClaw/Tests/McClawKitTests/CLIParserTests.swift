@@ -113,13 +113,13 @@ struct CLIParserTests {
     @Test("Gemini args with defaults")
     func buildArgsGemini() {
         let args = CLIParser.buildArguments(for: "gemini", message: "hey")
-        #expect(args == ["hey" + hint])
+        #expect(args == ["-o", "stream-json", "hey" + hint])
     }
 
     @Test("Gemini args with model")
     func buildArgsGeminiWithModel() {
         let args = CLIParser.buildArguments(for: "gemini", message: "hey", model: "gemini-pro")
-        #expect(args == ["--model", "gemini-pro", "hey" + hint])
+        #expect(args == ["-o", "stream-json", "--model", "gemini-pro", "hey" + hint])
     }
 
     @Test("Ollama args with default model")
@@ -138,5 +138,40 @@ struct CLIParserTests {
     func buildArgsUnknown() {
         let args = CLIParser.buildArguments(for: "unknown", message: "hello")
         #expect(args == ["hello" + hint])
+    }
+
+    // MARK: - BitNet parseLine
+
+    @Test("BitNet parse text line returns text")
+    func parseBitNetText() {
+        let event = CLIParser.parseLine("Hello from BitNet", provider: "bitnet")
+        #expect(event == .text("Hello from BitNet"))
+    }
+
+    @Test("BitNet parse empty line returns passthrough")
+    func parseBitNetEmpty() {
+        let event = CLIParser.parseLine("", provider: "bitnet")
+        #expect(event == .passthrough(""))
+    }
+
+    @Test("BitNet parse prompt marker returns done")
+    func parseBitNetPrompt() {
+        let event = CLIParser.parseLine("> ", provider: "bitnet")
+        #expect(event == .done)
+    }
+
+    // MARK: - BitNet buildArguments
+
+    @Test("BitNet args use run_inference.py path")
+    func buildArgsBitNet() {
+        let args = CLIParser.buildArguments(for: "bitnet", message: "Hello")
+        #expect(args.contains("Hello"))
+        #expect(args.contains(where: { $0.hasSuffix("run_inference.py") }))
+    }
+
+    @Test("BitNet args use specified model")
+    func buildArgsBitNetModel() {
+        let args = CLIParser.buildArguments(for: "bitnet", message: "test", model: "bitnet_b1_58-3B")
+        #expect(args.contains(where: { $0.contains("bitnet_b1_58-3B") }))
     }
 }

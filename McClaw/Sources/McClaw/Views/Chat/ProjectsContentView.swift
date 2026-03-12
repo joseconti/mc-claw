@@ -390,11 +390,11 @@ struct ProjectsContentView: View {
         }
         .background {
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color(nsColor: NSColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1.0)))
+                .fill(Theme.cardBackground)
                 .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
                 .overlay {
                     RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(Color(nsColor: NSColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)), lineWidth: 1)
+                        .strokeBorder(Theme.border, lineWidth: 1)
                 }
         }
         .frame(maxWidth: 780)

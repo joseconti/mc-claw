@@ -98,12 +98,15 @@ struct ConnectorActionDef: Identifiable, Codable, Equatable, Sendable {
     let name: String
     let description: String
     let parameters: [ConnectorActionParam]
+    /// Whether this action modifies external data (send email, create event, etc.).
+    let isWriteAction: Bool
 
-    init(id: String, name: String, description: String, parameters: [ConnectorActionParam] = []) {
+    init(id: String, name: String, description: String, parameters: [ConnectorActionParam] = [], isWriteAction: Bool = false) {
         self.id = id
         self.name = name
         self.description = description
         self.parameters = parameters
+        self.isWriteAction = isWriteAction
     }
 }
 

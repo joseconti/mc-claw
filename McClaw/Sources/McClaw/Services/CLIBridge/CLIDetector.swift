@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import McClawKit
 
 /// Detects AI provider CLIs installed on the system.
 actor CLIDetector {
@@ -36,6 +37,7 @@ actor CLIDetector {
                 supportsVision: true,
                 supportsThinking: false,
                 supportsConversation: true,
+                supportsImageGeneration: true,
                 maxContextTokens: 128_000
             )
         ),
@@ -52,6 +54,7 @@ actor CLIDetector {
                 supportsVision: true,
                 supportsThinking: true,
                 supportsConversation: true,
+                supportsImageGeneration: true,
                 maxContextTokens: 1_000_000
             )
         ),
@@ -117,6 +120,11 @@ actor CLIDetector {
             results.append(info)
         }
 
+        // BitNet: custom detection (no binary to scan, checks directory structure)
+        let bitnetInfo = await detectBitNet()
+        debugLog("provider 'bitnet' done - installed=\(bitnetInfo.isInstalled)")
+        results.append(bitnetInfo)
+
         debugLog("scan() complete: \(results.count) total, \(results.filter(\.isInstalled).count) installed")
         return results
     }
@@ -151,7 +159,8 @@ actor CLIDetector {
             installMethod: definition.installMethod,
             supportedModels: [],  // Populated later via CLI query
             capabilities: definition.capabilities,
-            isToolCLI: definition.isToolCLI
+            isToolCLI: definition.isToolCLI,
+            isExperimental: definition.isExperimental
         )
     }
 
@@ -223,6 +232,140 @@ actor CLIDetector {
         return output != nil
     }
 
+    // MARK: - BitNet Detection
+
+    /// Detect BitNet installation by checking directory structure and conda env.
+    private func detectBitNet() async -> CLIProviderInfo {
+        let fm = FileManager.default
+        let home = BitNetKit.Paths.home
+
+        // 1. Check if BitNet directory exists
+        guard fm.fileExists(atPath: home) else {
+            debugLog("  bitnet: home directory not found")
+            return bitnetProviderInfo(installed: false, version: nil)
+        }
+
+        // 2. Check if inference script exists
+        let hasServer = fm.fileExists(atPath: BitNetKit.Paths.serverScript)
+        let hasInference = fm.fileExists(atPath: BitNetKit.Paths.inferenceScript)
+        guard hasServer || hasInference else {
+            debugLog("  bitnet: no inference script found")
+            return bitnetProviderInfo(installed: false, version: nil)
+        }
+
+        // 3. Check if conda environment exists
+        // GUI apps don't inherit shell PATH, so find conda binary directly
+        let condaPaths = [
+            "\(NSHomeDirectory())/miniforge3/bin/conda",
+            "\(NSHomeDirectory())/miniconda3/bin/conda",
+            "\(NSHomeDirectory())/anaconda3/bin/conda",
+            "/opt/homebrew/bin/conda",
+            "/usr/local/bin/conda",
+        ]
+        var condaCheck: String?
+        for condaPath in condaPaths {
+            if fm.isExecutableFile(atPath: condaPath) {
+                condaCheck = await runCommand(condaPath, arguments: ["env", "list"], timeout: 10)
+                if condaCheck != nil { break }
+            }
+        }
+        // Fallback: try login shell (may work if conda init was run)
+        if condaCheck == nil {
+            condaCheck = await runCommand("/bin/zsh", arguments: ["-lc", "conda env list"], timeout: 10)
+        }
+        let hasCondaEnv = condaCheck?.contains(BitNetKit.condaEnvironment) ?? false
+        if !hasCondaEnv {
+            debugLog("  bitnet: conda env '\(BitNetKit.condaEnvironment)' not found")
+            return bitnetProviderInfo(installed: false, version: "no conda env")
+        }
+
+        // 4. Check if at least one model is downloaded
+        let models = BitNetKit.listInstalledModels()
+        if models.isEmpty {
+            debugLog("  bitnet: no models downloaded")
+            return bitnetProviderInfo(installed: false, version: "no models")
+        }
+
+        debugLog("  bitnet: installed with \(models.count) model(s)")
+        return bitnetProviderInfo(installed: true, version: "1.58-bit (\(models.count) models)")
+    }
+
+    /// Build CLIProviderInfo for BitNet with the appropriate install steps.
+    private func bitnetProviderInfo(installed: Bool, version: String?) -> CLIProviderInfo {
+        CLIProviderInfo(
+            id: "bitnet",
+            displayName: "BitNet (Local, 1-bit)",
+            binaryPath: installed ? BitNetKit.Paths.binary : nil,
+            version: version,
+            isInstalled: installed,
+            isAuthenticated: installed, // No auth needed for local
+            installMethod: .multiStep(steps: Self.bitnetInstallSteps),
+            supportedModels: [],
+            capabilities: CLICapabilities(
+                supportsStreaming: false,
+                supportsToolUse: false,
+                supportsVision: false,
+                supportsThinking: false,
+                supportsConversation: true,
+                maxContextTokens: 2048
+            ),
+            isExperimental: true
+        )
+    }
+
+    /// Multi-step installation sequence for BitNet.
+    /// Follows the official tutorial: clone → conda → deps → download model → build kernels.
+    private static let bitnetInstallSteps: [InstallStep] = [
+        // 1. Clone BitNet repo with submodules
+        InstallStep(
+            id: "clone",
+            description: "Clone BitNet repository",
+            command: ["git", "clone", "--recursive", "https://github.com/microsoft/BitNet.git", BitNetKit.Paths.home],
+            estimatedDuration: 60
+        ),
+        // 2. Create conda environment (python 3.9)
+        InstallStep(
+            id: "conda-create",
+            description: "Create conda environment",
+            command: BitNetKit.buildCondaCreateArgs(),
+            estimatedDuration: 30
+        ),
+        // 3. Install Python dependencies (requirements.txt)
+        InstallStep(
+            id: "pip-install",
+            description: "Install Python dependencies",
+            command: BitNetKit.buildPipInstallArgs(),
+            condaEnvironment: BitNetKit.condaEnvironment,
+            estimatedDuration: 120
+        ),
+        // 4. Install HuggingFace CLI
+        InstallStep(
+            id: "hf-cli",
+            description: "Install HuggingFace CLI",
+            command: BitNetKit.buildHfCliInstallArgs(),
+            condaEnvironment: BitNetKit.condaEnvironment,
+            estimatedDuration: 30
+        ),
+        // 5+6. Download model + build kernels in one shell (conda activate via hook)
+        InstallStep(
+            id: "download-and-build",
+            description: "Download model and build kernels",
+            command: BitNetKit.buildDownloadAndBuildShellArgs(
+                repo: "tiiuae/Falcon3-3B-Instruct-1.58bit",
+                modelDir: "models/Falcon3-3B-Instruct-1.58bit"
+            ),
+            estimatedDuration: 420
+        ),
+        // 7. Verify llama-cli binary exists
+        InstallStep(
+            id: "verify",
+            description: "Verify installation",
+            command: ["/bin/test", "-f", BitNetKit.Paths.binary],
+            estimatedDuration: 5,
+            canRetry: false
+        ),
+    ]
+
     /// Run a shell command and return stdout, or nil on failure.
     /// Dispatches to GCD to avoid blocking Swift concurrency's cooperative thread pool.
     /// Includes a timeout to prevent hanging on commands that wait for input/network.
@@ -278,4 +421,6 @@ private struct CLIProviderDefinition {
     let capabilities: CLICapabilities
     /// True for optional tool CLIs (not AI providers).
     var isToolCLI: Bool = false
+    /// True for experimental providers.
+    var isExperimental: Bool = false
 }

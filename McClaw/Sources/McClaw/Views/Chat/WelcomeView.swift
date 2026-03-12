@@ -7,6 +7,7 @@ struct WelcomeView: View {
     let onSend: (String, [Attachment]) -> Void
     let onAbort: () -> Void
     let isWorking: Bool
+    var onImageGenerate: ((String) -> Void)?
 
     @Environment(AppState.self) private var appState
     @State private var connectorStore = ConnectorStore.shared
@@ -48,7 +49,8 @@ struct WelcomeView: View {
             ChatInputBar(
                 onSend: onSend,
                 onAbort: onAbort,
-                isWorking: isWorking
+                isWorking: isWorking,
+                onImageGenerate: onImageGenerate
             )
             .environment(appState)
 
@@ -573,10 +575,10 @@ private struct QuickActionPanel: View {
         }
         .background {
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(nsColor: NSColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1.0)))
+                .fill(Theme.cardBackground)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Color(nsColor: NSColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)), lineWidth: 1)
+                        .strokeBorder(Theme.border, lineWidth: 1)
                 }
         }
         .frame(maxWidth: 500)

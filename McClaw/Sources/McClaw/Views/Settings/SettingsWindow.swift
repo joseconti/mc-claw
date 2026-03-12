@@ -13,11 +13,11 @@ struct McClawTextFieldModifier: ViewModifier {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(nsColor: NSColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1.0)))
+                    .fill(Theme.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color(nsColor: NSColor(red: 0.35, green: 0.35, blue: 0.38, alpha: 1.0)), lineWidth: 1)
+                    .strokeBorder(Theme.border, lineWidth: 1)
             )
     }
 }
@@ -58,6 +58,11 @@ struct SettingsWindow: View {
 
                 sidebarHeader("Advanced")
                 ForEach(SettingsSection.advancedSections, id: \.self) { section in
+                    sidebarRow(section)
+                }
+
+                sidebarHeader("Experimental")
+                ForEach(SettingsSection.experimentalSections, id: \.self) { section in
                     sidebarRow(section)
                 }
             }
@@ -157,6 +162,9 @@ struct SettingsWindow: View {
         case .advanced:
             AdvancedSettingsTab()
                 .environment(appState)
+        case .bitnet:
+            BitNetSettingsTab()
+                .environment(appState)
         }
     }
 }
@@ -167,6 +175,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
     case general, clis, mcp, security
     case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote
     case logs, advanced
+    case bitnet
 
     var title: String {
         switch self {
@@ -184,6 +193,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .remote: String(localized: "Remote")
         case .logs: String(localized: "Logs")
         case .advanced: String(localized: "Advanced")
+        case .bitnet: String(localized: "BitNet")
         }
     }
 
@@ -203,12 +213,14 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .remote: "network"
         case .logs: "doc.text.magnifyingglass"
         case .advanced: "wrench.and.screwdriver"
+        case .bitnet: "cpu"
         }
     }
 
     static let mainSections: [SettingsSection] = [.general, .clis, .mcp, .security]
     static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice]
     static let advancedSections: [SettingsSection] = [.logs]
+    static let experimentalSections: [SettingsSection] = [.bitnet]
 }
 
 // MARK: - Settings Tabs

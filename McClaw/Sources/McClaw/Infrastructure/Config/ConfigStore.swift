@@ -118,6 +118,17 @@ actor ConfigStore {
         state.fileLoggingEnabled = config.fileLoggingEnabled
         DiagnosticsFileLogHandler.isEnabled = config.fileLoggingEnabled
 
+        // BitNet settings
+        state.showExperimentalProviders = config.showExperimentalProviders
+        state.bitnetEnabled = config.bitnetEnabled
+        state.bitnetDefaultModel = config.bitnetDefaultModel
+        state.bitnetThreads = config.bitnetThreads
+        state.bitnetContextSize = config.bitnetContextSize
+        state.bitnetMaxTokens = config.bitnetMaxTokens
+        state.bitnetTemperature = config.bitnetTemperature
+        state.bitnetServerPort = config.bitnetServerPort
+        state.bitnetAlwaysOn = config.bitnetAlwaysOn
+
         // Apply security mode
         ExecApprovals.shared.securityMode = config.execMode
         // Load allowlist/denylist from separate file
@@ -157,6 +168,15 @@ actor ConfigStore {
             appColorScheme: state.appColorScheme,
             chatFontFamily: state.chatFontFamily,
             fileLoggingEnabled: state.fileLoggingEnabled,
+            showExperimentalProviders: state.showExperimentalProviders,
+            bitnetEnabled: state.bitnetEnabled,
+            bitnetDefaultModel: state.bitnetDefaultModel,
+            bitnetThreads: state.bitnetThreads,
+            bitnetContextSize: state.bitnetContextSize,
+            bitnetMaxTokens: state.bitnetMaxTokens,
+            bitnetTemperature: state.bitnetTemperature,
+            bitnetServerPort: state.bitnetServerPort,
+            bitnetAlwaysOn: state.bitnetAlwaysOn,
             lastSessionId: state.currentSessionId
         )
         do {
@@ -208,6 +228,17 @@ struct McClawConfig: Codable, Sendable {
     // Diagnostics
     var fileLoggingEnabled: Bool
 
+    // BitNet (experimental)
+    var showExperimentalProviders: Bool
+    var bitnetEnabled: Bool
+    var bitnetDefaultModel: String?
+    var bitnetThreads: Int
+    var bitnetContextSize: Int
+    var bitnetMaxTokens: Int
+    var bitnetTemperature: Double
+    var bitnetServerPort: Int
+    var bitnetAlwaysOn: Bool
+
     // Session
     var lastSessionId: String?
 
@@ -240,6 +271,15 @@ struct McClawConfig: Codable, Sendable {
         appColorScheme: AppColorScheme? = nil,
         chatFontFamily: ChatFontFamily? = nil,
         fileLoggingEnabled: Bool = false,
+        showExperimentalProviders: Bool = false,
+        bitnetEnabled: Bool = false,
+        bitnetDefaultModel: String? = nil,
+        bitnetThreads: Int = 4,
+        bitnetContextSize: Int = 2048,
+        bitnetMaxTokens: Int = 2048,
+        bitnetTemperature: Double = 0.7,
+        bitnetServerPort: Int = 8921,
+        bitnetAlwaysOn: Bool = true,
         lastSessionId: String? = nil
     ) {
         self.defaultCLI = defaultCLI
@@ -270,6 +310,15 @@ struct McClawConfig: Codable, Sendable {
         self.appColorScheme = appColorScheme
         self.chatFontFamily = chatFontFamily
         self.fileLoggingEnabled = fileLoggingEnabled
+        self.showExperimentalProviders = showExperimentalProviders
+        self.bitnetEnabled = bitnetEnabled
+        self.bitnetDefaultModel = bitnetDefaultModel
+        self.bitnetThreads = bitnetThreads
+        self.bitnetContextSize = bitnetContextSize
+        self.bitnetMaxTokens = bitnetMaxTokens
+        self.bitnetTemperature = bitnetTemperature
+        self.bitnetServerPort = bitnetServerPort
+        self.bitnetAlwaysOn = bitnetAlwaysOn
         self.lastSessionId = lastSessionId
     }
 
@@ -303,6 +352,15 @@ struct McClawConfig: Codable, Sendable {
         appColorScheme = try container.decodeIfPresent(AppColorScheme.self, forKey: .appColorScheme)
         chatFontFamily = try container.decodeIfPresent(ChatFontFamily.self, forKey: .chatFontFamily)
         fileLoggingEnabled = try container.decodeIfPresent(Bool.self, forKey: .fileLoggingEnabled) ?? false
+        showExperimentalProviders = try container.decodeIfPresent(Bool.self, forKey: .showExperimentalProviders) ?? false
+        bitnetEnabled = try container.decodeIfPresent(Bool.self, forKey: .bitnetEnabled) ?? false
+        bitnetDefaultModel = try container.decodeIfPresent(String.self, forKey: .bitnetDefaultModel)
+        bitnetThreads = try container.decodeIfPresent(Int.self, forKey: .bitnetThreads) ?? 4
+        bitnetContextSize = try container.decodeIfPresent(Int.self, forKey: .bitnetContextSize) ?? 2048
+        bitnetMaxTokens = try container.decodeIfPresent(Int.self, forKey: .bitnetMaxTokens) ?? 2048
+        bitnetTemperature = try container.decodeIfPresent(Double.self, forKey: .bitnetTemperature) ?? 0.7
+        bitnetServerPort = try container.decodeIfPresent(Int.self, forKey: .bitnetServerPort) ?? 8921
+        bitnetAlwaysOn = try container.decodeIfPresent(Bool.self, forKey: .bitnetAlwaysOn) ?? true
         lastSessionId = try container.decodeIfPresent(String.self, forKey: .lastSessionId)
     }
 }
