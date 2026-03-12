@@ -562,6 +562,7 @@ final class LocalScheduler {
         let updated = CronJob(
             id: job.id,
             agentId: job.agentId,
+            model: job.model,
             name: job.name,
             description: job.description,
             enabled: job.enabled,

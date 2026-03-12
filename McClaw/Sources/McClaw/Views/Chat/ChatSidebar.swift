@@ -7,6 +7,8 @@ enum SidebarSection: Hashable {
     case projectDetail(String) // projectId
     case schedules
     case notifications
+    case multimedia
+    case installations
     case trash
     case settings
 }
@@ -21,6 +23,8 @@ struct ChatSidebar: View {
     @Environment(AppState.self) private var appState
     @State private var sessionStore = SessionStore.shared
     @State private var projectStore = ProjectStore.shared
+    @State private var imageIndexStore = ImageIndexStore.shared
+    @State private var installService = AgentInstallService.shared
     @State private var searchText = ""
 
     var body: some View {
@@ -97,6 +101,22 @@ struct ChatSidebar: View {
                     badge: ScheduleNotificationStore.shared.unreadCount
                 ) {
                     currentSection = .notifications
+                }
+                SidebarNavItem(
+                    icon: "photo.on.rectangle.angled",
+                    label: String(localized: "multimedia", bundle: .module),
+                    isActive: currentSection == .multimedia,
+                    badge: imageIndexStore.allImages.count
+                ) {
+                    currentSection = .multimedia
+                }
+                SidebarNavItem(
+                    icon: "square.and.arrow.down.on.square",
+                    label: String(localized: "Installations", bundle: .module),
+                    isActive: currentSection == .installations,
+                    badge: installService.installRegistry.count
+                ) {
+                    currentSection = .installations
                 }
                 SidebarNavItem(
                     icon: "trash",

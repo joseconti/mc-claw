@@ -149,6 +149,23 @@ actor CLIDetector {
         // Auth-check commands like `claude auth status` can hang without a TTY.
         let isAuthenticated = isInstalled
 
+        // Populate supported models from registry (+ dynamic discovery for Ollama)
+        var models = ModelRegistry.models(for: definition.id).map { reg in
+            ModelInfo(
+                modelId: reg.modelId,
+                displayName: reg.displayName,
+                provider: reg.provider,
+                contextWindow: nil,
+                pricing: nil
+            )
+        }
+        if definition.id == "ollama", let path = binaryPath {
+            let dynamicModels = await discoverOllamaModels(binaryPath: path)
+            let staticIds = Set(models.map(\.modelId))
+            let newModels = dynamicModels.filter { !staticIds.contains($0.modelId) }
+            models.append(contentsOf: newModels)
+        }
+
         return CLIProviderInfo(
             id: definition.id,
             displayName: definition.displayName,
@@ -157,7 +174,7 @@ actor CLIDetector {
             isInstalled: isInstalled,
             isAuthenticated: isAuthenticated,
             installMethod: definition.installMethod,
-            supportedModels: [],  // Populated later via CLI query
+            supportedModels: models,
             capabilities: definition.capabilities,
             isToolCLI: definition.isToolCLI,
             isExperimental: definition.isExperimental
@@ -230,6 +247,27 @@ actor CLIDetector {
         let output = await runCommand(binary, arguments: args, timeout: 5)
         // Simple heuristic: if the command succeeds, we're authenticated
         return output != nil
+    }
+
+    // MARK: - Ollama Model Discovery
+
+    /// Discover locally installed Ollama models by running `ollama list`.
+    private func discoverOllamaModels(binaryPath: String) async -> [ModelInfo] {
+        guard let output = await runCommand(binaryPath, arguments: ["list"], timeout: 10) else {
+            debugLog("  ollama: failed to run 'ollama list'")
+            return []
+        }
+        let registered = ModelRegistry.parseOllamaList(output)
+        debugLog("  ollama: discovered \(registered.count) model(s)")
+        return registered.map { reg in
+            ModelInfo(
+                modelId: reg.modelId,
+                displayName: reg.displayName,
+                provider: "ollama",
+                contextWindow: nil,
+                pricing: nil
+            )
+        }
     }
 
     // MARK: - BitNet Detection

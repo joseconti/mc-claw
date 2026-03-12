@@ -11,8 +11,12 @@ struct ChatMessage: Identifiable, Codable, Sendable {
     var toolCalls: [ToolCall]
     var generatedImages: [GeneratedImage]
     var isStreaming: Bool
+    /// Whether the assistant is currently generating an image (shows shimmer placeholder).
+    var isGeneratingImage: Bool
     /// Which CLI provider handled this message (e.g. "claude", "gemini").
     var providerId: String?
+    /// If non-nil, this message displays an install progress view for the given plan.
+    var installPlanId: UUID?
 
     init(
         id: UUID = UUID(),
@@ -24,7 +28,9 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         toolCalls: [ToolCall] = [],
         generatedImages: [GeneratedImage] = [],
         isStreaming: Bool = false,
-        providerId: String? = nil
+        isGeneratingImage: Bool = false,
+        providerId: String? = nil,
+        installPlanId: UUID? = nil
     ) {
         self.id = id
         self.role = role
@@ -35,7 +41,31 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         self.toolCalls = toolCalls
         self.generatedImages = generatedImages
         self.isStreaming = isStreaming
+        self.isGeneratingImage = isGeneratingImage
         self.providerId = providerId
+        self.installPlanId = installPlanId
+    }
+
+    // Custom Codable to maintain backwards compatibility with existing session files
+    enum CodingKeys: String, CodingKey {
+        case id, role, content, timestamp, sessionId, attachments, toolCalls
+        case generatedImages, isStreaming, isGeneratingImage, providerId, installPlanId
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        role = try container.decode(MessageRole.self, forKey: .role)
+        content = try container.decode(String.self, forKey: .content)
+        timestamp = try container.decode(Date.self, forKey: .timestamp)
+        sessionId = try container.decode(String.self, forKey: .sessionId)
+        attachments = try container.decodeIfPresent([Attachment].self, forKey: .attachments) ?? []
+        toolCalls = try container.decodeIfPresent([ToolCall].self, forKey: .toolCalls) ?? []
+        generatedImages = try container.decodeIfPresent([GeneratedImage].self, forKey: .generatedImages) ?? []
+        isStreaming = try container.decodeIfPresent(Bool.self, forKey: .isStreaming) ?? false
+        isGeneratingImage = try container.decodeIfPresent(Bool.self, forKey: .isGeneratingImage) ?? false
+        providerId = try container.decodeIfPresent(String.self, forKey: .providerId)
+        installPlanId = try container.decodeIfPresent(UUID.self, forKey: .installPlanId)
     }
 }
 
@@ -60,6 +90,19 @@ struct GeneratedImage: Identifiable, Codable, Sendable {
         self.providerUsed = providerUsed
         self.timestamp = timestamp
     }
+}
+
+/// A generated image indexed with its source session for the Multimedia gallery.
+struct IndexedImage: Identifiable, Codable, Sendable {
+    let imageId: UUID
+    let sessionId: String
+    let sessionTitle: String
+    let filePath: String
+    let prompt: String
+    let providerUsed: String
+    let timestamp: Date
+
+    var id: UUID { imageId }
 }
 
 /// Who sent the message.

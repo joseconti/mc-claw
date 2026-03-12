@@ -156,12 +156,13 @@ final class ChatViewModel {
         )
         messages.append(userMessage)
 
-        // Create assistant placeholder
+        // Create assistant placeholder with shimmer
         var assistantMessage = ChatMessage(
             role: .assistant,
-            content: String(localized: "Generating image with Imagen 3...", bundle: .module),
+            content: "",
             sessionId: sessionId,
             isStreaming: true,
+            isGeneratingImage: true,
             providerId: "gemini"
         )
         messages.append(assistantMessage)
@@ -188,10 +189,79 @@ final class ChatViewModel {
         }
 
         assistantMessage.isStreaming = false
+        assistantMessage.isGeneratingImage = false
         updateLastMessage(assistantMessage)
 
         isStreaming = false
         appState.isWorking = false
+        persistCurrentSession()
+
+        // Refresh the image index so Multimedia gallery stays in sync
+        ImageIndexStore.shared.refreshIndex()
+    }
+
+    // MARK: - Agent Install
+
+    /// Send an install prompt to be parsed by the AI and presented as a plan.
+    func sendInstallPrompt(_ prompt: String) async {
+        let appState = AppState.shared
+        let sessionId = appState.currentSessionId ?? "main"
+
+        // Show user message
+        let userMessage = ChatMessage(
+            role: .user,
+            content: "📦 " + String(localized: "Install:", bundle: .module) + " " + String(prompt.prefix(200)),
+            sessionId: sessionId,
+            providerId: appState.currentCLI?.id
+        )
+        messages.append(userMessage)
+
+        // Show parsing indicator
+        postSystem(String(localized: "Analyzing install prompt...", bundle: .module), sessionId: sessionId)
+
+        // Parse via AI
+        let service = AgentInstallService.shared
+        await service.parseInstallPrompt(prompt)
+
+        // If parsing failed, show error
+        if case .failed(let error) = service.phase {
+            postSystem("❌ \(error)", sessionId: sessionId)
+        }
+        // If successful, the InstallPlanReviewSheet is triggered by ChatWindow observing service.phase
+    }
+
+    /// Execute an approved install plan, showing progress in the chat.
+    func executeInstallPlan(_ plan: AgentInstallPlan) async {
+        let appState = AppState.shared
+        let sessionId = appState.currentSessionId ?? "main"
+
+        // Create assistant message with install progress view
+        let progressMessage = ChatMessage(
+            role: .assistant,
+            content: "",
+            sessionId: sessionId,
+            providerId: appState.currentCLI?.id,
+            installPlanId: plan.id
+        )
+        messages.append(progressMessage)
+
+        // Execute
+        let service = AgentInstallService.shared
+        await service.executePlan(plan)
+
+        // Post summary
+        if case .completed(let record) = service.phase {
+            let completed = record.steps.filter { $0.status == .completed }.count
+            let total = record.steps.count
+            let failed = record.steps.filter { $0.status == .failed || $0.status == .denied }.count
+
+            if failed == 0 {
+                postSystem(String(localized: "Installation completed successfully.", bundle: .module) + " (\(completed)/\(total))", sessionId: sessionId)
+            } else {
+                postSystem("⚠️ " + String(localized: "Installation finished with issues.", bundle: .module) + " (\(completed)/\(total) " + String(localized: "steps completed", bundle: .module) + ")", sessionId: sessionId)
+            }
+        }
+
         persistCurrentSession()
     }
 
@@ -254,9 +324,14 @@ final class ChatViewModel {
             .compactMap { $0 }
             .joined(separator: "\n\n")
 
+        // Resolve model: per-message override → user default → CLI default
+        let resolvedModel = appState.chatModelOverride ?? appState.defaultModels[provider.id]
+        appState.chatModelOverride = nil
+
         let stream = await CLIBridge.shared.send(
             message: message,
             provider: provider,
+            model: resolvedModel,
             sessionId: sessionId,
             isResume: isResume,
             systemPrompt: combinedPrompt
@@ -683,6 +758,29 @@ final class ChatViewModel {
             }
             return true
 
+        case "/install":
+            if let installArg = argument, !installArg.isEmpty {
+                if installArg == "list" {
+                    let registry = AgentInstallService.shared.installRegistry
+                    if registry.isEmpty {
+                        postSystem(String(localized: "No packages installed yet.", bundle: .module), sessionId: sessionId)
+                    } else {
+                        var listing = "**" + String(localized: "Installed Packages", bundle: .module) + "**\n"
+                        for record in registry.suffix(10) {
+                            let date = record.installedAt.formatted(date: .abbreviated, time: .shortened)
+                            let steps = record.steps.filter { $0.status == .completed }.count
+                            listing += "- **\(record.name)** — \(steps) steps — \(date)\n"
+                        }
+                        postSystem(listing, sessionId: sessionId)
+                    }
+                } else {
+                    Task { await sendInstallPrompt(installArg) }
+                }
+            } else {
+                postSystem("Usage: `/install <prompt>` — Parse an install prompt and create an execution plan.\n`/install list` — Show installed packages.", sessionId: sessionId)
+            }
+            return true
+
         case "/help":
             postSystem("""
             **Available Commands**
@@ -695,6 +793,7 @@ final class ChatViewModel {
             - `/provider [name]` — Alias for /model
             - `/session [name]` — Show or switch session
             - `/fetch connector.action` — Fetch data from a connector
+            - `/install <prompt>` — Parse and execute an install prompt
             - `/help` — Show this help
             """, sessionId: sessionId)
             return true

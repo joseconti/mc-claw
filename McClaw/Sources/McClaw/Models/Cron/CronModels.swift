@@ -220,6 +220,7 @@ struct CronJobState: Codable, Equatable, Sendable {
 struct CronJob: Identifiable, Codable, Equatable, Sendable {
     let id: String
     let agentId: String?
+    let model: String?
     var name: String
     var description: String?
     var enabled: Bool

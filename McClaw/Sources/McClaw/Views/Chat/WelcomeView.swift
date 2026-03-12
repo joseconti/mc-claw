@@ -8,6 +8,7 @@ struct WelcomeView: View {
     let onAbort: () -> Void
     let isWorking: Bool
     var onImageGenerate: ((String) -> Void)?
+    var onInstallPrompt: ((String) -> Void)?
 
     @Environment(AppState.self) private var appState
     @State private var connectorStore = ConnectorStore.shared
@@ -50,7 +51,8 @@ struct WelcomeView: View {
                 onSend: onSend,
                 onAbort: onAbort,
                 isWorking: isWorking,
-                onImageGenerate: onImageGenerate
+                onImageGenerate: onImageGenerate,
+                onInstallPrompt: onInstallPrompt
             )
             .environment(appState)
 

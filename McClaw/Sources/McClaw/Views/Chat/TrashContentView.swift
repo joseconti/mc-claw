@@ -3,8 +3,13 @@ import SwiftUI
 /// Main content view for the Trash section with bulk actions (select, restore, delete).
 struct TrashContentView: View {
     @State private var sessionStore = SessionStore.shared
+    @State private var imageIndexStore = ImageIndexStore.shared
     @State private var selectedIds: Set<String> = []
     @State private var showEmptyConfirmation = false
+    @State private var showImageDeleteConfirmation = false
+    @State private var pendingDeleteSessionId: String?
+    @State private var pendingDeleteBulk = false
+    @State private var pendingImageCount = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -71,10 +76,29 @@ struct TrashContentView: View {
             Button("Delete All Permanently", role: .destructive) {
                 sessionStore.emptyTrash()
                 selectedIds.removeAll()
+                imageIndexStore.refreshIndex()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will permanently delete \(sessionStore.trashedSessions.count) conversation\(sessionStore.trashedSessions.count == 1 ? "" : "s"). This action cannot be undone.")
+        }
+        .confirmationDialog(
+            String(localized: "delete_images_too", bundle: .module),
+            isPresented: $showImageDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "delete_conversation_and_images", bundle: .module), role: .destructive) {
+                performPendingDelete(deleteImages: true)
+            }
+            Button(String(localized: "delete_conversation_only", bundle: .module)) {
+                performPendingDelete(deleteImages: false)
+            }
+            Button("Cancel", role: .cancel) {
+                pendingDeleteSessionId = nil
+                pendingDeleteBulk = false
+            }
+        } message: {
+            Text(String(localized: "delete_images_confirm \(pendingImageCount)", bundle: .module))
         }
     }
 
@@ -119,7 +143,7 @@ struct TrashContentView: View {
 
                 // Delete selected permanently
                 Button(role: .destructive) {
-                    deleteSelected()
+                    attemptBulkDelete()
                 } label: {
                     Label("Delete Permanently", systemImage: "trash.slash")
                         .font(.callout.weight(.medium))
@@ -205,8 +229,7 @@ struct TrashContentView: View {
                 .help("Restore")
 
                 Button {
-                    sessionStore.deletePermanently(sessionId: session.id)
-                    selectedIds.remove(session.id)
+                    attemptPermanentDelete(sessionId: session.id)
                 } label: {
                     Image(systemName: "trash.slash")
                         .font(.callout)
@@ -265,10 +288,60 @@ struct TrashContentView: View {
         selectedIds.removeAll()
     }
 
-    private func deleteSelected() {
+    private func deleteSelected(deleteImages: Bool) {
         for id in selectedIds {
+            if deleteImages {
+                imageIndexStore.deleteImageFiles(forSession: id)
+            }
             sessionStore.deletePermanently(sessionId: id)
         }
         selectedIds.removeAll()
+        imageIndexStore.refreshIndex()
+    }
+
+    /// Check if session has images before deleting; show confirmation if so.
+    private func attemptPermanentDelete(sessionId: String) {
+        let imagePaths = imageIndexStore.imageFilePaths(forSession: sessionId)
+        if imagePaths.isEmpty {
+            sessionStore.deletePermanently(sessionId: sessionId)
+            selectedIds.remove(sessionId)
+            imageIndexStore.refreshIndex()
+        } else {
+            pendingDeleteSessionId = sessionId
+            pendingDeleteBulk = false
+            pendingImageCount = imagePaths.count
+            showImageDeleteConfirmation = true
+        }
+    }
+
+    /// Check if any selected sessions have images before bulk delete.
+    private func attemptBulkDelete() {
+        var totalImages = 0
+        for id in selectedIds {
+            totalImages += imageIndexStore.imageFilePaths(forSession: id).count
+        }
+        if totalImages == 0 {
+            deleteSelected(deleteImages: false)
+        } else {
+            pendingDeleteBulk = true
+            pendingImageCount = totalImages
+            showImageDeleteConfirmation = true
+        }
+    }
+
+    /// Execute the pending delete after user confirms image handling.
+    private func performPendingDelete(deleteImages: Bool) {
+        if pendingDeleteBulk {
+            deleteSelected(deleteImages: deleteImages)
+        } else if let sessionId = pendingDeleteSessionId {
+            if deleteImages {
+                imageIndexStore.deleteImageFiles(forSession: sessionId)
+            }
+            sessionStore.deletePermanently(sessionId: sessionId)
+            selectedIds.remove(sessionId)
+            imageIndexStore.refreshIndex()
+        }
+        pendingDeleteSessionId = nil
+        pendingDeleteBulk = false
     }
 }

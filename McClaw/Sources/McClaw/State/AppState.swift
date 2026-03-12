@@ -132,6 +132,20 @@ final class AppState {
     /// Chat font family
     var chatFontFamily: ChatFontFamily = .default
 
+    // MARK: - Model Selection
+
+    /// Default model per CLI provider. Key = provider ID (e.g. "claude"), value = model ID.
+    var defaultModels: [String: String] = [:]
+
+    /// Model override for the current chat message. Reset after each send.
+    var chatModelOverride: String?
+
+    /// Resolved model ID for the current provider (override → default → nil).
+    var resolvedModelForCurrentProvider: String? {
+        guard let pid = currentCLIIdentifier else { return nil }
+        return chatModelOverride ?? defaultModels[pid]
+    }
+
     // MARK: - BitNet (Experimental)
 
     /// BitNet provider enabled

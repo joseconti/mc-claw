@@ -156,12 +156,15 @@ struct ChatInputBar: View {
     let isWorking: Bool
     var compact: Bool = false
     var onImageGenerate: ((String) -> Void)?
+    var onInstallPrompt: ((String) -> Void)?
 
     @Environment(AppState.self) private var appState
     @State private var text: String = ""
     @State private var attachments: [Attachment] = []
     @State private var voiceMode = VoiceModeService.shared
     @State private var imageMode: Bool = false
+    @State private var installMode: Bool = false
+    @State private var selectedModelId: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -179,7 +182,9 @@ struct ChatInputBar: View {
                         ? String(localized: "Voice Mode active...", bundle: .module)
                         : imageMode
                             ? String(localized: "Describe the image you want to create...", bundle: .module)
-                            : String(localized: "Type / for commands", bundle: .module),
+                            : installMode
+                                ? String(localized: "Paste the install prompt here...", bundle: .module)
+                                : String(localized: "Type / for commands", bundle: .module),
                     font: .systemFont(ofSize: compact ? 14 : 16),
                     minHeight: compact ? 36 : 80,
                     maxHeight: compact ? 120 : 200,
@@ -204,6 +209,12 @@ struct ChatInputBar: View {
 
                     // Image generation toggle
                     imageGenButton
+
+                    // Agent install toggle
+                    installButton
+
+                    // Model selector
+                    modelPicker
 
                     Spacer()
 
@@ -237,6 +248,10 @@ struct ChatInputBar: View {
             if voiceMode.isActive {
                 text = transcript
             }
+        }
+        .onChange(of: appState.currentCLIIdentifier) { _, _ in
+            selectedModelId = nil
+            appState.chatModelOverride = nil
         }
     }
 
@@ -325,6 +340,7 @@ struct ChatInputBar: View {
         if hasImageCapableCLI {
             Button {
                 imageMode.toggle()
+                if imageMode { installMode = false }
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: imageMode ? "photo.fill" : "photo")
@@ -354,6 +370,38 @@ struct ChatInputBar: View {
     }
 
     @ViewBuilder
+    private var installButton: some View {
+        Button {
+            installMode.toggle()
+            if installMode { imageMode = false }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: installMode ? "square.and.arrow.down.fill" : "square.and.arrow.down")
+                    .font(.subheadline)
+                    .foregroundStyle(installMode ? .white : .secondary)
+                Text(String(localized: "Install", bundle: .module))
+                    .font(.callout.weight(installMode ? .semibold : .regular))
+                    .foregroundStyle(installMode ? .white : .secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background {
+                if installMode {
+                    Capsule()
+                        .fill(Color.accentColor.opacity(0.35))
+                        .overlay(Capsule().strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1))
+                } else {
+                    Capsule().fill(.quaternary.opacity(0.5))
+                }
+            }
+            .clipShape(Capsule())
+            .liquidGlassCapsule(interactive: false)
+        }
+        .buttonStyle(.plain)
+        .help(String(localized: "Agent Install", bundle: .module))
+    }
+
+    @ViewBuilder
     private var sendButton: some View {
         if isWorking {
             Button(action: onAbort) {
@@ -371,6 +419,76 @@ struct ChatInputBar: View {
             .buttonStyle(.plain)
             .disabled(!canSend)
         }
+    }
+
+    @ViewBuilder
+    private var modelPicker: some View {
+        let models = appState.currentCLI?.supportedModels ?? []
+        if !models.isEmpty {
+            Menu {
+                ForEach(models) { model in
+                    Button {
+                        selectedModelId = model.modelId
+                        appState.chatModelOverride = model.modelId
+                    } label: {
+                        HStack {
+                            Text(model.displayName)
+                            if isActiveModel(model) {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+                Divider()
+                Button(String(localized: "Use Default", bundle: .module)) {
+                    selectedModelId = nil
+                    appState.chatModelOverride = nil
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "cpu")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(currentModelDisplay)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(.quaternary.opacity(0.5)))
+                .clipShape(Capsule())
+                .liquidGlassCapsule(interactive: false)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help(String(localized: "Select Model", bundle: .module))
+        }
+    }
+
+    private var currentModelDisplay: String {
+        let models = appState.currentCLI?.supportedModels ?? []
+        if let overrideId = selectedModelId,
+           let model = models.first(where: { $0.modelId == overrideId }) {
+            return model.displayName
+        }
+        if let providerId = appState.currentCLIIdentifier,
+           let defaultId = appState.defaultModels[providerId],
+           let model = models.first(where: { $0.modelId == defaultId }) {
+            return model.displayName
+        }
+        return models.first(where: { _ in true })?.displayName ?? String(localized: "Default", bundle: .module)
+    }
+
+    private func isActiveModel(_ model: ModelInfo) -> Bool {
+        if let overrideId = selectedModelId {
+            return model.modelId == overrideId
+        }
+        if let providerId = appState.currentCLIIdentifier,
+           let defaultId = appState.defaultModels[providerId] {
+            return model.modelId == defaultId
+        }
+        return false
     }
 
     // MARK: - Helpers
@@ -411,10 +529,15 @@ struct ChatInputBar: View {
             onImage(trimmed)
             text = ""
             imageMode = false
+        } else if installMode, let onInstall = onInstallPrompt {
+            onInstall(trimmed)
+            text = ""
+            installMode = false
         } else {
             onSend(trimmed, attachments)
             text = ""
             attachments = []
+            selectedModelId = nil
         }
     }
 

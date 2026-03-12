@@ -12,28 +12,48 @@ struct ChatWindow: View {
     @State private var sessionStore = SessionStore.shared
     @State private var showSidebar = true
     @State private var currentSection: SidebarSection = .chats
+    @State private var overlayImage: GeneratedImage?
+    @State private var imageIndexStore = ImageIndexStore.shared
+    @State private var installService = AgentInstallService.shared
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Sidebar (collapsible, hidden in settings)
-            if showSidebar && currentSection != .settings {
-                ChatSidebar(
-                    currentSection: $currentSection,
-                    onNewChat: newChat,
-                    onSelectSession: selectSession,
-                    onDeleteSession: deleteSession
-                )
-                .environment(appState)
-                .frame(width: 260)
-                .transition(.move(edge: .leading))
+        ZStack {
+            HStack(spacing: 0) {
+                // Sidebar (collapsible, hidden in settings)
+                if showSidebar && currentSection != .settings {
+                    ChatSidebar(
+                        currentSection: $currentSection,
+                        onNewChat: newChat,
+                        onSelectSession: selectSession,
+                        onDeleteSession: deleteSession
+                    )
+                    .environment(appState)
+                    .frame(width: 260)
+                    .transition(.move(edge: .leading))
 
-                Divider()
+                    Divider()
+                }
+
+                // Main content — depends on current section
+                mainContentForSection
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Theme.background)
             }
+            .environment(\.showImageOverlay, { image in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    overlayImage = image
+                }
+            })
 
-            // Main content — depends on current section
-            mainContentForSection
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Theme.background)
+            // Full-screen image overlay
+            if let image = overlayImage {
+                ImageOverlayView(image: image) {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        overlayImage = nil
+                    }
+                }
+                .transition(.opacity)
+            }
         }
         .frame(minWidth: 700, minHeight: 550)
         .font(.system(size: 14))
@@ -50,12 +70,29 @@ struct ChatWindow: View {
                 CLIBridge.resolveApproval(decision)
             }
         }
+        .sheet(isPresented: Binding(
+            get: { installService.reviewingPlan != nil },
+            set: { _ in }
+        )) {
+            if let plan = installService.reviewingPlan {
+                InstallPlanReviewSheet(
+                    plan: plan,
+                    onApprove: {
+                        Task { await viewModel.executeInstallPlan(plan) }
+                    },
+                    onCancel: {
+                        installService.cancel()
+                    }
+                )
+            }
+        }
         .onAppear {
             viewModel.loadCurrentSession()
             if let sessionId = appState.currentSessionId {
                 viewModels[sessionId] = viewModel
             }
             sessionStore.refreshIndex()
+            imageIndexStore.loadCachedIndex()
             setupVoiceMode()
             setupNodeMode()
             processPendingMessage()
@@ -114,6 +151,22 @@ struct ChatWindow: View {
             NotificationsContentView()
         case .trash:
             TrashContentView()
+        case .installations:
+            InstallationsContentView()
+        case .multimedia:
+            MultimediaContentView(
+                onNavigateToChat: { sessionId in
+                    currentSection = .chats
+                    if let session = sessionStore.sessions.first(where: { $0.id == sessionId }) {
+                        selectSession(session)
+                    }
+                },
+                onShowOverlay: { image in
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        overlayImage = image
+                    }
+                }
+            )
         case .settings:
             settingsContent
         }
@@ -169,6 +222,9 @@ struct ChatWindow: View {
                     isWorking: viewModel.isStreaming,
                     onImageGenerate: { prompt in
                         Task { await viewModel.sendImageGeneration(prompt: prompt) }
+                    },
+                    onInstallPrompt: { prompt in
+                        Task { await viewModel.sendInstallPrompt(prompt) }
                     }
                 )
                 .environment(appState)
@@ -194,6 +250,9 @@ struct ChatWindow: View {
                     compact: true,
                     onImageGenerate: { prompt in
                         Task { await viewModel.sendImageGeneration(prompt: prompt) }
+                    },
+                    onInstallPrompt: { prompt in
+                        Task { await viewModel.sendInstallPrompt(prompt) }
                     }
                 )
                 .environment(appState)

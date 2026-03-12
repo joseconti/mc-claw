@@ -100,13 +100,23 @@ struct MessageBubbleView: View {
                     ToolCallCard(toolCall: toolCall)
                 }
 
+                // Shimmer placeholder while generating image
+                if message.isGeneratingImage && message.isStreaming {
+                    ShimmerImagePlaceholder()
+                }
+
                 // Generated images
                 if !message.generatedImages.isEmpty {
                     GeneratedImagesGallery(images: message.generatedImages)
                 }
 
-                // Streaming indicator
-                if message.isStreaming {
+                // Install progress
+                if let planId = message.installPlanId {
+                    InstallProgressView(planId: planId)
+                }
+
+                // Streaming indicator (only text streaming, not image generation)
+                if message.isStreaming && !message.isGeneratingImage {
                     ThinkingWordsView()
                 }
 
@@ -322,12 +332,13 @@ struct GeneratedImagesGallery: View {
     }
 }
 
-/// Card displaying a single generated image with save-to-disk action.
+/// Card displaying a single generated image with modern styling and save-to-disk action.
 private struct GeneratedImageCard: View {
     let image: GeneratedImage
     @State private var nsImage: NSImage?
     @State private var isHovered = false
     @State private var saved = false
+    @Environment(\.showImageOverlay) private var showImageOverlay
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -337,32 +348,55 @@ private struct GeneratedImageCard: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: 480, maxHeight: 400)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                        .scaleEffect(isHovered ? 1.02 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
 
-                    // Save button overlay
+                    // Save button overlay — glass pill
                     if isHovered {
                         Button {
                             saveImage()
                         } label: {
-                            Image(systemName: saved ? "checkmark.circle.fill" : "arrow.down.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundStyle(saved ? .green : .white)
-                                .shadow(radius: 3)
+                            HStack(spacing: 4) {
+                                Image(systemName: saved ? "checkmark.circle.fill" : "arrow.down.to.line")
+                                    .font(.system(size: 13, weight: .medium))
+                                Text(String(localized: "save_image", bundle: .module))
+                                    .font(.caption.weight(.medium))
+                            }
+                            .foregroundStyle(saved ? .green : .white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                        .padding(8)
-                        .transition(.opacity)
+                        .padding(10)
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                     }
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 14))
+                .onTapGesture {
+                    showImageOverlay?(image)
                 }
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.15)) {
                         isHovered = hovering
                     }
+                    if hovering {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
                 }
             } else {
                 // Loading/error placeholder
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 14)
                     .fill(.quaternary.opacity(0.3))
                     .frame(width: 200, height: 150)
                     .overlay {
@@ -392,7 +426,9 @@ private struct GeneratedImageCard: View {
         DispatchQueue.global(qos: .userInitiated).async {
             if let img = NSImage(contentsOfFile: path) {
                 DispatchQueue.main.async {
-                    nsImage = img
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        nsImage = img
+                    }
                 }
             }
         }

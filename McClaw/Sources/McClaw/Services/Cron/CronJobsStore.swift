@@ -167,7 +167,7 @@ final class CronJobsStore {
         if let index = jobs.firstIndex(where: { $0.id == id }) {
             let job = jobs[index]
             let updated = CronJob(
-                id: job.id, agentId: job.agentId, name: job.name,
+                id: job.id, agentId: job.agentId, model: job.model, name: job.name,
                 description: job.description, enabled: enabled,
                 deleteAfterRun: job.deleteAfterRun,
                 createdAtMs: job.createdAtMs,
@@ -504,7 +504,7 @@ final class CronJobsStore {
         }()
 
         return CronJob(
-            id: id, agentId: agentId, name: name, description: description,
+            id: id, agentId: agentId, model: nil, name: name, description: description,
             enabled: enabled, deleteAfterRun: deleteAfterRun,
             createdAtMs: existingId != nil ? (jobs.first { $0.id == existingId }?.createdAtMs ?? nowMs) : nowMs,
             updatedAtMs: nowMs,
@@ -595,6 +595,7 @@ private struct ClaudeTask: Codable {
         return CronJob(
             id: id,
             agentId: nil,
+            model: nil,
             name: name ?? "Claude Task",
             description: nil,
             enabled: enabled ?? true,

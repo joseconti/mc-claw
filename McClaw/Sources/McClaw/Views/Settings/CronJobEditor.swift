@@ -46,6 +46,7 @@ struct CronJobEditor: View {
     // MARK: - Step 2: Which AI
 
     @State private var selectedProvider: String = ""
+    @State private var selectedModel: String = ""
 
     // MARK: - Step 3: When
 
@@ -426,6 +427,20 @@ struct CronJobEditor: View {
                 )
             }
 
+            // Model picker for the selected provider
+            if !modelsForSelectedProvider.isEmpty {
+                Picker(String(localized: "Model", bundle: .module), selection: $selectedModel) {
+                    Text(String(localized: "Default", bundle: .module)).tag("")
+                    ForEach(modelsForSelectedProvider) { model in
+                        Text(model.displayName).tag(model.modelId)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: selectedProvider) { _, _ in
+                    selectedModel = ""
+                }
+            }
+
             if installedCLIs.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
@@ -482,6 +497,13 @@ struct CronJobEditor: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
+    }
+
+    private var modelsForSelectedProvider: [ModelInfo] {
+        guard !selectedProvider.isEmpty else { return [] }
+        return AppState.shared.availableCLIs
+            .first(where: { $0.id == selectedProvider })?
+            .supportedModels ?? []
     }
 
     private func iconForCLI(_ id: String) -> String {
@@ -1035,6 +1057,7 @@ struct CronJobEditor: View {
         guard let job else { return }
         name = job.name
         selectedProvider = job.agentId ?? ""
+        selectedModel = job.model ?? ""
         enabled = job.enabled
         deleteAfterRun = job.deleteAfterRun ?? false
         sessionTarget = job.sessionTarget
@@ -1167,6 +1190,11 @@ struct CronJobEditor: View {
             root["agentId"] = trimmedProvider
         } else if job?.agentId != nil {
             root["agentId"] = NSNull()
+        }
+
+        let trimmedModel = selectedModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedModel.isEmpty {
+            root["model"] = trimmedModel
         }
 
         if whenChoice == .once {

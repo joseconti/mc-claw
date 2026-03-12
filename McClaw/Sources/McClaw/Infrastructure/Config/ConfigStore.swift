@@ -129,6 +129,11 @@ actor ConfigStore {
         state.bitnetServerPort = config.bitnetServerPort
         state.bitnetAlwaysOn = config.bitnetAlwaysOn
 
+        // Model selection
+        if let models = config.defaultModels {
+            state.defaultModels = models
+        }
+
         // Apply security mode
         ExecApprovals.shared.securityMode = config.execMode
         // Load allowlist/denylist from separate file
@@ -177,6 +182,7 @@ actor ConfigStore {
             bitnetTemperature: state.bitnetTemperature,
             bitnetServerPort: state.bitnetServerPort,
             bitnetAlwaysOn: state.bitnetAlwaysOn,
+            defaultModels: state.defaultModels.isEmpty ? nil : state.defaultModels,
             lastSessionId: state.currentSessionId
         )
         do {
@@ -239,6 +245,9 @@ struct McClawConfig: Codable, Sendable {
     var bitnetServerPort: Int
     var bitnetAlwaysOn: Bool
 
+    // Model selection per provider
+    var defaultModels: [String: String]?
+
     // Session
     var lastSessionId: String?
 
@@ -280,6 +289,7 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature: Double = 0.7,
         bitnetServerPort: Int = 8921,
         bitnetAlwaysOn: Bool = true,
+        defaultModels: [String: String]? = nil,
         lastSessionId: String? = nil
     ) {
         self.defaultCLI = defaultCLI
@@ -319,6 +329,7 @@ struct McClawConfig: Codable, Sendable {
         self.bitnetTemperature = bitnetTemperature
         self.bitnetServerPort = bitnetServerPort
         self.bitnetAlwaysOn = bitnetAlwaysOn
+        self.defaultModels = defaultModels
         self.lastSessionId = lastSessionId
     }
 
@@ -361,6 +372,7 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature = try container.decodeIfPresent(Double.self, forKey: .bitnetTemperature) ?? 0.7
         bitnetServerPort = try container.decodeIfPresent(Int.self, forKey: .bitnetServerPort) ?? 8921
         bitnetAlwaysOn = try container.decodeIfPresent(Bool.self, forKey: .bitnetAlwaysOn) ?? true
+        defaultModels = try container.decodeIfPresent([String: String].self, forKey: .defaultModels)
         lastSessionId = try container.decodeIfPresent(String.self, forKey: .lastSessionId)
     }
 }
