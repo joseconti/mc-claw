@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import McClawKit
 
 /// Renders a single chat message styled like Claude Desktop.
 /// User messages: right-aligned with dark bubble.

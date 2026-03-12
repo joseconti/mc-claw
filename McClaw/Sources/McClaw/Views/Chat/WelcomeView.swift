@@ -17,7 +17,6 @@ struct WelcomeView: View {
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
-                .frame(maxHeight: .infinity)
 
             // Logo
             Group {
@@ -60,8 +59,7 @@ struct WelcomeView: View {
 
             quickActions
 
-            Spacer().frame(maxHeight: .infinity)
-            Spacer().frame(maxHeight: .infinity)
+            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

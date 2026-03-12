@@ -1086,6 +1086,7 @@
 "Use Default" = "Use Default";
 "Model" = "Model";
 "Default" = "Default";
+"Gallery" = "Gallery";
 
 // =============================================================================
 // MARK: - Agent Install
@@ -1125,6 +1126,14 @@
 "package(s) installed by agent" = "package(s) installed by agent";
 "No Installations Yet" = "No Installations Yet";
 "Use the Install button in the chat to install software from agent prompts." = "Use the Install button in the chat to install software from agent prompts.";
+"Software installed by the AI agent through install prompts." = "Software installed by the AI agent through install prompts.";
+"What are Agent Installations?" = "What are Agent Installations?";
+"Some websites and tools provide install prompts — blocks of text you can paste into an AI agent to automatically install and configure software on your Mac." = "Some websites and tools provide install prompts — blocks of text you can paste into an AI agent to automatically install and configure software on your Mac.";
+"Tap the Install button in the chat input bar." = "Tap the Install button in the chat input bar.";
+"Paste the install prompt provided by the website." = "Paste the install prompt provided by the website.";
+"McClaw analyzes the prompt and shows you a plan with every command before executing." = "McClaw analyzes the prompt and shows you a plan with every command before executing.";
+"Each command is checked against your security rules. You approve what runs on your machine." = "Each command is checked against your security rules. You approve what runs on your machine.";
+"All installations are tracked here so you can review and uninstall them at any time." = "All installations are tracked here so you can review and uninstall them at any time.";
 "Select an installation to view details" = "Select an installation to view details";
 "Installed" = "Installed";
 "Provider" = "Provider";

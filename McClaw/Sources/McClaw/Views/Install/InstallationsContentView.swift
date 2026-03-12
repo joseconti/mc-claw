@@ -109,7 +109,7 @@ struct InstallationsContentView: View {
     private var subtitle: String {
         let count = installService.installRegistry.count
         if count == 0 {
-            return String(localized: "No packages installed yet.", bundle: .module)
+            return String(localized: "Software installed by the AI agent through install prompts.", bundle: .module)
         }
         return "\(count) " + String(localized: "package(s) installed by agent", bundle: .module)
     }
@@ -330,22 +330,80 @@ struct InstallationsContentView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 0) {
             Spacer()
-            Image(systemName: "square.and.arrow.down")
-                .font(.system(size: 48))
-                .foregroundStyle(.tertiary)
-            Text(String(localized: "No Installations Yet", bundle: .module))
-                .font(.title3.weight(.medium))
-                .foregroundStyle(.secondary)
-            Text(String(localized: "Use the Install button in the chat to install software from agent prompts.", bundle: .module))
-                .font(.callout)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 300)
+
+            VStack(spacing: 20) {
+                Image(systemName: "square.and.arrow.down")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.tertiary)
+
+                Text(String(localized: "No Installations Yet", bundle: .module))
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            // Explanation section
+            VStack(alignment: .leading, spacing: 16) {
+                Text(String(localized: "What are Agent Installations?", bundle: .module))
+                    .font(.headline)
+
+                Text(String(localized: "Some websites and tools provide install prompts — blocks of text you can paste into an AI agent to automatically install and configure software on your Mac.", bundle: .module))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                // Steps
+                VStack(alignment: .leading, spacing: 10) {
+                    howToStepRow(
+                        number: "1",
+                        icon: "square.and.arrow.down",
+                        text: String(localized: "Tap the Install button in the chat input bar.", bundle: .module)
+                    )
+                    howToStepRow(
+                        number: "2",
+                        icon: "doc.on.clipboard",
+                        text: String(localized: "Paste the install prompt provided by the website.", bundle: .module)
+                    )
+                    howToStepRow(
+                        number: "3",
+                        icon: "checklist",
+                        text: String(localized: "McClaw analyzes the prompt and shows you a plan with every command before executing.", bundle: .module)
+                    )
+                    howToStepRow(
+                        number: "4",
+                        icon: "shield.checkered",
+                        text: String(localized: "Each command is checked against your security rules. You approve what runs on your machine.", bundle: .module)
+                    )
+                }
+
+                Text(String(localized: "All installations are tracked here so you can review and uninstall them at any time.", bundle: .module))
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(24)
+            .frame(maxWidth: 460)
+            .background(.quaternary.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.top, 24)
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
+    }
+
+    @ViewBuilder
+    private func howToStepRow(number: String, icon: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.callout)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 22)
+
+            Text(text)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
     }
 
     @ViewBuilder

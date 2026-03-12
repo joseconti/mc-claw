@@ -20,10 +20,14 @@ struct MultimediaContentView: View {
                 emptyState
             } else {
                 HSplitView {
-                    // Gallery grid
-                    galleryGrid
+                    // Left: large image when selected, grid otherwise
+                    if let selected = selectedImage {
+                        selectedImageView(for: selected)
+                    } else {
+                        galleryGrid
+                    }
 
-                    // Detail panel
+                    // Right: metadata + actions panel
                     if let selected = selectedImage {
                         detailPanel(for: selected)
                             .frame(width: 300)
@@ -117,19 +121,43 @@ struct MultimediaContentView: View {
         .frame(minWidth: 300)
     }
 
+    // MARK: - Selected Image View
+
+    @ViewBuilder
+    private func selectedImageView(for image: IndexedImage) -> some View {
+        ZStack(alignment: .topLeading) {
+            AsyncImageFromDisk(filePath: image.filePath, expandToFill: true)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    selectedImage = nil
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                    Text(String(localized: "Gallery", bundle: .module))
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(20)
+        }
+    }
+
     // MARK: - Detail Panel
 
     @ViewBuilder
     private func detailPanel(for image: IndexedImage) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Preview image
-                AsyncImageFromDisk(filePath: image.filePath, maxHeight: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-
-                Divider()
-
                 // Metadata
                 VStack(alignment: .leading, spacing: 12) {
                     metadataRow(
@@ -321,20 +349,28 @@ private struct MultimediaGridItem: View {
 private struct AsyncImageFromDisk: View {
     let filePath: String
     var maxHeight: CGFloat = 300
+    /// When true, the image expands to fill available space (ignores maxHeight).
+    var expandToFill: Bool = false
 
     @State private var nsImage: NSImage?
 
     var body: some View {
         Group {
             if let nsImage {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxHeight: maxHeight)
+                if expandToFill {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: maxHeight)
+                }
             } else {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(.quaternary.opacity(0.3))
-                    .frame(height: maxHeight * 0.6)
+                    .frame(height: expandToFill ? 200 : maxHeight * 0.6)
                     .overlay { ProgressView().scaleEffect(0.7) }
             }
         }

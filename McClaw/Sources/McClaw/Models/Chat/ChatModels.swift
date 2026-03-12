@@ -1,4 +1,5 @@
 import Foundation
+import McClawKit
 
 /// A single message in a chat session.
 struct ChatMessage: Identifiable, Codable, Sendable {
@@ -17,6 +18,10 @@ struct ChatMessage: Identifiable, Codable, Sendable {
     var providerId: String?
     /// If non-nil, this message displays an install progress view for the given plan.
     var installPlanId: UUID?
+    /// Interactive prompts detected in the AI response for user input.
+    var interactivePrompts: [InteractivePromptKit.InteractivePrompt]
+    /// User responses to interactive prompts.
+    var promptResponses: [InteractivePromptKit.PromptResponse]
 
     init(
         id: UUID = UUID(),
@@ -30,7 +35,9 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         isStreaming: Bool = false,
         isGeneratingImage: Bool = false,
         providerId: String? = nil,
-        installPlanId: UUID? = nil
+        installPlanId: UUID? = nil,
+        interactivePrompts: [InteractivePromptKit.InteractivePrompt] = [],
+        promptResponses: [InteractivePromptKit.PromptResponse] = []
     ) {
         self.id = id
         self.role = role
@@ -44,12 +51,15 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         self.isGeneratingImage = isGeneratingImage
         self.providerId = providerId
         self.installPlanId = installPlanId
+        self.interactivePrompts = interactivePrompts
+        self.promptResponses = promptResponses
     }
 
     // Custom Codable to maintain backwards compatibility with existing session files
     enum CodingKeys: String, CodingKey {
         case id, role, content, timestamp, sessionId, attachments, toolCalls
         case generatedImages, isStreaming, isGeneratingImage, providerId, installPlanId
+        case interactivePrompts, promptResponses
     }
 
     init(from decoder: Decoder) throws {
@@ -66,6 +76,8 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         isGeneratingImage = try container.decodeIfPresent(Bool.self, forKey: .isGeneratingImage) ?? false
         providerId = try container.decodeIfPresent(String.self, forKey: .providerId)
         installPlanId = try container.decodeIfPresent(UUID.self, forKey: .installPlanId)
+        interactivePrompts = try container.decodeIfPresent([InteractivePromptKit.InteractivePrompt].self, forKey: .interactivePrompts) ?? []
+        promptResponses = try container.decodeIfPresent([InteractivePromptKit.PromptResponse].self, forKey: .promptResponses) ?? []
     }
 }
 
