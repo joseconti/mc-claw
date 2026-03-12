@@ -237,7 +237,7 @@ struct InteractivePromptCard: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(freeText.isEmpty ? .tertiary : Theme.accent)
+                    .foregroundColor(freeText.isEmpty ? Color.gray : Theme.accent)
             }
             .buttonStyle(.plain)
             .disabled(freeText.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -381,7 +381,7 @@ struct InteractivePromptCard: View {
         HStack(spacing: 8) {
             Image(systemName: response.skipped ? "arrow.uturn.forward" : "checkmark.circle.fill")
                 .font(.subheadline)
-                .foregroundStyle(response.skipped ? .secondary : .green)
+                .foregroundStyle(response.skipped ? Color.secondary : Color.green)
 
             Text(prompt.title)
                 .font(.subheadline.weight(.medium))

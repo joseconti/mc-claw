@@ -317,10 +317,11 @@ final class ChatViewModel {
         )
 
         // Combine prompts
-        let combinedPrompt: String? = [projectSystemPrompt, skillsPrompt]
+        let interactiveInstruction = interactivePromptInstruction()
+        let combinedPrompt: String? = [projectSystemPrompt, skillsPrompt, interactiveInstruction]
             .compactMap { $0 }
             .joined(separator: "\n\n")
-            .isEmpty == true ? nil : [projectSystemPrompt, skillsPrompt]
+            .isEmpty == true ? nil : [projectSystemPrompt, skillsPrompt, interactiveInstruction]
             .compactMap { $0 }
             .joined(separator: "\n\n")
 
@@ -393,6 +394,39 @@ final class ChatViewModel {
                         VoiceModeService.shared.speakResponseChunk(accumulatedForTTS)
                         accumulatedForTTS = ""
                     }
+                }
+            }
+
+            // Check for interactive prompts in the AI response
+            if !hasError {
+                let (cleanText, prompts) = InteractivePromptKit.extractPrompts(from: assistantMessage.content)
+                if !prompts.isEmpty {
+                    assistantMessage.content = cleanText
+                    assistantMessage.interactivePrompts = prompts
+                    self.updateLastMessage(assistantMessage)
+
+                    // Suspend until user responds to all prompts
+                    let promptService = InteractivePromptService.shared
+                    let responses = await promptService.presentPrompts(prompts)
+                    assistantMessage.promptResponses = responses
+                    self.updateLastMessage(assistantMessage)
+                    promptService.reset()
+
+                    // Inject answers and continue conversation
+                    let answersText = zip(prompts, responses).map { prompt, resp in
+                        InteractivePromptKit.formatResponse(resp, prompt: prompt)
+                    }.joined(separator: "\n")
+
+                    self.logger.info("Interactive prompts answered (\(prompts.count)), continuing conversation")
+                    await self.streamAndEnrich(
+                        message: answersText,
+                        originalText: originalText,
+                        attachments: [],
+                        provider: provider,
+                        sessionId: sessionId,
+                        fetchRound: fetchRound
+                    )
+                    return
                 }
             }
 
@@ -563,6 +597,23 @@ final class ChatViewModel {
 
         let result = parts.joined(separator: "\n")
         return result.isEmpty ? nil : result
+    }
+
+    /// System prompt instruction that teaches the AI to emit interactive prompts.
+    private func interactivePromptInstruction() -> String {
+        """
+        When you need the user to choose between options or confirm an action, \
+        emit a JSON code block with this exact format:
+        ```json
+        {"type":"interactive_prompt","id":"unique-id","title":"Your question",\
+        "options":[{"key":"1","label":"Option 1"},{"key":"2","label":"Option 2"}],\
+        "style":"single_choice","required":false}
+        ```
+        Available styles: single_choice, multi_choice, confirmation, free_text.
+        For yes/no confirmations use style "confirmation" (no options needed).
+        For multi-step questionnaires, add groupId, groupIndex (0-based), and groupTotal.
+        The app renders these as interactive cards. Do NOT repeat the options as plain text.
+        """
     }
 
     /// Build a digest of key messages from sibling chats in the same project.

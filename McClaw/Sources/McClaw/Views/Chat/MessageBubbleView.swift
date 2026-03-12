@@ -116,6 +116,22 @@ struct MessageBubbleView: View {
                     InstallProgressView(planId: planId)
                 }
 
+                // Interactive prompts
+                if !message.interactivePrompts.isEmpty {
+                    let service = InteractivePromptService.shared
+                    ForEach(Array(message.interactivePrompts.enumerated()), id: \.element.id) { index, prompt in
+                        InteractivePromptCard(
+                            prompt: prompt,
+                            isActive: service.phase == .presenting
+                                && service.currentIndex == index
+                                && service.currentPrompts.contains(where: { $0.id == prompt.id }),
+                            currentIndex: index,
+                            totalCount: message.interactivePrompts.count,
+                            existingResponse: message.promptResponses.first(where: { $0.promptId == prompt.id })
+                        )
+                    }
+                }
+
                 // Streaming indicator (only text streaming, not image generation)
                 if message.isStreaming && !message.isGeneratingImage {
                     ThinkingWordsView()

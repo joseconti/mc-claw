@@ -1141,3 +1141,17 @@
 "Installation Steps" = "Installation Steps";
 "Output" = "Output";
 "multimedia" = "multimedia";
+
+// =============================================================================
+// MARK: - Interactive Prompts
+// =============================================================================
+
+"Skip" = "Skip";
+"Confirm" = "Confirm";
+"Cancel" = "Cancel";
+"Accept" = "Accept";
+"Something else..." = "Something else...";
+"%lld of %lld" = "%lld of %lld";
+"↑↓ navigate · Enter select · Esc skip" = "↑↓ navigate · Enter select · Esc skip";
+"Skipped" = "Skipped";
+"Type your answer..." = "Type your answer...";
