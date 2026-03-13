@@ -10,6 +10,7 @@ enum SidebarSection: Hashable {
     case multimedia
     case installations
     case trash
+    case help
     case settings
 }
 
@@ -26,8 +27,10 @@ struct ChatSidebar: View {
     @State private var imageIndexStore = ImageIndexStore.shared
     @State private var installService = AgentInstallService.shared
     @State private var searchText = ""
+    @State private var showUserMenu = false
 
     var body: some View {
+        ZStack(alignment: .bottomLeading) {
         VStack(spacing: 0) {
             // New conversation button
             Button {
@@ -140,10 +143,42 @@ struct ChatSidebar: View {
 
             Spacer()
 
-            // Bottom: User + Settings
+            // Bottom: User + Menu trigger
             Divider()
             sidebarFooter
         }
+
+        // User menu popup overlay
+        if showUserMenu {
+            // Dismiss background
+            Color.black.opacity(0.01)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        showUserMenu = false
+                    }
+                }
+
+            // Popup positioned above footer
+            UserMenuPopup(
+                onSettings: {
+                    currentSection = .settings
+                },
+                onHelp: {
+                    currentSection = .help
+                },
+                onDismiss: {
+                    withAnimation(.easeOut(duration: 0.15)) {
+                        showUserMenu = false
+                    }
+                }
+            )
+            .padding(.bottom, 52)
+            .padding(.leading, 6)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+            .zIndex(100)
+        }
+        } // ZStack
         .background(Theme.sidebarBackground)
         .onAppear {
             sessionStore.refreshIndex()
@@ -244,47 +279,50 @@ struct ChatSidebar: View {
 
     @ViewBuilder
     private var sidebarFooter: some View {
-        HStack(spacing: 10) {
-            // User avatar
-            Group {
-                if let avatar = appState.userAvatarImage {
-                    Image(nsImage: avatar)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    Circle()
-                        .fill(Color.accentColor.gradient)
-                        .overlay {
-                            Text(userInitials)
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(.white)
-                        }
-                }
+        Button {
+            withAnimation(.easeOut(duration: 0.15)) {
+                showUserMenu.toggle()
             }
-            .frame(width: 32, height: 32)
-            .clipShape(Circle())
+        } label: {
+            HStack(spacing: 10) {
+                // User avatar
+                Group {
+                    if let avatar = appState.userAvatarImage {
+                        Image(nsImage: avatar)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        Circle()
+                            .fill(Color.accentColor.gradient)
+                            .overlay {
+                                Text(userInitials)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(.white)
+                            }
+                    }
+                }
+                .frame(width: 32, height: 32)
+                .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(userName)
-                    .font(.callout.weight(.medium))
-                Text("v\(UpdaterService.shared.currentVersion)")
-                    .font(.subheadline)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(userName)
+                        .font(.callout.weight(.medium))
+                    Text("v\(UpdaterService.shared.currentVersion)")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+
+                Spacer()
+
+                Image(systemName: showUserMenu ? "chevron.down" : "chevron.up")
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.tertiary)
             }
-
-            Spacer()
-
-            Button {
-                currentSection = .settings
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .buttonStyle(.plain)
     }
 
     private var userName: String {

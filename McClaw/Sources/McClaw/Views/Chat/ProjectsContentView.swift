@@ -1,4 +1,5 @@
 import AppKit
+import McClawKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -18,7 +19,10 @@ struct ProjectsContentView: View {
     @State private var showNewProjectSheet = false
     @State private var newProjectName = ""
     @State private var editingProjectId: String?
-    @State private var newChatText = ""
+    @State private var showMemorySheet = false
+    @State private var memoryStore = ProjectMemoryStore.shared
+    @State private var artifactStore = ProjectArtifactStore.shared
+    @Namespace private var cliSelectorNamespace
 
     var body: some View {
         Group {
@@ -220,9 +224,22 @@ struct ProjectsContentView: View {
                 Spacer()
 
                 Button {
+                    showMemorySheet = true
+                } label: {
+                    Label(String(localized: "Memory", bundle: .module), systemImage: "brain")
+                        .font(.callout)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .sheet(isPresented: $showMemorySheet) {
+                    ProjectMemorySheet(projectId: projectId)
+                        .environment(appState)
+                }
+
+                Button {
                     editingProjectId = projectId
                 } label: {
-                    Label("Edit", systemImage: "pencil")
+                    Label(String(localized: "Edit", bundle: .module), systemImage: "pencil")
                         .font(.callout)
                 }
                 .buttonStyle(.bordered)
@@ -237,7 +254,22 @@ struct ProjectsContentView: View {
                     Image(systemName: "brain.head.profile")
                         .font(.subheadline)
                         .foregroundStyle(Color.accentColor)
-                    Text("Project rules active (\(rules.count) chars)")
+                    Text(String(localized: "Project rules active (\(rules.count) chars)", bundle: .module))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 8)
+            }
+
+            // Memory badge
+            if memoryStore.memorySize(for: projectId) > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "brain")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.accentColor)
+                    Text(String(localized: "Project memory active (\(memoryStore.formattedMemorySize(for: projectId)))", bundle: .module))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -257,78 +289,256 @@ struct ProjectsContentView: View {
             Divider()
                 .padding(.horizontal, 24)
 
-            // Scrollable content: files + conversations
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Project files section
-                    projectFilesSection(projectId: projectId)
+            // Two-column layout: conversations on left, artifacts on right
+            HStack(alignment: .top, spacing: 0) {
+                // Left column: files + conversations
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Project files section
+                        projectFilesSection(projectId: projectId)
 
-                    // Conversations section
-                    if projectSessions.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "bubble.left.and.bubble.right")
-                                .font(.system(size: 36))
-                                .foregroundStyle(.tertiary)
-                            Text("No conversations yet")
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                            Text("Type a message above to start a new conversation in this project.")
-                                .font(.callout)
-                                .foregroundStyle(.tertiary)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: 340)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 40)
-                    } else {
-                        // Section header
-                        HStack {
-                            Text("Conversations")
-                                .font(.callout.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 32)
-                        .padding(.top, 16)
-                        .padding(.bottom, 8)
+                        // Conversations section
+                        if projectSessions.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "bubble.left.and.bubble.right")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(.tertiary)
+                                Text("No conversations yet")
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                                Text("Type a message above to start a new conversation in this project.")
+                                    .font(.callout)
+                                    .foregroundStyle(.tertiary)
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: 340)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                        } else {
+                            // Section header
+                            HStack {
+                                Text("Conversations")
+                                    .font(.callout.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 32)
+                            .padding(.top, 16)
+                            .padding(.bottom, 8)
 
-                        VStack(spacing: 0) {
-                            ForEach(projectSessions) { session in
-                                SessionListRow(session: session) {
-                                    currentSection = .chats
-                                    onSelectSession(session)
-                                }
-                                .contextMenu {
-                                    Button {
-                                        projectStore.removeSession(session.id, fromProject: projectId)
-                                        sessionStore.refreshIndex()
-                                    } label: {
-                                        Label("Remove from Project", systemImage: "folder.badge.minus")
+                            VStack(spacing: 0) {
+                                ForEach(projectSessions) { session in
+                                    SessionListRow(session: session) {
+                                        currentSection = .chats
+                                        onSelectSession(session)
                                     }
-
-                                    Divider()
-
-                                    Button(role: .destructive) {
-                                        if let pid = session.projectId {
-                                            projectStore.removeSession(session.id, fromProject: pid)
+                                    .contextMenu {
+                                        Button {
+                                            projectStore.removeSession(session.id, fromProject: projectId)
+                                            sessionStore.refreshIndex()
+                                        } label: {
+                                            Label("Remove from Project", systemImage: "folder.badge.minus")
                                         }
-                                        sessionStore.delete(sessionId: session.id)
-                                        onDeleteSession(session.id)
-                                    } label: {
-                                        Label("Move to Trash", systemImage: "trash")
-                                    }
-                                }
 
-                                if session.id != projectSessions.last?.id {
-                                    Divider()
-                                        .padding(.horizontal, 32)
+                                        Divider()
+
+                                        Button(role: .destructive) {
+                                            if let pid = session.projectId {
+                                                projectStore.removeSession(session.id, fromProject: pid)
+                                            }
+                                            sessionStore.delete(sessionId: session.id)
+                                            onDeleteSession(session.id)
+                                        } label: {
+                                            Label("Move to Trash", systemImage: "trash")
+                                        }
+                                    }
+
+                                    if session.id != projectSessions.last?.id {
+                                        Divider()
+                                            .padding(.horizontal, 32)
+                                    }
                                 }
                             }
+                            .padding(.bottom, 32)
                         }
-                        .padding(.bottom, 32)
                     }
                 }
+                .frame(maxWidth: .infinity)
+
+                Divider()
+
+                // Right column: artifacts
+                ScrollView {
+                    projectArtifactsSection(projectId: projectId)
+                }
+                .frame(width: 280)
+                .background(.quaternary.opacity(0.15))
             }
+        }
+        .onAppear {
+            artifactStore.refresh(for: projectId)
+        }
+    }
+
+    // MARK: - Project Artifacts Section
+
+    @ViewBuilder
+    private func projectArtifactsSection(projectId: String) -> some View {
+        let artifacts = artifactStore.currentProjectId == projectId
+            ? artifactStore.currentArtifacts
+            : []
+
+        VStack(alignment: .leading, spacing: 8) {
+            // Section header
+            HStack {
+                Text(String(localized: "Artifacts", bundle: .module))
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                if !artifacts.isEmpty {
+                    Text("\(artifacts.count)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.7))
+                        .clipShape(Capsule())
+                }
+
+                Spacer()
+
+                // Upload artifact button
+                Button {
+                    importArtifactToProject(projectId: projectId)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            if artifacts.isEmpty {
+                // Empty state
+                VStack(spacing: 8) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.title2)
+                        .foregroundStyle(.tertiary)
+                    Text(String(localized: "No artifacts yet", bundle: .module))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text(String(localized: "Plans and documents created by AI will appear here. You can also upload files manually.", bundle: .module))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+
+                    Button {
+                        importArtifactToProject(projectId: projectId)
+                    } label: {
+                        Label(String(localized: "Upload Artifact", bundle: .module), systemImage: "arrow.up.doc")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 20)
+            } else {
+                // Artifacts list
+                VStack(spacing: 2) {
+                    ForEach(artifacts) { artifact in
+                        Button {
+                            let fileURL = artifactStore.artifactFileURL(artifact, projectId: projectId)
+                            withAnimation(.snappy(duration: 0.25)) {
+                                appState.openPlanFilePath = fileURL.path
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: artifact.iconName)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.orange)
+                                    .frame(width: 26, height: 26)
+                                    .background(.orange.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(artifact.fileName.replacingOccurrences(of: ".md", with: ""))
+                                        .font(.caption.weight(.medium))
+                                        .lineLimit(1)
+
+                                    HStack(spacing: 4) {
+                                        if let cli = artifact.sourceCLI {
+                                            Text(cli.capitalized)
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+
+                                        Text(artifact.createdAt, style: .relative)
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                }
+
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                let url = artifactStore.artifactFileURL(artifact, projectId: projectId)
+                                NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                            } label: {
+                                Label(String(localized: "Show in Finder", bundle: .module), systemImage: "folder")
+                            }
+
+                            Button {
+                                if let content = artifactStore.loadContent(artifact, projectId: projectId) {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(content, forType: .string)
+                                }
+                            } label: {
+                                Label(String(localized: "Copy Content", bundle: .module), systemImage: "doc.on.doc")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                artifactStore.removeArtifact(id: artifact.id, fromProject: projectId)
+                            } label: {
+                                Label(String(localized: "Remove from Project", bundle: .module), systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+        }
+    }
+
+    private func importArtifactToProject(projectId: String) {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.plainText, .json, .yaml, .xml, .html, .sourceCode]
+        panel.message = String(localized: "Select files to add as project artifacts", bundle: .module)
+
+        guard panel.runModal() == .OK else { return }
+
+        for url in panel.urls {
+            artifactStore.addArtifact(
+                from: url,
+                fileName: url.lastPathComponent,
+                type: .document,
+                toProject: projectId
+            )
         }
     }
 
@@ -336,70 +546,22 @@ struct ProjectsContentView: View {
 
     @ViewBuilder
     private func projectChatInputBar(projectId: String) -> some View {
-        VStack(spacing: 0) {
-            // Text input area — uses MultiLineTextInput (Enter sends, Shift+Enter newline)
-            MultiLineTextInput(
-                text: $newChatText,
-                placeholder: "Start a new conversation...",
-                font: .systemFont(ofSize: 16),
-                minHeight: 80,
-                maxHeight: 200,
-                onSubmit: { startNewChatInProject(projectId: projectId) }
-            )
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.top, 16)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 12)
-
-            // Bottom row: attach on left, send on right
-            HStack(spacing: 8) {
-                // Attach file button
-                Button {
-                    addFilesToProject(projectId: projectId)
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 26, height: 26)
-                        .background(.quaternary.opacity(0.5))
-                        .clipShape(Circle())
-                        .liquidGlassCircle()
-                }
-                .buttonStyle(.plain)
-                .help("Add files to project")
-
-                Spacer()
-
-                // Send button
-                Button {
-                    startNewChatInProject(projectId: projectId)
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(
-                            newChatText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                ? Color.gray.opacity(0.2)
-                                : Color.accentColor
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(newChatText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        ChatInputBar(
+            onSend: { text, attachments in
+                startNewChatInProject(projectId: projectId, text: text)
+            },
+            onAbort: { },
+            isWorking: false,
+            onImageGenerate: { prompt in
+                appState.pendingImagePrompt = prompt
+                startNewChatInProject(projectId: projectId)
+            },
+            onInstallPrompt: { prompt in
+                appState.pendingInstallPrompt = prompt
+                startNewChatInProject(projectId: projectId)
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 10)
-        }
-        .background {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cardBackground)
-                .shadow(color: .black.opacity(0.08), radius: 6, y: 2)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(Theme.border, lineWidth: 1)
-                }
-        }
-        .frame(maxWidth: 780)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
+        )
+        .environment(appState)
     }
 
     // MARK: - CLI Selector
@@ -412,21 +574,46 @@ struct ProjectsContentView: View {
                 ForEach(installedCLIs) { cli in
                     let isSelected = cli.id == appState.currentCLIIdentifier
                     Button {
-                        appState.currentCLIIdentifier = cli.id
+                        withAnimation(.snappy(duration: 0.25)) {
+                            appState.currentCLIIdentifier = cli.id
+                        }
                         Task { await ConfigStore.shared.saveFromState() }
+                        // Auto-start BitNet server when selected (on-demand mode)
+                        if cli.id == "bitnet", !appState.bitnetAlwaysOn {
+                            Task {
+                                let server = BitNetServerManager.shared
+                                if await !server.isRunning {
+                                    let model = appState.bitnetDefaultModel ?? BitNetKit.defaultModel?.modelId ?? "BitNet-b1.58-2B-4T"
+                                    let serverConfig = BitNetKit.ServerConfig(
+                                        port: appState.bitnetServerPort,
+                                        threads: appState.bitnetThreads,
+                                        contextSize: appState.bitnetContextSize,
+                                        maxTokens: appState.bitnetMaxTokens,
+                                        temperature: appState.bitnetTemperature
+                                    )
+                                    try? await server.start(model: model, config: serverConfig, trackIdle: true)
+                                } else {
+                                    await server.touch()
+                                }
+                            }
+                        }
                     } label: {
                         Text(cli.displayName)
                             .font(.subheadline.weight(isSelected ? .semibold : .regular))
-                            .foregroundStyle(isSelected ? .primary : .secondary)
+                            .foregroundStyle(isSelected ? .white : .secondary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 6)
-                            .background(
-                                isSelected
-                                    ? AnyShapeStyle(Color.accentColor.opacity(0.15))
-                                    : AnyShapeStyle(Color.clear)
-                            )
-                            .clipShape(Capsule())
-                            .liquidGlassCapsule()
+                            .background {
+                                if isSelected {
+                                    Capsule()
+                                        .fill(Color.accentColor.opacity(0.35))
+                                        .overlay(
+                                            Capsule()
+                                                .strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 1)
+                                        )
+                                        .matchedGeometryEffect(id: "cliPill", in: cliSelectorNamespace)
+                                }
+                            }
                     }
                     .buttonStyle(.plain)
                 }
@@ -442,9 +629,8 @@ struct ProjectsContentView: View {
         }
     }
 
-    private func startNewChatInProject(projectId: String) {
-        let text = newChatText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+    private func startNewChatInProject(projectId: String, text: String? = nil) {
+        let message = text ?? ""
 
         // Create new session and assign to project
         let newSessionId = UUID().uuidString
@@ -454,9 +640,9 @@ struct ProjectsContentView: View {
 
         // Store the message text — DO NOT set currentSessionId here,
         // let onNewChatInProject handle it to avoid double-VM creation.
-        appState.pendingMessage = text
-
-        newChatText = ""
+        if !message.isEmpty {
+            appState.pendingMessage = message
+        }
 
         // Navigate to chats and trigger the new chat creation
         currentSection = .chats

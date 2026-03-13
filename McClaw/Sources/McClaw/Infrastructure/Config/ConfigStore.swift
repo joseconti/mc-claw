@@ -114,6 +114,14 @@ actor ConfigStore {
             state.chatFontFamily = fontFamily
         }
 
+        // Theme
+        if let preset = config.themePreset {
+            ThemeManager.shared.selectedPreset = preset
+        }
+        if let custom = config.customThemeColors {
+            ThemeManager.shared.customColors = custom
+        }
+
         // Apply file logging
         state.fileLoggingEnabled = config.fileLoggingEnabled
         DiagnosticsFileLogHandler.isEnabled = config.fileLoggingEnabled
@@ -128,6 +136,10 @@ actor ConfigStore {
         state.bitnetTemperature = config.bitnetTemperature
         state.bitnetServerPort = config.bitnetServerPort
         state.bitnetAlwaysOn = config.bitnetAlwaysOn
+
+        // Project Memory
+        state.memoryProviderId = config.memoryProviderId
+        state.projectMemoryAutoUpdate = config.projectMemoryAutoUpdate
 
         // Model selection
         if let models = config.defaultModels {
@@ -182,8 +194,12 @@ actor ConfigStore {
             bitnetTemperature: state.bitnetTemperature,
             bitnetServerPort: state.bitnetServerPort,
             bitnetAlwaysOn: state.bitnetAlwaysOn,
+            memoryProviderId: state.memoryProviderId,
+            projectMemoryAutoUpdate: state.projectMemoryAutoUpdate,
             defaultModels: state.defaultModels.isEmpty ? nil : state.defaultModels,
-            lastSessionId: state.currentSessionId
+            lastSessionId: state.currentSessionId,
+            themePreset: ThemeManager.shared.selectedPreset,
+            customThemeColors: ThemeManager.shared.selectedPreset == .custom ? ThemeManager.shared.customColors : nil
         )
         do {
             try await saveConfig(config)
@@ -231,6 +247,10 @@ struct McClawConfig: Codable, Sendable {
     var appColorScheme: AppColorScheme?
     var chatFontFamily: ChatFontFamily?
 
+    // Theme
+    var themePreset: ThemePresetId?
+    var customThemeColors: ThemeColors?
+
     // Diagnostics
     var fileLoggingEnabled: Bool
 
@@ -244,6 +264,10 @@ struct McClawConfig: Codable, Sendable {
     var bitnetTemperature: Double
     var bitnetServerPort: Int
     var bitnetAlwaysOn: Bool
+
+    // Project Memory
+    var memoryProviderId: String?
+    var projectMemoryAutoUpdate: Bool
 
     // Model selection per provider
     var defaultModels: [String: String]?
@@ -289,8 +313,12 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature: Double = 0.7,
         bitnetServerPort: Int = 8921,
         bitnetAlwaysOn: Bool = true,
+        memoryProviderId: String? = nil,
+        projectMemoryAutoUpdate: Bool = true,
         defaultModels: [String: String]? = nil,
-        lastSessionId: String? = nil
+        lastSessionId: String? = nil,
+        themePreset: ThemePresetId? = nil,
+        customThemeColors: ThemeColors? = nil
     ) {
         self.defaultCLI = defaultCLI
         self.gatewayPort = gatewayPort
@@ -329,8 +357,12 @@ struct McClawConfig: Codable, Sendable {
         self.bitnetTemperature = bitnetTemperature
         self.bitnetServerPort = bitnetServerPort
         self.bitnetAlwaysOn = bitnetAlwaysOn
+        self.memoryProviderId = memoryProviderId
+        self.projectMemoryAutoUpdate = projectMemoryAutoUpdate
         self.defaultModels = defaultModels
         self.lastSessionId = lastSessionId
+        self.themePreset = themePreset
+        self.customThemeColors = customThemeColors
     }
 
     init(from decoder: Decoder) throws {
@@ -372,7 +404,11 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature = try container.decodeIfPresent(Double.self, forKey: .bitnetTemperature) ?? 0.7
         bitnetServerPort = try container.decodeIfPresent(Int.self, forKey: .bitnetServerPort) ?? 8921
         bitnetAlwaysOn = try container.decodeIfPresent(Bool.self, forKey: .bitnetAlwaysOn) ?? true
+        memoryProviderId = try container.decodeIfPresent(String.self, forKey: .memoryProviderId)
+        projectMemoryAutoUpdate = try container.decodeIfPresent(Bool.self, forKey: .projectMemoryAutoUpdate) ?? true
         defaultModels = try container.decodeIfPresent([String: String].self, forKey: .defaultModels)
         lastSessionId = try container.decodeIfPresent(String.self, forKey: .lastSessionId)
+        themePreset = try container.decodeIfPresent(ThemePresetId.self, forKey: .themePreset)
+        customThemeColors = try container.decodeIfPresent(ThemeColors.self, forKey: .customThemeColors)
     }
 }

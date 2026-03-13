@@ -95,9 +95,12 @@ final class MCPConfigManager {
             do {
                 let args = MCPParser.buildClaudeListArgs()
                 let output = try await runProcess(binaryPath: binaryPath, args: args)
-                allParsed += MCPParser.parseClaudeListTextOutput(output)
+                let parsed = MCPParser.parseClaudeListTextOutput(output)
+                logger.info("claude mcp list: \(parsed.count) servers parsed from \(output.count) bytes")
+                allParsed += parsed
             } catch {
-                logger.debug("claude mcp list failed: \(error.localizedDescription)")
+                logger.warning("claude mcp list failed: \(error.localizedDescription)")
+                lastError = "Claude MCP: \(error.localizedDescription)"
             }
         }
 
@@ -227,31 +230,51 @@ final class MCPConfigManager {
         AppState.shared.availableCLIs.first { $0.id == id }
     }
 
+    /// Run a CLI process off the MainActor to avoid blocking the UI.
+    /// Reads stdout before waitUntilExit to prevent pipe buffer deadlocks.
+    /// Uses HostEnvSanitizer + binary dir in PATH (same as CLIBridge) so
+    /// tools like node/npx are found even when launched from a GUI app.
     private func runProcess(binaryPath: String, args: [String]) async throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: binaryPath)
-        process.arguments = args
-        process.environment = ProcessInfo.processInfo.environment
-        process.environment?["NO_COLOR"] = "1"
+        try await Task.detached {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: binaryPath)
+            process.arguments = args
 
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
+            // Use the same sanitized environment as CLIBridge so that
+            // nvm/homebrew paths are available to child processes.
+            var env = HostEnvSanitizer.sanitize(isShellWrapper: false)
+            let binaryDir = URL(fileURLWithPath: binaryPath).deletingLastPathComponent().path
+            let currentPath = env["PATH"] ?? "/usr/bin:/bin"
+            if !currentPath.contains(binaryDir) {
+                env["PATH"] = "\(binaryDir):\(currentPath)"
+            }
+            env["NO_COLOR"] = "1"
+            process.environment = env
 
-        try process.run()
-        process.waitUntilExit()
+            let stdout = Pipe()
+            let stderr = Pipe()
+            process.standardOutput = stdout
+            process.standardError = stderr
 
-        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: outData, encoding: .utf8) ?? ""
+            try process.run()
 
-        if process.terminationStatus != 0 {
+            // Read stdout BEFORE waitUntilExit to avoid pipe buffer deadlock.
+            // If the process writes more than 64KB, the pipe buffer fills up and
+            // the process blocks waiting for the reader — causing a deadlock.
+            let outData = stdout.fileHandleForReading.readDataToEndOfFile()
             let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-            let errText = String(data: errData, encoding: .utf8) ?? "Unknown error"
-            throw MCPError.cliError(errText.trimmingCharacters(in: .whitespacesAndNewlines))
-        }
 
-        return output
+            process.waitUntilExit()
+
+            let output = String(data: outData, encoding: .utf8) ?? ""
+
+            if process.terminationStatus != 0 {
+                let errText = String(data: errData, encoding: .utf8) ?? "Unknown error"
+                throw MCPError.cliError(errText.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+
+            return output
+        }.value
     }
 }
 

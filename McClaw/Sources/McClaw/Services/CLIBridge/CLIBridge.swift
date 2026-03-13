@@ -20,11 +20,12 @@ actor CLIBridge {
         sessionId: String? = nil,
         isResume: Bool = false,
         systemPrompt: String? = nil,
-        allowedTools: [String]? = nil
+        allowedTools: [String]? = nil,
+        planMode: Bool = false
     ) -> AsyncStream<CLIStreamEvent> {
         // BitNet uses REST API server instead of CLI process
         if provider.id == "bitnet" {
-            return sendViaBitNet(message: message, model: model, systemPrompt: systemPrompt)
+            return sendViaBitNet(message: message, model: model, systemPrompt: systemPrompt, planMode: planMode)
         }
 
         return AsyncStream { continuation in
@@ -43,7 +44,8 @@ actor CLIBridge {
                     sessionId: sessionId,
                     isResume: isResume,
                     systemPrompt: systemPrompt,
-                    allowedTools: allowedTools
+                    allowedTools: allowedTools,
+                    planMode: planMode
                 )
 
                 // CLI provider binaries are always approved (they're what McClaw wraps)
@@ -200,7 +202,8 @@ actor CLIBridge {
     private func sendViaBitNet(
         message: String,
         model: String?,
-        systemPrompt: String?
+        systemPrompt: String?,
+        planMode: Bool = false
     ) -> AsyncStream<CLIStreamEvent> {
         AsyncStream { continuation in
             Task {
@@ -243,9 +246,17 @@ actor CLIBridge {
                     }
 
                     // Get stream from server (sets up process)
+                    // In plan mode, prepend read-only instructions to system prompt
+                    let effectiveSystemPrompt: String?
+                    if planMode {
+                        let planPrefix = "[PLAN MODE] You are in read-only analysis mode. Do NOT write, edit, or delete files. Do NOT execute commands. Only analyze, read, and create plans."
+                        effectiveSystemPrompt = if let sp = systemPrompt { "\(planPrefix)\n\n\(sp)" } else { planPrefix }
+                    } else {
+                        effectiveSystemPrompt = systemPrompt
+                    }
                     let stream = try await server.chatStream(
                         message: message,
-                        systemPrompt: systemPrompt
+                        systemPrompt: effectiveSystemPrompt
                     )
                     // Consume stream in a detached task to avoid actor isolation issues
                     let textTask = Task.detached { () -> String in
@@ -303,7 +314,7 @@ actor CLIBridge {
         case .toolStart(let name, let id): .toolStart(name: name, id: id)
         case .thinking(let text): .thinking(text)
         case .done: .done
-        case .passthrough(let line): .text(line)
+        case .passthrough(let line): .text(line.isEmpty ? "" : line + "\n")
         }
     }
 }

@@ -1,6 +1,8 @@
 import SwiftUI
+import AppKit
 import Logging
 import McClawKit
+import UniformTypeIdentifiers
 
 /// View model for the chat window. Manages messages and CLI interaction.
 @MainActor
@@ -8,6 +10,8 @@ import McClawKit
 final class ChatViewModel {
     var messages: [ChatMessage] = []
     var isStreaming: Bool = false
+    /// Set when a plan file is detected in a non-project chat, triggers ArtifactSaveSheet.
+    var pendingArtifactSave: PendingArtifactSave?
 
     private let logger = Logger(label: "ai.mcclaw.chat-vm")
     private let sessionStore = SessionStore.shared
@@ -317,7 +321,7 @@ final class ChatViewModel {
         )
 
         // Combine prompts
-        let interactiveInstruction = interactivePromptInstruction()
+        let interactiveInstruction = appState.planModeActive ? nil : interactivePromptInstruction()
         let combinedPrompt: String? = [projectSystemPrompt, skillsPrompt, interactiveInstruction]
             .compactMap { $0 }
             .joined(separator: "\n\n")
@@ -329,13 +333,17 @@ final class ChatViewModel {
         let resolvedModel = appState.chatModelOverride ?? appState.defaultModels[provider.id]
         appState.chatModelOverride = nil
 
+        let planMode = appState.planModeActive
+        let streamStartTime = Date()
+
         let stream = await CLIBridge.shared.send(
             message: message,
             provider: provider,
             model: resolvedModel,
             sessionId: sessionId,
             isResume: isResume,
-            systemPrompt: combinedPrompt
+            systemPrompt: combinedPrompt,
+            planMode: planMode
         )
 
         streamTask = Task {
@@ -397,8 +405,8 @@ final class ChatViewModel {
                 }
             }
 
-            // Check for interactive prompts in the AI response
-            if !hasError {
+            // Check for interactive prompts in the AI response (skip in plan mode — read-only)
+            if !hasError && !planMode {
                 let (cleanText, prompts) = InteractivePromptKit.extractPrompts(from: assistantMessage.content)
                 if !prompts.isEmpty {
                     assistantMessage.content = cleanText
@@ -430,8 +438,8 @@ final class ChatViewModel {
                 }
             }
 
-            // Check for @fetch commands in the AI response
-            if !hasError && ConnectorsKit.containsFetchCommand(assistantMessage.content) &&
+            // Check for @fetch commands in the AI response (skip in plan mode — no side effects)
+            if !hasError && !planMode && ConnectorsKit.containsFetchCommand(assistantMessage.content) &&
                fetchRound < ConnectorsKit.maxFetchRoundsPerTurn {
                 let (cleanResponse, fetchResults) = await self.enrichmentService.parseAndExecuteFetch(
                     response: assistantMessage.content,
@@ -475,9 +483,99 @@ final class ChatViewModel {
                 }
             }
 
+            // Plan Mode: detect plan file and store its path (shown as card in UI)
+            if planMode && !hasError {
+                if let planFile = self.detectLatestPlanFile(for: provider.id, since: streamStartTime) {
+                    assistantMessage.planFilePath = planFile.path
+                    self.updateLastMessage(assistantMessage)
+
+                    // Auto-save artifact to project, or prompt user to save
+                    let projectId = self.sessionStore.sessions.first(where: { $0.id == sessionId })?.projectId
+                    if let projectId {
+                        let sourceURL = URL(fileURLWithPath: planFile.path)
+                        ProjectArtifactStore.shared.addArtifact(
+                            from: sourceURL,
+                            fileName: planFile.name,
+                            type: .plan,
+                            sourceCLI: provider.id,
+                            sourceSessionId: sessionId,
+                            toProject: projectId
+                        )
+                    } else {
+                        self.pendingArtifactSave = PendingArtifactSave(
+                            filePath: planFile.path,
+                            fileName: planFile.name,
+                            sourceCLI: provider.id,
+                            sessionId: sessionId
+                        )
+                    }
+                }
+            }
+
             // Auto-save session after streaming completes
             self.persistCurrentSession()
+
+            // Schedule deferred memory update (fires after 10 min idle or on chat switch)
+            self.scheduleMemoryUpdate(sessionId: sessionId)
         }
+    }
+
+    // MARK: - Deferred Memory Update (idle timer + chat switch)
+
+    /// Timer that fires after 10 minutes of inactivity to update project memory.
+    private var memoryIdleTimer: Task<Void, Never>?
+    /// The project ID that has pending memory updates.
+    private var pendingMemoryProjectId: String?
+
+    /// Schedule a deferred memory update. Resets the 10-min idle timer on each message.
+    /// The update fires when: (a) 10 min idle, or (b) user switches away from this chat.
+    private func scheduleMemoryUpdate(sessionId: String) {
+        let appState = AppState.shared
+        guard appState.memoryProviderId != nil,
+              appState.projectMemoryAutoUpdate else { return }
+
+        // Find the project for this session
+        let projectId = findProjectId(for: sessionId)
+        guard let projectId else { return }
+
+        pendingMemoryProjectId = projectId
+
+        // Cancel previous timer, start fresh 10-min countdown
+        memoryIdleTimer?.cancel()
+        memoryIdleTimer = Task {
+            try? await Task.sleep(for: .seconds(600)) // 10 minutes
+            guard !Task.isCancelled else { return }
+            await self.flushMemoryUpdate()
+        }
+    }
+
+    /// Immediately flush pending memory update (called on chat switch or manual trigger).
+    func flushMemoryUpdate() async {
+        guard let projectId = pendingMemoryProjectId else { return }
+        pendingMemoryProjectId = nil
+        memoryIdleTimer?.cancel()
+        memoryIdleTimer = nil
+
+        let appState = AppState.shared
+        guard appState.memoryProviderId != nil,
+              appState.projectMemoryAutoUpdate else { return }
+
+        let currentMessages = self.messages
+        logger.info("Flushing deferred memory update for project \(projectId)")
+        Task.detached {
+            await ProjectMemoryStore.shared.updateMemoryAsync(
+                for: projectId,
+                chatMessages: currentMessages
+            )
+        }
+    }
+
+    /// Find the project ID a session belongs to.
+    private func findProjectId(for sessionId: String) -> String? {
+        if let info = SessionStore.shared.sessions.first(where: { $0.id == sessionId }) {
+            return info.projectId
+        }
+        return ProjectStore.shared.projects.first(where: { $0.sessionIds.contains(sessionId) })?.id
     }
 
     /// Abort the current streaming response.
@@ -520,14 +618,14 @@ final class ChatViewModel {
         }
         guard !relevant.isEmpty else { return "" }
 
-        // Take last 10 messages max, truncate long ones
-        let recent = relevant.suffix(10)
+        // Take last 20 messages max, truncate long ones to 2000 chars
+        let recent = relevant.suffix(20)
         var lines: [String] = ["[Previous conversation context]"]
         for msg in recent {
             let role = msg.role == .user ? "User" : "Assistant"
             let via = msg.providerId.map { " (via \($0))" } ?? ""
-            let content = msg.content.prefix(500)
-            let truncated = msg.content.count > 500 ? "..." : ""
+            let content = msg.content.prefix(2000)
+            let truncated = msg.content.count > 2000 ? "..." : ""
             lines.append("\(role)\(via): \(content)\(truncated)")
         }
         lines.append("[End of context — continue the conversation naturally]")
@@ -564,13 +662,34 @@ final class ChatViewModel {
             parts.append("Description: \(project.description)")
         }
         parts.append("")
-        parts.append("IMPORTANT: This conversation belongs to the project described above. Focus all your answers on this project's topic and goals. Do NOT explore or reference the local filesystem — the working directory is unrelated to this project. Use only the project context provided here (rules, files, previous conversations).")
 
-        // 1. Project rules
-        if !project.rules.isEmpty {
+        // 0.5 Filesystem instruction — varies based on whether directories are configured
+        if !project.directories.isEmpty {
+            parts.append("IMPORTANT: This conversation belongs to the project described above. Focus all your answers on this project's topic and goals. Use the project directories listed below as your working paths.")
             parts.append("")
-            parts.append("# Project Rules")
-            parts.append(project.rules)
+            parts.append("# Project Directories")
+            for dir in project.directories {
+                parts.append("- \(dir)")
+            }
+        } else {
+            parts.append("IMPORTANT: This conversation belongs to the project described above. Focus all your answers on this project's topic and goals. Do NOT explore or reference the local filesystem — the working directory is unrelated to this project. Use only the project context provided here (rules, files, previous conversations).")
+        }
+
+        // 1. Project Memory (single source of truth if it exists — includes description, rules, decisions)
+        if let memoryContent = ProjectMemoryStore.shared.loadMemory(for: projectId),
+           !memoryContent.isEmpty {
+            parts.append("")
+            parts.append("# Project Memory")
+            parts.append("This is the accumulated project knowledge including description, rules, and decisions from previous conversations.")
+            parts.append("")
+            parts.append(memoryContent)
+        } else {
+            // Fallback: inject rules directly (no memory yet)
+            if !project.rules.isEmpty {
+                parts.append("")
+                parts.append("# Project Rules")
+                parts.append(project.rules)
+            }
         }
 
         // 2. Project files context
@@ -611,8 +730,18 @@ final class ChatViewModel {
         ```
         Available styles: single_choice, multi_choice, confirmation, free_text.
         For yes/no confirmations use style "confirmation" (no options needed).
-        For multi-step questionnaires, add groupId, groupIndex (0-based), and groupTotal.
-        The app renders these as interactive cards. Do NOT repeat the options as plain text.
+        IMPORTANT: When you need to ask MULTIPLE questions, emit ALL prompts in a SINGLE \
+        JSON array code block. Do NOT send one prompt per response — that causes loops. Example:
+        ```json
+        [
+          {"type":"interactive_prompt","id":"q1","title":"First question","style":"single_choice",\
+        "options":[{"key":"a","label":"A"},{"key":"b","label":"B"}]},
+          {"type":"interactive_prompt","id":"q2","title":"Second question","style":"free_text"},
+          {"type":"interactive_prompt","id":"q3","title":"Confirm?","style":"confirmation"}
+        ]
+        ```
+        The app renders these as a wizard with Next/Back navigation. \
+        Do NOT repeat the options as plain text. Do NOT send prompts one at a time.
         """
     }
 
@@ -662,6 +791,46 @@ final class ChatViewModel {
         AppState.shared.availableCLIs.first {
             $0.id != providerId && $0.isInstalled && $0.isAuthenticated
         }
+    }
+
+    // MARK: - Plan File Detection
+
+    /// Detect the most recently created plan file for a CLI provider since a given timestamp.
+    private func detectLatestPlanFile(for providerId: String, since: Date) -> (path: String, name: String)? {
+        let fm = FileManager.default
+
+        // Plan file directories per provider
+        let planDirs: [String]
+        switch providerId {
+        case "claude":
+            let home = fm.homeDirectoryForCurrentUser.path
+            planDirs = ["\(home)/.claude/plans"]
+        case "gemini":
+            // Gemini stores plans in the working directory or ~/.gemini/plans
+            let home = fm.homeDirectoryForCurrentUser.path
+            planDirs = ["\(home)/.gemini/plans"]
+        default:
+            return nil // Other providers don't create plan files
+        }
+
+        var latestFile: (path: String, name: String, date: Date)?
+
+        for dir in planDirs {
+            guard let contents = try? fm.contentsOfDirectory(atPath: dir) else { continue }
+            for file in contents where file.hasSuffix(".md") {
+                let fullPath = "\(dir)/\(file)"
+                guard let attrs = try? fm.attributesOfItem(atPath: fullPath),
+                      let modDate = attrs[.modificationDate] as? Date,
+                      modDate > since else { continue }
+
+                if latestFile == nil || modDate > latestFile!.date {
+                    latestFile = (path: fullPath, name: file, date: modDate)
+                }
+            }
+        }
+
+        guard let result = latestFile else { return nil }
+        return (path: result.path, name: result.name)
     }
 
     // MARK: - Slash Commands
@@ -832,6 +1001,71 @@ final class ChatViewModel {
             }
             return true
 
+        case "/copy":
+            // Copy last assistant message to clipboard
+            if let lastAssistant = messages.last(where: { $0.role == .assistant }) {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(lastAssistant.content, forType: .string)
+                postSystem(String(localized: "Last response copied to clipboard.", bundle: .module), sessionId: sessionId)
+            } else {
+                postSystem(String(localized: "No assistant response to copy.", bundle: .module), sessionId: sessionId)
+            }
+            return true
+
+        case "/diff":
+            // Run git diff and show result
+            Task {
+                do {
+                    let process = Process()
+                    process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+                    process.arguments = ["diff", "--stat"]
+                    let pipe = Pipe()
+                    process.standardOutput = pipe
+                    process.standardError = pipe
+                    try process.run()
+                    process.waitUntilExit()
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    if output.isEmpty {
+                        postSystem(String(localized: "No uncommitted changes.", bundle: .module), sessionId: sessionId)
+                    } else {
+                        postSystem("```\n\(output)\n```", sessionId: sessionId)
+                    }
+                } catch {
+                    postSystem(String(localized: "Failed to run git diff.", bundle: .module), sessionId: sessionId)
+                }
+            }
+            return true
+
+        case "/plan":
+            appState.planModeActive.toggle()
+            let state = appState.planModeActive
+                ? String(localized: "Plan Mode enabled — read-only analysis.", bundle: .module)
+                : String(localized: "Plan Mode disabled.", bundle: .module)
+            postSystem(state, sessionId: sessionId)
+            return true
+
+        case "/export":
+            // Export conversation to a text file
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.plainText]
+            panel.nameFieldStringValue = "mcclaw-chat-\(sessionId.prefix(8)).txt"
+            guard panel.runModal() == .OK, let url = panel.url else {
+                return true
+            }
+            var export = ""
+            for msg in messages {
+                let role = msg.role.rawValue.uppercased()
+                export += "[\(role)] \(msg.content)\n\n"
+            }
+            do {
+                try export.write(to: url, atomically: true, encoding: .utf8)
+                postSystem(String(localized: "Chat exported to: ", bundle: .module) + url.lastPathComponent, sessionId: sessionId)
+            } catch {
+                postSystem(String(localized: "Failed to export chat.", bundle: .module), sessionId: sessionId)
+            }
+            return true
+
         case "/help":
             postSystem("""
             **Available Commands**
@@ -845,7 +1079,13 @@ final class ChatViewModel {
             - `/session [name]` — Show or switch session
             - `/fetch connector.action` — Fetch data from a connector
             - `/install <prompt>` — Parse and execute an install prompt
+            - `/copy` — Copy last response to clipboard
+            - `/diff` — Show git changes summary
+            - `/plan` — Toggle Plan Mode
+            - `/export` — Export chat to file
             - `/help` — Show this help
+
+            *Type `/` to see autocomplete suggestions. Commands starting with `/` that McClaw doesn't recognize are passed to the active CLI.*
             """, sessionId: sessionId)
             return true
 

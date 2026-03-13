@@ -21,6 +21,7 @@ actor CLIDetector {
                 supportsVision: true,
                 supportsThinking: true,
                 supportsConversation: true,
+                supportsPlanMode: true,
                 maxContextTokens: 200_000
             )
         ),
@@ -38,6 +39,7 @@ actor CLIDetector {
                 supportsThinking: false,
                 supportsConversation: true,
                 supportsImageGeneration: true,
+                supportsPlanMode: true,
                 maxContextTokens: 128_000
             )
         ),
@@ -55,6 +57,7 @@ actor CLIDetector {
                 supportsThinking: true,
                 supportsConversation: true,
                 supportsImageGeneration: true,
+                supportsPlanMode: true,
                 maxContextTokens: 1_000_000
             )
         ),

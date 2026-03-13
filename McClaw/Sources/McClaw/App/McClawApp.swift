@@ -7,6 +7,7 @@ import Logging
 struct McClawApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var appState = AppState.shared
+    @State private var themeManager = ThemeManager.shared
 
     init() {
         // Bootstrap file logging before any Logger instances are created
@@ -18,6 +19,7 @@ struct McClawApp: App {
         Window("McClaw", id: "chat") {
             DeepLinkAwareChat()
                 .environment(appState)
+                .environment(themeManager)
                 .preferredColorScheme(appState.appColorScheme.swiftUIScheme)
         }
         .defaultSize(width: 480, height: 720)
@@ -43,6 +45,7 @@ struct McClawApp: App {
         Window("Canvas", id: "canvas") {
             CanvasView()
                 .environment(appState)
+                .environment(themeManager)
                 .preferredColorScheme(appState.appColorScheme.swiftUIScheme)
         }
         .defaultSize(width: 800, height: 600)

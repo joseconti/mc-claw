@@ -113,13 +113,13 @@ struct CLIParserTests {
     @Test("Gemini args with defaults")
     func buildArgsGemini() {
         let args = CLIParser.buildArguments(for: "gemini", message: "hey")
-        #expect(args == ["-o", "stream-json", "hey" + hint])
+        #expect(args == ["-o", "stream-json", "hey"])
     }
 
     @Test("Gemini args with model")
     func buildArgsGeminiWithModel() {
         let args = CLIParser.buildArguments(for: "gemini", message: "hey", model: "gemini-pro")
-        #expect(args == ["-o", "stream-json", "--model", "gemini-pro", "hey" + hint])
+        #expect(args == ["-o", "stream-json", "--model", "gemini-pro", "hey"])
     }
 
     @Test("Ollama args with default model")
@@ -173,5 +173,47 @@ struct CLIParserTests {
     func buildArgsBitNetModel() {
         let args = CLIParser.buildArguments(for: "bitnet", message: "test", model: "bitnet_b1_58-3B")
         #expect(args.contains(where: { $0.contains("bitnet_b1_58-3B") }))
+    }
+
+    // MARK: - Plan Mode buildArguments
+
+    @Test("Claude args with plan mode")
+    func buildArgsClaudePlanMode() {
+        let args = CLIParser.buildArguments(for: "claude", message: "analyze this", planMode: true)
+        #expect(args.contains("--permission-mode"))
+        #expect(args.contains("plan"))
+    }
+
+    @Test("Claude args without plan mode omits flag")
+    func buildArgsClaudeNoPlanMode() {
+        let args = CLIParser.buildArguments(for: "claude", message: "hello", planMode: false)
+        #expect(!args.contains("--permission-mode"))
+    }
+
+    @Test("Gemini args with plan mode")
+    func buildArgsGeminiPlanMode() {
+        let args = CLIParser.buildArguments(for: "gemini", message: "analyze this", planMode: true)
+        #expect(args.contains("--approval-mode=plan"))
+    }
+
+    @Test("ChatGPT args with plan mode")
+    func buildArgsChatGPTPlanMode() {
+        let args = CLIParser.buildArguments(for: "chatgpt", message: "analyze this", planMode: true)
+        #expect(args.contains("--sandbox"))
+        #expect(args.contains("read-only"))
+    }
+
+    @Test("Ollama plan mode injects system prompt")
+    func buildArgsOllamaPlanMode() {
+        let args = CLIParser.buildArguments(for: "ollama", message: "analyze this", planMode: true)
+        let joined = args.joined(separator: " ")
+        #expect(joined.contains("PLAN MODE"))
+    }
+
+    @Test("BitNet plan mode injects system prompt")
+    func buildArgsBitNetPlanMode() {
+        let args = CLIParser.buildArguments(for: "bitnet", message: "analyze this", planMode: true)
+        let joined = args.joined(separator: " ")
+        #expect(joined.contains("PLAN MODE"))
     }
 }

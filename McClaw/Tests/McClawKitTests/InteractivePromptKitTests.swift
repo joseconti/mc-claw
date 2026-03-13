@@ -129,6 +129,59 @@ struct InteractivePromptKitTests {
         #expect(prompts[2].groupIndex == 2)
     }
 
+    // MARK: - Extraction: JSON Array of Prompts
+
+    @Test("Extract prompts from JSON array block")
+    func extractArrayOfPrompts() {
+        let input = """
+        Let me ask you a few questions:
+
+        ```json
+        [
+          {"type":"interactive_prompt","id":"q1","title":"Project name?","style":"free_text","required":true},
+          {"type":"interactive_prompt","id":"q2","title":"Language?","style":"single_choice","options":[{"key":"swift","label":"Swift"},{"key":"python","label":"Python"}],"required":true},
+          {"type":"interactive_prompt","id":"q3","title":"Confirm setup?","style":"confirmation","required":false}
+        ]
+        ```
+
+        I'll set things up once you answer.
+        """
+        let (clean, prompts) = InteractivePromptKit.extractPrompts(from: input)
+        #expect(prompts.count == 3)
+        #expect(prompts[0].id == "q1")
+        #expect(prompts[0].style == .freeText)
+        #expect(prompts[1].id == "q2")
+        #expect(prompts[1].options?.count == 2)
+        #expect(prompts[2].id == "q3")
+        #expect(prompts[2].style == .confirmation)
+        #expect(clean.contains("Let me ask you a few questions"))
+        #expect(clean.contains("I'll set things up"))
+        #expect(!clean.contains("interactive_prompt"))
+    }
+
+    @Test("Mixed: JSON array block plus individual prompt block")
+    func extractMixedArrayAndSingle() {
+        let input = """
+        ```json
+        [
+          {"type":"interactive_prompt","id":"a1","title":"Q1","style":"free_text"},
+          {"type":"interactive_prompt","id":"a2","title":"Q2","style":"confirmation"}
+        ]
+        ```
+
+        And one more:
+
+        ```json
+        {"type":"interactive_prompt","id":"s1","title":"Q3","style":"free_text"}
+        ```
+        """
+        let (_, prompts) = InteractivePromptKit.extractPrompts(from: input)
+        #expect(prompts.count == 3)
+        #expect(prompts[0].id == "a1")
+        #expect(prompts[1].id == "a2")
+        #expect(prompts[2].id == "s1")
+    }
+
     // MARK: - Extraction: No Prompts
 
     @Test("No prompts in plain text returns original text")

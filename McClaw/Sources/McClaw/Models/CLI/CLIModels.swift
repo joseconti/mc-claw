@@ -90,6 +90,7 @@ struct CLICapabilities: Codable, Sendable {
     let supportsThinking: Bool
     let supportsConversation: Bool
     let supportsImageGeneration: Bool
+    let supportsPlanMode: Bool
     let maxContextTokens: Int?
 
     init(
@@ -99,6 +100,7 @@ struct CLICapabilities: Codable, Sendable {
         supportsThinking: Bool,
         supportsConversation: Bool,
         supportsImageGeneration: Bool = false,
+        supportsPlanMode: Bool = false,
         maxContextTokens: Int?
     ) {
         self.supportsStreaming = supportsStreaming
@@ -107,6 +109,7 @@ struct CLICapabilities: Codable, Sendable {
         self.supportsThinking = supportsThinking
         self.supportsConversation = supportsConversation
         self.supportsImageGeneration = supportsImageGeneration
+        self.supportsPlanMode = supportsPlanMode
         self.maxContextTokens = maxContextTokens
     }
 }

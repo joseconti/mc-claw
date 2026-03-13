@@ -289,18 +289,62 @@ struct GeneralSettingsTab: View {
 
             sectionHeader("Appearance")
 
-            // Color mode
-            Text("Color mode")
+            // Theme preset selector
+            Text(String(localized: "Theme"))
                 .font(.callout.weight(.medium))
                 .padding(.bottom, 8)
 
-            HStack(spacing: 16) {
-                ForEach(AppColorScheme.allCases, id: \.self) { scheme in
-                    colorSchemeCard(scheme, selected: state.appColorScheme == scheme)
-                        .onTapGesture { state.appColorScheme = scheme }
+            // Dark themes
+            Text(String(localized: "Dark Themes"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+
+            HStack(spacing: 12) {
+                ForEach(ThemePresetId.darkPresets, id: \.self) { preset in
+                    themePresetCard(preset, selected: ThemeManager.shared.selectedPreset == preset)
+                        .onTapGesture {
+                            ThemeManager.shared.selectedPreset = preset
+                            saveConfig()
+                        }
                 }
             }
+            .padding(.bottom, 12)
+
+            // Light themes
+            Text(String(localized: "Light Themes"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+
+            HStack(spacing: 12) {
+                ForEach(ThemePresetId.lightPresets, id: \.self) { preset in
+                    themePresetCard(preset, selected: ThemeManager.shared.selectedPreset == preset)
+                        .onTapGesture {
+                            ThemeManager.shared.selectedPreset = preset
+                            saveConfig()
+                        }
+                }
+            }
+            .padding(.bottom, 12)
+
+            // Custom theme
+            HStack(spacing: 12) {
+                themePresetCard(.custom, selected: ThemeManager.shared.selectedPreset == .custom)
+                    .onTapGesture {
+                        ThemeManager.shared.selectedPreset = .custom
+                        saveConfig()
+                    }
+                Spacer()
+            }
             .padding(.bottom, 16)
+
+            // Custom color editor (only visible when custom is selected)
+            if ThemeManager.shared.selectedPreset == .custom {
+                customThemeEditor()
+                    .padding(.bottom, 16)
+            }
+
 
             // Chat font
             Text("Chat font")
@@ -419,6 +463,43 @@ struct GeneralSettingsTab: View {
                 title: "Screen recording",
                 description: "Allow the AI to capture the screen when requested.",
                 isOn: $state.screenEnabled
+            )
+
+            sectionDivider()
+
+            // MARK: - Project Memory
+
+            sectionHeader(String(localized: "Project Memory", bundle: .module))
+
+            Text("McClaw can automatically maintain a memory file for each project, capturing the project description, rules, decisions, and context from your conversations. The selected AI will read and update this memory after each conversation, so every new chat starts with full project knowledge.", bundle: .module)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 12)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Memory provider", bundle: .module)
+                    .font(.callout.weight(.medium))
+
+                Picker(selection: Binding(
+                    get: { state.memoryProviderId ?? "__disabled__" },
+                    set: { state.memoryProviderId = $0 == "__disabled__" ? nil : $0 }
+                )) {
+                    Text("Disabled", bundle: .module).tag("__disabled__")
+                    ForEach(appState.installedAIProviders) { cli in
+                        Text(cli.displayName).tag(cli.id)
+                    }
+                } label: {
+                    EmptyView()
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: 250)
+            }
+            .padding(.bottom, 8)
+
+            settingsToggleRow(
+                title: String(localized: "Auto-update memory", bundle: .module),
+                description: String(localized: "Automatically update project memory after each conversation. Uses tokens from the selected provider.", bundle: .module),
+                isOn: $state.projectMemoryAutoUpdate
             )
 
             sectionDivider()
@@ -629,6 +710,140 @@ struct GeneralSettingsTab: View {
                 return .custom("OpenDyslexic", size: 26)
             }
             return .system(size: 26, design: .rounded)
+        }
+    }
+
+    // MARK: - Theme Preset Card
+
+    @ViewBuilder
+    private func themePresetCard(_ preset: ThemePresetId, selected: Bool) -> some View {
+        let previewColors = preset == .custom ? ThemeManager.shared.customColors : ThemePresets.colors(for: preset)
+
+        VStack(spacing: 8) {
+            // Preview card showing theme colors
+            RoundedRectangle(cornerRadius: 10)
+                .fill(previewColors.background.color)
+                .frame(width: 110, height: 72)
+                .overlay {
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(previewColors.foreground.color)
+                            .frame(width: 60, height: 7)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(previewColors.foreground.color.opacity(0.5))
+                            .frame(width: 44, height: 7)
+                        HStack(spacing: 6) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(previewColors.cardBackground.color)
+                                .frame(width: 28, height: 14)
+                            Circle()
+                                .fill(previewColors.accent.color)
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(
+                            selected ? previewColors.accent.color : Color.secondary.opacity(0.25),
+                            lineWidth: selected ? 2 : 1
+                        )
+                }
+                .overlay(alignment: .topTrailing) {
+                    if selected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(previewColors.accent.color)
+                            .padding(4)
+                    }
+                }
+
+            HStack(spacing: 4) {
+                Image(systemName: preset.iconName)
+                    .font(.caption2)
+                Text(preset.displayName)
+                    .font(.subheadline)
+            }
+            .foregroundStyle(selected ? .primary : .secondary)
+        }
+        .contentShape(Rectangle())
+        .accessibilityLabel(preset.displayName)
+    }
+
+    // MARK: - Custom Theme Editor
+
+    @ViewBuilder
+    private func customThemeEditor() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "Custom Colors"))
+                .font(.callout.weight(.medium))
+
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 16),
+                GridItem(.flexible(), spacing: 16)
+            ], spacing: 12) {
+                customColorRow(String(localized: "Accent"), keyPath: \.accent)
+                customColorRow(String(localized: "Background"), keyPath: \.background)
+                customColorRow(String(localized: "Sidebar"), keyPath: \.sidebarBackground)
+                customColorRow(String(localized: "Card"), keyPath: \.cardBackground)
+                customColorRow(String(localized: "User Bubble"), keyPath: \.userBubble)
+                customColorRow(String(localized: "Border"), keyPath: \.border)
+                customColorRow(String(localized: "Hover"), keyPath: \.hoverBackground)
+                customColorRow(String(localized: "Selection"), keyPath: \.sidebarSelection)
+                customColorRow(String(localized: "Foreground"), keyPath: \.foreground)
+                customColorRow(String(localized: "Secondary Text"), keyPath: \.secondaryForeground)
+            }
+
+            Button {
+                ThemeManager.shared.customColors = ThemePresets.mcclawDark
+                saveConfig()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.counterclockwise")
+                    Text(String(localized: "Reset to Default"))
+                }
+                .font(.subheadline)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .padding(.top, 4)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Theme.cardBackground.opacity(0.5))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Theme.border, lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func customColorRow(_ label: String, keyPath: WritableKeyPath<ThemeColors, CodableColor>) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.subheadline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ColorPicker("", selection: Binding(
+                get: {
+                    ThemeManager.shared.customColors[keyPath: keyPath].color
+                },
+                set: { newColor in
+                    if let nsColor = NSColor(newColor).usingColorSpace(.sRGB) {
+                        ThemeManager.shared.customColors[keyPath: keyPath] = CodableColor(nsColor: nsColor)
+                        saveConfig()
+                    }
+                }
+            ), supportsOpacity: false)
+            .labelsHidden()
+            .frame(width: 28, height: 28)
+
+            Text(ThemeManager.shared.customColors[keyPath: keyPath].hex)
+                .font(.caption.monospaced())
+                .foregroundStyle(.secondary)
+                .frame(width: 62, alignment: .leading)
         }
     }
 
@@ -1440,14 +1655,32 @@ struct SecuritySettingsTab: View {
                 }
 
                 // Permissions (TCC)
-                GroupBox("System Permissions") {
+                GroupBox {
                     VStack(spacing: 8) {
+                        HStack {
+                            Text(String(localized: "security_system_permissions", bundle: .module))
+                                .font(.callout.weight(.semibold))
+                            Spacer()
+                            Button {
+                                permissionManager.refreshAll()
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.subheadline)
+                            }
+                            .buttonStyle(.borderless)
+                            .help(String(localized: "security_refresh_permissions_hint", bundle: .module))
+                        }
+
                         ForEach(PermissionKind.allCases, id: \.self) { kind in
                             SecurityPermissionRow(kind: kind, manager: permissionManager)
                             if kind != PermissionKind.allCases.last {
                                 Divider()
                             }
                         }
+
+                        Text(String(localized: "security_permissions_hint", bundle: .module))
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 4)
                 }

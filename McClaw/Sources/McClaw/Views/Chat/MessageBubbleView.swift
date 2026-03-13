@@ -116,6 +116,11 @@ struct MessageBubbleView: View {
                     InstallProgressView(planId: planId)
                 }
 
+                // Plan file card
+                if let planPath = message.planFilePath {
+                    PlanFileCard(filePath: planPath)
+                }
+
                 // Interactive prompts
                 if !message.interactivePrompts.isEmpty {
                     let service = InteractivePromptService.shared

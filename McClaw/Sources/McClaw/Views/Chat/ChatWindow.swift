@@ -4,6 +4,7 @@ import McClawKit
 /// Main chat window with sidebar + content area, styled like Claude Desktop.
 struct ChatWindow: View {
     @Environment(AppState.self) private var appState
+    @Environment(ThemeManager.self) private var themeManager
     /// Active view model for the current session.
     @State private var viewModel = ChatViewModel()
     /// Keeps view models alive per session so streaming continues in background.
@@ -17,10 +18,14 @@ struct ChatWindow: View {
     @State private var installService = AgentInstallService.shared
 
     var body: some View {
+        // Access themeManager to observe theme changes without destroying view hierarchy
+        let _ = themeManager.selectedPreset
+        let _ = themeManager.customColors
+
         ZStack {
             HStack(spacing: 0) {
                 // Sidebar (collapsible, hidden in settings)
-                if showSidebar && currentSection != .settings {
+                if showSidebar && currentSection != .settings && currentSection != .help {
                     ChatSidebar(
                         currentSection: $currentSection,
                         onNewChat: newChat,
@@ -86,6 +91,17 @@ struct ChatWindow: View {
                 )
             }
         }
+        .sheet(isPresented: Binding(
+            get: { viewModel.pendingArtifactSave != nil },
+            set: { _ in }
+        )) {
+            if let pending = viewModel.pendingArtifactSave {
+                ArtifactSaveSheet(pending: pending) {
+                    viewModel.pendingArtifactSave = nil
+                }
+                .environment(appState)
+            }
+        }
         .onAppear {
             viewModel.loadCurrentSession()
             if let sessionId = appState.currentSessionId {
@@ -120,6 +136,23 @@ struct ChatWindow: View {
                 appState.showSettingsInMainWindow = false
             }
         }
+        .onChange(of: appState.pendingNavigationSection) { _, section in
+            if let section {
+                currentSection = section
+                appState.pendingNavigationSection = nil
+            }
+        }
+        .onChange(of: appState.pendingProjectIdForNewChat) { _, projectId in
+            if let projectId {
+                appState.pendingProjectIdForNewChat = nil
+                let sessionId = appState.currentSessionId ?? UUID().uuidString
+                Task {
+                    await SessionStore.shared.assignToProject(sessionId: sessionId, projectId: projectId)
+                    await ProjectStore.shared.addSession(sessionId, toProject: projectId)
+                }
+                currentSection = .projectDetail(projectId)
+            }
+        }
         .task {
             let detector = CLIDetector()
             let detected = await detector.scan()
@@ -137,14 +170,36 @@ struct ChatWindow: View {
     private var mainContentForSection: some View {
         switch currentSection {
         case .chats:
-            chatContent
+            HStack(spacing: 0) {
+                chatContent
+
+                // Plan detail panel (right side)
+                if let planPath = appState.openPlanFilePath {
+                    Divider()
+                    PlanDetailPanel(filePath: planPath)
+                        .environment(appState)
+                        .transition(.move(edge: .trailing))
+                }
+            }
+            .animation(.snappy(duration: 0.25), value: appState.openPlanFilePath)
         case .projects, .projectDetail:
-            ProjectsContentView(
-                currentSection: $currentSection,
-                onSelectSession: selectSession,
-                onDeleteSession: deleteSession,
-                onNewChatInProject: newChatInProject
-            )
+            HStack(spacing: 0) {
+                ProjectsContentView(
+                    currentSection: $currentSection,
+                    onSelectSession: selectSession,
+                    onDeleteSession: deleteSession,
+                    onNewChatInProject: newChatInProject
+                )
+
+                // Plan/artifact detail panel (right side)
+                if let planPath = appState.openPlanFilePath {
+                    Divider()
+                    PlanDetailPanel(filePath: planPath)
+                        .environment(appState)
+                        .transition(.move(edge: .trailing))
+                }
+            }
+            .animation(.snappy(duration: 0.25), value: appState.openPlanFilePath)
         case .schedules:
             SchedulesContentView()
         case .notifications:
@@ -167,6 +222,8 @@ struct ChatWindow: View {
                     }
                 }
             )
+        case .help:
+            helpContent
         case .settings:
             settingsContent
         }
@@ -199,6 +256,35 @@ struct ChatWindow: View {
 
             SettingsWindow()
                 .environment(appState)
+        }
+    }
+
+    /// Help guide embedded in the main window.
+    private var helpContent: some View {
+        VStack(spacing: 0) {
+            // Back header
+            HStack(spacing: 6) {
+                Button {
+                    currentSection = .chats
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.medium))
+                        Text(String(localized: "help_title", bundle: .module))
+                            .font(.title2.weight(.bold))
+                    }
+                    .foregroundStyle(.primary)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            HelpContentView()
         }
     }
 
@@ -399,9 +485,12 @@ struct ChatWindow: View {
     private func newChat() {
         if let currentId = appState.currentSessionId {
             viewModels[currentId] = viewModel
+            Task { await viewModel.flushMemoryUpdate() }
         }
         let newId = UUID().uuidString
         appState.currentSessionId = newId
+        appState.planModeActive = false
+        appState.openPlanFilePath = nil
         let newVM = ChatViewModel()
         viewModels[newId] = newVM
         viewModel = newVM
@@ -414,6 +503,7 @@ struct ChatWindow: View {
         // Save current VM before switching
         if let currentId = appState.currentSessionId, currentId != sessionId {
             viewModels[currentId] = viewModel
+            Task { await viewModel.flushMemoryUpdate() }
         }
         // Create and activate the new VM
         let newVM = ChatViewModel()
@@ -438,6 +528,8 @@ struct ChatWindow: View {
     private func selectSession(_ session: SessionInfo) {
         if let currentId = appState.currentSessionId {
             viewModels[currentId] = viewModel
+            // Flush pending memory update when switching away from a project chat
+            Task { await viewModel.flushMemoryUpdate() }
         }
         appState.currentSessionId = session.id
         if let cached = viewModels[session.id] {
@@ -488,6 +580,11 @@ struct ChatWindow: View {
         if let imagePrompt = appState.pendingImagePrompt {
             appState.pendingImagePrompt = nil
             Task { await viewModel.sendImageGeneration(prompt: imagePrompt) }
+            return
+        }
+        if let installPrompt = appState.pendingInstallPrompt {
+            appState.pendingInstallPrompt = nil
+            Task { await viewModel.sendInstallPrompt(installPrompt) }
             return
         }
         guard let message = appState.pendingMessage else { return }

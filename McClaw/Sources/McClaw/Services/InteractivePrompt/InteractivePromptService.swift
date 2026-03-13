@@ -63,6 +63,17 @@ final class InteractivePromptService {
         completeAll()
     }
 
+    /// Go back to the previous prompt, removing its response.
+    func goBack() {
+        guard currentIndex > 0 else { return }
+        // Remove the response for the previous prompt
+        if !responses.isEmpty {
+            responses.removeLast()
+        }
+        currentIndex -= 1
+        logger.info("Navigated back to prompt \(currentIndex)")
+    }
+
     /// Skip just the current prompt and advance.
     func skipCurrent() {
         let response = InteractivePromptKit.PromptResponse(

@@ -130,11 +130,12 @@ final class ProjectStore {
     }
 
     /// Update all editable fields of a project.
-    func update(projectId: String, name: String, description: String, rules: String) {
+    func update(projectId: String, name: String, description: String, rules: String, directories: [String] = []) {
         guard var project = load(projectId: projectId) else { return }
         project.name = name
         project.description = description
         project.rules = rules
+        project.directories = directories
         project.updatedAt = Date()
         save(project)
     }

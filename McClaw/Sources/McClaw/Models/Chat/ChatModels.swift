@@ -22,6 +22,8 @@ struct ChatMessage: Identifiable, Codable, Sendable {
     var interactivePrompts: [InteractivePromptKit.InteractivePrompt]
     /// User responses to interactive prompts.
     var promptResponses: [InteractivePromptKit.PromptResponse]
+    /// Path to the plan file generated in Plan Mode (e.g. ~/.claude/plans/xxx.md).
+    var planFilePath: String?
 
     init(
         id: UUID = UUID(),
@@ -37,7 +39,8 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         providerId: String? = nil,
         installPlanId: UUID? = nil,
         interactivePrompts: [InteractivePromptKit.InteractivePrompt] = [],
-        promptResponses: [InteractivePromptKit.PromptResponse] = []
+        promptResponses: [InteractivePromptKit.PromptResponse] = [],
+        planFilePath: String? = nil
     ) {
         self.id = id
         self.role = role
@@ -53,13 +56,14 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         self.installPlanId = installPlanId
         self.interactivePrompts = interactivePrompts
         self.promptResponses = promptResponses
+        self.planFilePath = planFilePath
     }
 
     // Custom Codable to maintain backwards compatibility with existing session files
     enum CodingKeys: String, CodingKey {
         case id, role, content, timestamp, sessionId, attachments, toolCalls
         case generatedImages, isStreaming, isGeneratingImage, providerId, installPlanId
-        case interactivePrompts, promptResponses
+        case interactivePrompts, promptResponses, planFilePath
     }
 
     init(from decoder: Decoder) throws {
@@ -78,6 +82,7 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         installPlanId = try container.decodeIfPresent(UUID.self, forKey: .installPlanId)
         interactivePrompts = try container.decodeIfPresent([InteractivePromptKit.InteractivePrompt].self, forKey: .interactivePrompts) ?? []
         promptResponses = try container.decodeIfPresent([InteractivePromptKit.PromptResponse].self, forKey: .promptResponses) ?? []
+        planFilePath = try container.decodeIfPresent(String.self, forKey: .planFilePath)
     }
 }
 
@@ -202,6 +207,8 @@ struct ProjectInfo: Identifiable, Codable, Sendable {
     var rules: String
     /// Path to a cover image for the project (relative to ~/.mcclaw/projects/).
     var imagePath: String?
+    /// Filesystem directories associated with this project.
+    var directories: [String]
     let createdAt: Date
     var updatedAt: Date
     var sessionIds: [String]
@@ -212,6 +219,7 @@ struct ProjectInfo: Identifiable, Codable, Sendable {
         description: String = "",
         rules: String = "",
         imagePath: String? = nil,
+        directories: [String] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date(),
         sessionIds: [String] = []
@@ -221,9 +229,28 @@ struct ProjectInfo: Identifiable, Codable, Sendable {
         self.description = description
         self.rules = rules
         self.imagePath = imagePath
+        self.directories = directories
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.sessionIds = sessionIds
+    }
+
+    // Custom Codable to handle backward compatibility (missing 'directories' key in old files)
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, rules, imagePath, directories, createdAt, updatedAt, sessionIds
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decode(String.self, forKey: .description)
+        rules = try container.decode(String.self, forKey: .rules)
+        imagePath = try container.decodeIfPresent(String.self, forKey: .imagePath)
+        directories = try container.decodeIfPresent([String].self, forKey: .directories) ?? []
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        sessionIds = try container.decode([String].self, forKey: .sessionIds)
     }
 }
 

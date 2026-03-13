@@ -357,7 +357,7 @@ final class AgentInstallService {
             let stderrPipe = Pipe()
 
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-c", ([command] + arguments).joined(separator: " ")]
+            process.arguments = ["-l", "-c", ([command] + arguments).joined(separator: " ")]
             process.standardOutput = stdoutPipe
             process.standardError = stderrPipe
             process.standardInput = FileHandle.nullDevice

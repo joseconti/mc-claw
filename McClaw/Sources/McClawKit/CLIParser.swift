@@ -123,6 +123,22 @@ public enum CLIParser {
     /// Ensures code blocks are wrapped in markdown fences for proper rendering.
     private static let formattingHint = "\n\n[Format: always wrap code in markdown fences (```language\\ncode\\n```). Never output raw code without fences.]"
 
+    /// System prompt injected for providers without native plan mode support.
+    private static let planModeSystemPrompt = """
+        You are in PLAN MODE (read-only). You MUST NOT:
+        - Write, create, edit, or delete any files
+        - Execute any commands or scripts
+        - Make any changes to the system
+
+        You MUST ONLY:
+        - Read and analyze existing files and code
+        - Search for patterns and information
+        - Ask clarifying questions
+        - Create detailed analysis and implementation plans
+
+        Always respond with analysis and plans, never with actions.
+        """
+
     public static func buildArguments(
         for providerId: String,
         message: String,
@@ -130,13 +146,17 @@ public enum CLIParser {
         sessionId: String? = nil,
         isResume: Bool = false,
         systemPrompt: String? = nil,
-        allowedTools: [String]? = nil
+        allowedTools: [String]? = nil,
+        planMode: Bool = false
     ) -> [String] {
         switch providerId {
         case "claude":
             // Claude requires --verbose with stream-json.
             // Streaming comes from content_block_delta events within verbose output.
             var args = ["--print", "--verbose", "--output-format", "stream-json"]
+            if planMode {
+                args += ["--permission-mode", "plan"]
+            }
             if let model { args += ["--model", model] }
             if let systemPrompt, !systemPrompt.isEmpty {
                 args += ["--system-prompt", systemPrompt]
@@ -160,6 +180,9 @@ public enum CLIParser {
 
         case "chatgpt":
             var args: [String] = []
+            if planMode {
+                args += ["--sandbox", "read-only"]
+            }
             if let model { args += ["-m", model] }
             // ChatGPT CLI has no --system-prompt; prepend to message
             let prefix = systemPromptPrefix(systemPrompt, provider: "chatgpt")
@@ -168,29 +191,36 @@ public enum CLIParser {
 
         case "gemini":
             var args = ["-o", "stream-json"]
+            if planMode {
+                args += ["--approval-mode=plan"]
+            }
             if let model { args += ["--model", model] }
             let prefix = systemPromptPrefix(systemPrompt, provider: "gemini")
-            args += [prefix + message + formattingHint]
+            args += [prefix + message]
             return args
 
         case "ollama":
             var args = ["run"]
             args += [model ?? "llama3.2"]
+            // Ollama has no native plan mode; inject system prompt fallback
+            let planPrefix = planMode ? "[PLAN MODE]\n\(planModeSystemPrompt)\n[END PLAN MODE]\n\n" : ""
             let prefix = systemPromptPrefix(systemPrompt, provider: "ollama")
-            args += [prefix + message + formattingHint]
+            args += [planPrefix + prefix + message + formattingHint]
             return args
 
         case "bitnet":
             // BitNet primarily uses REST server (handled in CLIBridge).
             // This builds fallback CLI args for direct inference via run_inference.py.
+            let prompt = planMode ? "[PLAN MODE]\n\(planModeSystemPrompt)\n[END PLAN MODE]\n\n\(message)" : message
             return BitNetKit.buildInferenceArgs(
                 modelPath: BitNetKit.Paths.resolveModelPath(model ?? "BitNet-b1.58-2B-4T"),
-                prompt: message
+                prompt: prompt
             )
 
         default:
+            let planPrefix = planMode ? "[PLAN MODE]\n\(planModeSystemPrompt)\n[END PLAN MODE]\n\n" : ""
             let prefix = systemPromptPrefix(systemPrompt, provider: "unknown")
-            return [prefix + message + formattingHint]
+            return [planPrefix + prefix + message + formattingHint]
         }
     }
 

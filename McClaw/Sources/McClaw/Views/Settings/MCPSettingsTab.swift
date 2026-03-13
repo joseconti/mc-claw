@@ -190,9 +190,27 @@ struct MCPSettingsTab: View {
                 )
                 Spacer()
             } else {
-                List(serversForSelectedProvider, selection: $selectedServerId) { server in
-                    serverRow(server)
-                        .tag(server.id)
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(serversForSelectedProvider) { server in
+                            Button {
+                                selectedServerId = server.id
+                            } label: {
+                                serverRow(server)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(selectedServerId == server.id ? Theme.sidebarSelection : .clear)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+
+                            if server.id != serversForSelectedProvider.last?.id {
+                                Divider()
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                    }
                 }
             }
 

@@ -13,6 +13,11 @@ struct MultiLineTextInput: NSViewRepresentable {
     var minHeight: CGFloat = 22
     var maxHeight: CGFloat = 150
     var onSubmit: () -> Void
+    var onArrowUp: (() -> Void)?
+    var onArrowDown: (() -> Void)?
+    var onTab: (() -> Void)?
+    var onEscape: (() -> Void)?
+    var isPopupVisible: Bool = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -44,6 +49,11 @@ struct MultiLineTextInput: NSViewRepresentable {
         textView.textContainer?.lineBreakMode = .byWordWrapping
         textView.delegate = context.coordinator
         textView.onSubmit = onSubmit
+        textView.onArrowUp = onArrowUp
+        textView.onArrowDown = onArrowDown
+        textView.onTab = onTab
+        textView.onEscape = onEscape
+        textView.isPopupVisible = isPopupVisible
         textView.placeholderString = placeholder
 
         scrollView.documentView = textView
@@ -60,6 +70,11 @@ struct MultiLineTextInput: NSViewRepresentable {
         }
         textView.placeholderString = placeholder
         textView.onSubmit = onSubmit
+        textView.onArrowUp = onArrowUp
+        textView.onArrowDown = onArrowDown
+        textView.onTab = onTab
+        textView.onEscape = onEscape
+        textView.isPopupVisible = isPopupVisible
     }
 
     class Coordinator: NSObject, NSTextViewDelegate {
@@ -102,13 +117,46 @@ class AutoSizingScrollView: NSScrollView {
 }
 
 /// Custom NSTextView that sends on Enter and inserts newline on Shift+Enter.
+/// Also intercepts arrow keys, Tab, and Escape when the command popup is visible.
 private class SubmitTextView: NSTextView {
     var onSubmit: (() -> Void)?
+    var onArrowUp: (() -> Void)?
+    var onArrowDown: (() -> Void)?
+    var onTab: (() -> Void)?
+    var onEscape: (() -> Void)?
+    var isPopupVisible: Bool = false
     var placeholderString: String? {
         didSet { needsDisplay = true }
     }
 
     override func keyDown(with event: NSEvent) {
+        // When command popup is visible, intercept navigation keys
+        if isPopupVisible {
+            switch event.keyCode {
+            case 126: // Arrow up
+                onArrowUp?()
+                return
+            case 125: // Arrow down
+                onArrowDown?()
+                return
+            case 48: // Tab
+                onTab?()
+                return
+            case 53: // Escape
+                onEscape?()
+                return
+            case 36 where !event.modifierFlags.contains(.shift): // Enter (select command)
+                onTab?()
+                return
+            default:
+                break
+            }
+        } else if event.keyCode == 53 {
+            // Escape without popup — do nothing special
+            super.keyDown(with: event)
+            return
+        }
+
         // Enter/Return without Shift → send
         if event.keyCode == 36 && !event.modifierFlags.contains(.shift) {
             onSubmit?()
@@ -165,6 +213,8 @@ struct ChatInputBar: View {
     @State private var imageMode: Bool = false
     @State private var installMode: Bool = false
     @State private var selectedModelId: String?
+    @State private var showCommandPopup: Bool = false
+    @State private var selectedCommandIndex: Int = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -178,13 +228,15 @@ struct ChatInputBar: View {
                 // Text field
                 MultiLineTextInput(
                     text: $text,
-                    placeholder: voiceMode.isActive
-                        ? String(localized: "Voice Mode active...", bundle: .module)
-                        : imageMode
-                            ? String(localized: "Describe the image you want to create...", bundle: .module)
-                            : installMode
-                                ? String(localized: "Paste the install prompt here...", bundle: .module)
-                                : String(localized: "Type / for commands", bundle: .module),
+                    placeholder: appState.planModeActive
+                        ? String(localized: "Describe what you want to analyze...", bundle: .module)
+                        : voiceMode.isActive
+                            ? String(localized: "Voice Mode active...", bundle: .module)
+                            : imageMode
+                                ? String(localized: "Describe the image you want to create...", bundle: .module)
+                                : installMode
+                                    ? String(localized: "Paste the install prompt here...", bundle: .module)
+                                    : String(localized: "Type / for commands", bundle: .module),
                     font: .systemFont(ofSize: compact ? 14 : 16),
                     minHeight: compact ? 36 : 80,
                     maxHeight: compact ? 120 : 200,
@@ -192,26 +244,51 @@ struct ChatInputBar: View {
                         if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             sendMessage()
                         }
-                    }
+                    },
+                    onArrowUp: { moveCommandSelection(by: -1) },
+                    onArrowDown: { moveCommandSelection(by: 1) },
+                    onTab: { confirmCommandSelection() },
+                    onEscape: { showCommandPopup = false },
+                    isPopupVisible: showCommandPopup
                 )
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, compact ? 10 : 16)
                 .padding(.horizontal, 14)
                 .padding(.bottom, compact ? 6 : 12)
 
+                // Plan Mode banner
+                if appState.planModeActive {
+                    HStack(spacing: 6) {
+                        Image(systemName: "binoculars.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Text(String(localized: "Plan Mode — Read-only analysis, no changes will be made", bundle: .module))
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 2)
+                }
+
                 // Bottom row: attach + voice on left, send on right
                 HStack(spacing: 8) {
                     // Attach
                     attachButton
 
-                    // Voice toggle
+                    // Voice toggle (available in all modes including Plan)
                     voiceButton
 
-                    // Image generation toggle
-                    imageGenButton
+                    if !appState.planModeActive {
+                        // Image generation toggle
+                        imageGenButton
 
-                    // Agent install toggle
-                    installButton
+                        // Agent install toggle
+                        installButton
+                    }
+
+                    // Plan Mode toggle
+                    planModeButton
 
                     // Model selector
                     modelPicker
@@ -236,8 +313,33 @@ struct ChatInputBar: View {
             .frame(maxWidth: 780)
             .padding(.horizontal, 20)
             .padding(.vertical, compact ? 6 : 10)
+            .overlay(alignment: .top) {
+                if showCommandPopup && !filteredCommands.isEmpty {
+                    SlashCommandPopup(
+                        commands: filteredCommands,
+                        selectedIndex: selectedCommandIndex,
+                        onSelect: selectCommand
+                    )
+                    .frame(maxWidth: 780)
+                    .padding(.horizontal, 20)
+                    .offset(y: -(CGFloat(min(filteredCommands.count, 6)) * 35 + 16))
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .animation(.easeOut(duration: 0.15), value: showCommandPopup)
+                    .animation(.easeOut(duration: 0.15), value: filteredCommands.count)
+                }
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: voiceMode.isActive)
+        .onChange(of: text) { _, newText in
+            let trimmed = newText.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("/") && !trimmed.contains("\n") {
+                let matches = SlashCommandRegistry.filter(query: trimmed)
+                showCommandPopup = !matches.isEmpty
+                selectedCommandIndex = 0
+            } else {
+                showCommandPopup = false
+            }
+        }
         .onChange(of: appState.prefillText) { _, newValue in
             if let newValue, !newValue.isEmpty {
                 text = newValue
@@ -340,7 +442,7 @@ struct ChatInputBar: View {
         if hasImageCapableCLI {
             Button {
                 imageMode.toggle()
-                if imageMode { installMode = false }
+                if imageMode { installMode = false; appState.planModeActive = false }
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: imageMode ? "photo.fill" : "photo")
@@ -373,7 +475,7 @@ struct ChatInputBar: View {
     private var installButton: some View {
         Button {
             installMode.toggle()
-            if installMode { imageMode = false }
+            if installMode { imageMode = false; appState.planModeActive = false }
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: installMode ? "square.and.arrow.down.fill" : "square.and.arrow.down")
@@ -399,6 +501,41 @@ struct ChatInputBar: View {
         }
         .buttonStyle(.plain)
         .help(String(localized: "Agent Install", bundle: .module))
+    }
+
+    @ViewBuilder
+    private var planModeButton: some View {
+        Button {
+            appState.planModeActive.toggle()
+            if appState.planModeActive {
+                imageMode = false
+                installMode = false
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: appState.planModeActive ? "binoculars.fill" : "binoculars")
+                    .font(.subheadline)
+                    .foregroundStyle(appState.planModeActive ? .white : .secondary)
+                Text(String(localized: "Plan", bundle: .module))
+                    .font(.callout.weight(appState.planModeActive ? .semibold : .regular))
+                    .foregroundStyle(appState.planModeActive ? .white : .secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background {
+                if appState.planModeActive {
+                    Capsule()
+                        .fill(Color.orange.opacity(0.35))
+                        .overlay(Capsule().strokeBorder(Color.orange.opacity(0.5), lineWidth: 1))
+                } else {
+                    Capsule().fill(.quaternary.opacity(0.5))
+                }
+            }
+            .clipShape(Capsule())
+            .liquidGlassCapsule(interactive: false)
+        }
+        .buttonStyle(.plain)
+        .help(String(localized: "Plan Mode — Read-only analysis", bundle: .module))
     }
 
     @ViewBuilder
@@ -489,6 +626,29 @@ struct ChatInputBar: View {
             return model.modelId == defaultId
         }
         return false
+    }
+
+    // MARK: - Slash Command Popup
+
+    private var filteredCommands: [SlashCommandDefinition] {
+        SlashCommandRegistry.filter(query: text)
+    }
+
+    private func selectCommand(_ cmd: SlashCommandDefinition) {
+        text = cmd.argumentHint != nil ? cmd.command + " " : cmd.command
+        showCommandPopup = false
+    }
+
+    private func moveCommandSelection(by delta: Int) {
+        let count = filteredCommands.count
+        guard count > 0 else { return }
+        selectedCommandIndex = max(0, min(count - 1, selectedCommandIndex + delta))
+    }
+
+    private func confirmCommandSelection() {
+        let commands = filteredCommands
+        guard !commands.isEmpty, selectedCommandIndex < commands.count else { return }
+        selectCommand(commands[selectedCommandIndex])
     }
 
     // MARK: - Helpers

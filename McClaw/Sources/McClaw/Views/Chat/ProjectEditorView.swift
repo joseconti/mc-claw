@@ -11,6 +11,7 @@ struct ProjectEditorView: View {
     @State private var name = ""
     @State private var description = ""
     @State private var rules = ""
+    @State private var directories: [String] = []
     @State private var coverImage: NSImage?
     @State private var isGeneratingImage = false
     @State private var hasChanges = false
@@ -26,12 +27,13 @@ struct ProjectEditorView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.body.weight(.medium))
-                            Text("Back")
+                            Text("Back", bundle: .module)
                                 .font(.body)
                         }
                         .foregroundStyle(.secondary)
+                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderless)
 
                     Spacer()
 
@@ -96,6 +98,64 @@ struct ProjectEditorView: View {
                                 )
                                 .frame(minHeight: 140, maxHeight: 280)
                                 .onChange(of: rules) { _, _ in hasChanges = true }
+                        }
+                    }
+
+                    // Directories
+                    formSection(title: String(localized: "Directories", bundle: .module)) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Filesystem directories associated with this project. The AI will use them as working paths.", bundle: .module)
+                                .font(.subheadline)
+                                .foregroundStyle(.tertiary)
+
+                            if directories.isEmpty {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "folder.badge.questionmark")
+                                        .foregroundStyle(.tertiary)
+                                    Text("No directories added yet", bundle: .module)
+                                        .font(.callout)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(.vertical, 8)
+                            } else {
+                                VStack(spacing: 4) {
+                                    ForEach(directories, id: \.self) { dir in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "folder.fill")
+                                                .font(.subheadline)
+                                                .foregroundStyle(Color.accentColor)
+                                            Text(dir)
+                                                .font(.callout.monospaced())
+                                                .lineLimit(1)
+                                                .truncationMode(.middle)
+                                            Spacer()
+                                            Button {
+                                                directories.removeAll { $0 == dir }
+                                                hasChanges = true
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.tertiary)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                        .padding(.vertical, 4)
+                                        .padding(.horizontal, 8)
+                                        .background(.quaternary.opacity(0.2))
+                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    }
+                                }
+                            }
+
+                            Button {
+                                addDirectory()
+                            } label: {
+                                Label(String(localized: "Add Directory", bundle: .module), systemImage: "folder.badge.plus")
+                                    .font(.callout)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .padding(.top, 4)
                         }
                     }
 
@@ -200,9 +260,10 @@ struct ProjectEditorView: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                contextBullet(icon: "doc.text", text: "The project rules as a system prompt")
+                contextBullet(icon: "brain", text: "The project memory (description, rules, decisions, and context)")
+                contextBullet(icon: "folder", text: "The configured project directories as working paths")
+                contextBullet(icon: "doc.text", text: "Project files content uploaded to the project")
                 contextBullet(icon: "bubble.left.and.bubble.right", text: "A digest of recent messages from other chats in the project")
-                contextBullet(icon: "link", text: "This allows the AI to maintain coherence across all project conversations")
             }
             .padding(.leading, 4)
         }
@@ -242,13 +303,40 @@ struct ProjectEditorView: View {
         name = project.name
         description = project.description
         rules = project.rules
+        directories = project.directories
         coverImage = projectStore.loadCoverImage(for: project)
         hasChanges = false
     }
 
     private func saveProject() {
-        projectStore.update(projectId: projectId, name: name, description: description, rules: rules)
+        projectStore.update(projectId: projectId, name: name, description: description, rules: rules, directories: directories)
+        // Sync memory top sections if memory exists
+        if ProjectMemoryStore.shared.loadMemory(for: projectId) != nil {
+            ProjectMemoryStore.shared.updateProjectSections(
+                for: projectId, name: name, description: description,
+                rules: rules, directories: directories
+            )
+        }
         hasChanges = false
+    }
+
+    private func addDirectory() {
+        let panel = NSOpenPanel()
+        panel.title = String(localized: "Select a project directory", bundle: .module)
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.canCreateDirectories = false
+
+        if panel.runModal() == .OK {
+            for url in panel.urls {
+                let path = url.path
+                if !directories.contains(path) {
+                    directories.append(path)
+                }
+            }
+            hasChanges = true
+        }
     }
 
     private func generateImage() {

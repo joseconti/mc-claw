@@ -34,15 +34,8 @@ struct InteractivePromptCard: View {
     @ViewBuilder
     private var activeCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Header
+            // Header (includes title + description + navigation)
             headerRow
-
-            // Description
-            if let desc = prompt.description, !desc.isEmpty {
-                Text(desc)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
 
             // Content by style
             switch prompt.style {
@@ -90,45 +83,64 @@ struct InteractivePromptCard: View {
 
     @ViewBuilder
     private var headerRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "questionmark.circle.fill")
-                .font(.title3)
-                .foregroundStyle(Theme.accent)
+        VStack(alignment: .leading, spacing: 6) {
+            // Title row
+            HStack(spacing: 8) {
+                Text(prompt.title)
+                    .font(.body.weight(.medium))
 
-            Text(prompt.title)
-                .font(.subheadline.weight(.semibold))
+                Spacer()
 
-            Spacer()
+                // Navigation controls for wizard flow (like Claude: < 2 de 4 > X)
+                if totalCount > 1 {
+                    HStack(spacing: 8) {
+                        // Back chevron
+                        Button {
+                            promptService.goBack()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(currentIndex > 0 ? .secondary : .quaternary)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(currentIndex == 0)
 
-            // Navigation indicator ("1 of 4")
-            if totalCount > 1 {
-                HStack(spacing: 4) {
-                    if currentIndex > 0 {
-                        Image(systemName: "chevron.left")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    Text(String(localized: "\(currentIndex + 1) of \(totalCount)", bundle: .module))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if currentIndex < totalCount - 1 {
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                        // Page indicator
+                        Text(String(localized: "\(currentIndex + 1) of \(totalCount)", bundle: .module))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+
+                        // Forward chevron (skip current to advance)
+                        Button {
+                            promptService.skipCurrent()
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(currentIndex < totalCount - 1 ? .secondary : .quaternary)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(currentIndex >= totalCount - 1)
                     }
                 }
+
+                // Close button (skip all)
+                Button {
+                    promptService.skipAll()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(String(localized: "Skip all", bundle: .module))
             }
 
-            // Close/skip button
-            Button {
-                promptService.skipCurrent()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption)
+            // Description
+            if let desc = prompt.description, !desc.isEmpty {
+                Text(desc)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .help(String(localized: "Skip", bundle: .module))
         }
     }
 
@@ -165,19 +177,40 @@ struct InteractivePromptCard: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            // Confirm button
-            HStack {
+            // Footer: selection count + Skip + confirm arrow
+            HStack(spacing: 12) {
+                if !selectedKeys.isEmpty {
+                    Text(String(localized: "\(selectedKeys.count) selected", bundle: .module))
+                        .font(.callout)
+                        .foregroundStyle(Theme.accent)
+                }
+
                 Spacer()
+
+                // Skip button
+                Button {
+                    promptService.skipCurrent()
+                } label: {
+                    Text(String(localized: "Skip", bundle: .module))
+                        .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+
+                // Confirm arrow button
                 Button {
                     submitMultiChoice()
                 } label: {
-                    Text(String(localized: "Confirm", bundle: .module))
-                        .font(.subheadline.weight(.medium))
+                    Image(systemName: "arrow.right")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(selectedKeys.isEmpty ? Color.gray.opacity(0.3) : Theme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
+                .buttonStyle(.plain)
                 .disabled(selectedKeys.isEmpty)
             }
+            .padding(.top, 4)
         }
     }
 

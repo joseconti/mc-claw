@@ -49,6 +49,14 @@ final class AppState {
     /// Whether the agent is currently processing a request
     var isWorking: Bool = false
 
+    /// Whether Plan Mode is active for the current session (read-only analysis).
+    /// Resets on new chat. Not persisted to disk.
+    var planModeActive: Bool = false
+
+    /// Path to the plan file currently displayed in the right-side panel.
+    /// Setting this opens the panel; nil closes it.
+    var openPlanFilePath: String?
+
     // MARK: - Onboarding
 
     /// Whether the user has completed the first-run wizard
@@ -59,6 +67,12 @@ final class AppState {
 
     /// Whether to navigate to settings in the main window (triggered by Cmd+,)
     var showSettingsInMainWindow: Bool = false
+
+    /// Section to navigate to when the chat window opens (set by floating panel or deep links).
+    var pendingNavigationSection: SidebarSection?
+
+    /// Project ID to create a new chat in (set by floating panel "New Chat in Project" action).
+    var pendingProjectIdForNewChat: String?
 
     // MARK: - Voice
 
@@ -146,6 +160,13 @@ final class AppState {
         return chatModelOverride ?? defaultModels[pid]
     }
 
+    // MARK: - Project Memory
+
+    /// AI provider used to update project memory files. Nil = disabled.
+    var memoryProviderId: String?
+    /// Whether to auto-update memory after each conversation in a project.
+    var projectMemoryAutoUpdate: Bool = true
+
     // MARK: - BitNet (Experimental)
 
     /// BitNet provider enabled
@@ -206,6 +227,9 @@ final class AppState {
 
     /// Image prompt queued from the menu bar mini chat, to be sent as image generation when the chat window opens.
     var pendingImagePrompt: String?
+
+    /// Install prompt queued from the menu bar mini chat, to be sent as agent install when the chat window opens.
+    var pendingInstallPrompt: String?
 
     /// Text to pre-fill in the chat input bar without sending (used by quick actions).
     var prefillText: String?
