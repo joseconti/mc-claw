@@ -9,6 +9,7 @@ enum SidebarSection: Hashable {
     case notifications
     case multimedia
     case installations
+    case git
     case trash
     case help
     case settings
@@ -120,6 +121,15 @@ struct ChatSidebar: View {
                     badge: installService.installRegistry.count
                 ) {
                     currentSection = .installations
+                }
+                if appState.gitSectionEnabled {
+                    SidebarNavItem(
+                        icon: "chevron.left.forwardslash.chevron.right",
+                        label: String(localized: "Git", bundle: .module),
+                        isActive: currentSection == .git
+                    ) {
+                        currentSection = .git
+                    }
                 }
                 SidebarNavItem(
                     icon: "trash",

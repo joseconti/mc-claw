@@ -208,6 +208,8 @@ struct ChatWindow: View {
             TrashContentView()
         case .installations:
             InstallationsContentView()
+        case .git:
+            GitPanelView()
         case .multimedia:
             MultimediaContentView(
                 onNavigateToChat: { sessionId in

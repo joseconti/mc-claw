@@ -16,14 +16,59 @@ final class ConnectorStore {
 
     /// OAuth client ID for Google/Microsoft (set by user in Settings > Connectors).
     var oauthClientId: String? {
-        get { UserDefaults.standard.string(forKey: "mcclaw.oauth.clientId") }
-        set { UserDefaults.standard.set(newValue, forKey: "mcclaw.oauth.clientId") }
+        get { oauthConfig.clientId }
+        set {
+            var cfg = oauthConfig
+            cfg.clientId = newValue
+            saveOAuthConfig(cfg)
+        }
     }
 
     /// OAuth client secret for Google/Microsoft (set by user in Settings > Connectors).
     var oauthClientSecret: String? {
-        get { UserDefaults.standard.string(forKey: "mcclaw.oauth.clientSecret") }
-        set { UserDefaults.standard.set(newValue, forKey: "mcclaw.oauth.clientSecret") }
+        get { oauthConfig.clientSecret }
+        set {
+            var cfg = oauthConfig
+            cfg.clientSecret = newValue
+            saveOAuthConfig(cfg)
+        }
+    }
+
+    // MARK: - OAuth Config File Persistence
+
+    private struct OAuthConfig: Codable {
+        var clientId: String?
+        var clientSecret: String?
+    }
+
+    private var oauthConfigURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".mcclaw")
+            .appendingPathComponent("oauth-config.json")
+    }
+
+    private var oauthConfig: OAuthConfig {
+        // Try file first
+        if let data = try? Data(contentsOf: oauthConfigURL),
+           let config = try? JSONDecoder().decode(OAuthConfig.self, from: data) {
+            return config
+        }
+        // Migrate from UserDefaults if present
+        let legacy = OAuthConfig(
+            clientId: UserDefaults.standard.string(forKey: "mcclaw.oauth.clientId"),
+            clientSecret: UserDefaults.standard.string(forKey: "mcclaw.oauth.clientSecret")
+        )
+        if legacy.clientId != nil || legacy.clientSecret != nil {
+            saveOAuthConfig(legacy)
+            UserDefaults.standard.removeObject(forKey: "mcclaw.oauth.clientId")
+            UserDefaults.standard.removeObject(forKey: "mcclaw.oauth.clientSecret")
+        }
+        return legacy
+    }
+
+    private func saveOAuthConfig(_ config: OAuthConfig) {
+        guard let data = try? JSONEncoder().encode(config) else { return }
+        try? data.write(to: oauthConfigURL, options: .atomic)
     }
 
     private var configFileURL: URL {
@@ -151,7 +196,7 @@ final class ConnectorStore {
             let dir = configFileURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(instances)
-            try data.write(to: configFileURL)
+            try data.write(to: configFileURL, options: .atomic)
         } catch {
             logger.error("Failed to save connectors config: \(error)")
         }

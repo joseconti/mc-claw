@@ -71,6 +71,9 @@ final class AppState {
     /// Section to navigate to when the chat window opens (set by floating panel or deep links).
     var pendingNavigationSection: SidebarSection?
 
+    /// Settings tab to open when navigating to settings (e.g., from Git empty state → Connectors).
+    var pendingSettingsTab: String?
+
     /// Project ID to create a new chat in (set by floating panel "New Chat in Project" action).
     var pendingProjectIdForNewChat: String?
 
@@ -187,6 +190,11 @@ final class AppState {
     var bitnetAlwaysOn: Bool = true
     /// Show experimental providers in UI
     var showExperimentalProviders: Bool = false
+
+    // MARK: - Git Integration
+
+    /// Git section enabled in sidebar
+    var gitSectionEnabled: Bool = false
 
     // MARK: - Canvas & Node
 

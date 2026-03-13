@@ -24,6 +24,8 @@ Complete documentation for McClaw, a native macOS application (Swift/SwiftUI) th
 | 13 | [LOCALIZACION.md](13-LOCALIZACION.md) | Multi-language localization: infrastructure, Localizable.strings, SPM integration, language tiers (Tier 1: EU, Tier 2: global, Tier 3: variants) |
 | 14 | [APP-MOVIL.md](14-APP-MOVIL.md) | Mobile app study (iPhone and Android) for communicating with McClaw |
 | 15 | [BITNET-PROVIDER.md](15-BITNET-PROVIDER.md) | BitNet 1-bit LLM provider (experimental): installation flow, model management, CLI integration, session handling, configuration |
+| 16 | [GIT-INTEGRATION.md](16-GIT-INTEGRATION.md) | Git integration: dedicated sidebar section, platform selector (GitHub/GitLab), AI-assisted repo operations (read/write), local git CLI via GitService, chat context enrichment, confirmation flow for write actions |
+| 17 | [ACCESSIBILITY.md](17-ACCESSIBILITY.md) | Accesibilidad: VoiceOver labels, Dynamic Type (@ScaledMetric), Reduce Motion, Alto Contraste, Focus Management, convenciones para vistas nuevas |
 
 ---
 

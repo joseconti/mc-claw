@@ -2,17 +2,18 @@ import Foundation
 import Security
 import Logging
 
-/// Manages credential storage in macOS Keychain for connectors.
+/// Manages credential storage for connectors.
+/// Primary storage is FileCredentialStore (survives app rebuilds).
+/// Keychain is kept as a migration fallback for existing credentials.
 actor KeychainService {
     static let shared = KeychainService()
 
     private let logger = Logger(label: "ai.mcclaw.keychain")
     private let servicePrefix = "ai.mcclaw.connector"
 
-    // MARK: - Low-level CRUD
+    // MARK: - Low-level Keychain CRUD (legacy, used for migration)
 
-    func save(service: String, account: String, data: Data) throws {
-        // Delete existing item first (if any)
+    private func keychainSave(service: String, account: String, data: Data) throws {
         let deleteQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -34,7 +35,7 @@ actor KeychainService {
         }
     }
 
-    func load(service: String, account: String) -> Data? {
+    private func keychainLoad(service: String, account: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -49,7 +50,7 @@ actor KeychainService {
         return result as? Data
     }
 
-    func delete(service: String, account: String) {
+    private func keychainDelete(service: String, account: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -58,29 +59,53 @@ actor KeychainService {
         SecItemDelete(query as CFDictionary)
     }
 
-    // MARK: - High-level Credentials API
+    // MARK: - High-level Credentials API (delegates to FileCredentialStore)
 
     func saveCredentials(instanceId: String, credentials: ConnectorCredentials) throws {
+        // Save to file-based store (survives rebuilds)
+        try FileCredentialStore.shared.save(instanceId: instanceId, credentials: credentials)
+
+        // Also save to Keychain as secondary copy (best-effort)
         let service = "\(servicePrefix).\(instanceId)"
-        let data = try JSONEncoder().encode(credentials)
-        try save(service: service, account: "credentials", data: data)
+        if let data = try? JSONEncoder().encode(credentials) {
+            try? keychainSave(service: service, account: "credentials", data: data)
+        }
+
         logger.info("Credentials saved for connector \(instanceId)")
     }
 
     func loadCredentials(instanceId: String) -> ConnectorCredentials? {
+        // 1. Try file-based store first (primary)
+        if let creds = FileCredentialStore.shared.load(instanceId: instanceId) {
+            return creds
+        }
+
+        // 2. Fallback: try Keychain (migration from pre-file-store versions)
         let service = "\(servicePrefix).\(instanceId)"
-        guard let data = load(service: service, account: "credentials") else { return nil }
-        return try? JSONDecoder().decode(ConnectorCredentials.self, from: data)
+        if let data = keychainLoad(service: service, account: "credentials"),
+           let creds = try? JSONDecoder().decode(ConnectorCredentials.self, from: data) {
+            logger.info("Migrating credentials from Keychain to file store for \(instanceId)")
+            // Migrate to file store
+            try? FileCredentialStore.shared.save(instanceId: instanceId, credentials: creds)
+            return creds
+        }
+
+        return nil
     }
 
     func deleteCredentials(instanceId: String) {
+        // Delete from both stores
+        FileCredentialStore.shared.delete(instanceId: instanceId)
+
         let service = "\(servicePrefix).\(instanceId)"
-        delete(service: service, account: "credentials")
+        keychainDelete(service: service, account: "credentials")
+
         logger.info("Credentials deleted for connector \(instanceId)")
     }
 
     func hasCredentials(instanceId: String) -> Bool {
-        loadCredentials(instanceId: instanceId) != nil
+        FileCredentialStore.shared.hasCredentials(instanceId: instanceId)
+            || loadCredentials(instanceId: instanceId) != nil
     }
 }
 

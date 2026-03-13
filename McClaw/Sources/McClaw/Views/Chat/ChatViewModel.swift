@@ -12,6 +12,8 @@ final class ChatViewModel {
     var isStreaming: Bool = false
     /// Set when a plan file is detected in a non-project chat, triggers ArtifactSaveSheet.
     var pendingArtifactSave: PendingArtifactSave?
+    /// Active Git context for prompt enrichment (set by Git panel).
+    var gitContext: GitContext?
 
     private let logger = Logger(label: "ai.mcclaw.chat-vm")
     private let sessionStore = SessionStore.shared
@@ -109,6 +111,12 @@ final class ChatViewModel {
         if !headerInjectedThisTurn, let header = enrichmentService.buildConnectorsHeader() {
             messageForCLI = "\(header)\n\n\(messageForCLI)"
             headerInjectedThisTurn = true
+        }
+
+        // Prepend Git context header if a repo is selected
+        if let ctx = gitContext {
+            let gitHeader = enrichmentService.buildGitContextHeader(ctx)
+            messageForCLI = "\(gitHeader)\n\n\(messageForCLI)"
         }
 
         // Add user message (show original text, not the context-enriched version)
@@ -455,6 +463,34 @@ final class ChatViewModel {
                     self.logger.info("@fetch round \(fetchRound): re-sending with fetched data")
                     await self.streamAndEnrich(
                         message: fetchResults,
+                        originalText: originalText,
+                        attachments: attachments,
+                        provider: provider,
+                        sessionId: sessionId,
+                        fetchRound: fetchRound + 1
+                    )
+                    return
+                }
+            }
+
+            // Check for @git() commands in the AI response
+            if !hasError && !planMode && gitContext != nil &&
+               assistantMessage.content.contains("@git(") &&
+               fetchRound < ConnectorsKit.maxFetchRoundsPerTurn {
+                let (cleanResponse, gitResults) = await self.enrichmentService.parseAndExecuteGit(
+                    response: assistantMessage.content,
+                    repoPath: gitContext?.localPath,
+                    round: fetchRound
+                )
+
+                if let gitResults {
+                    assistantMessage.content = cleanResponse
+                    assistantMessage.isStreaming = false
+                    self.updateLastMessage(assistantMessage)
+
+                    self.logger.info("@git round \(fetchRound): re-sending with git data")
+                    await self.streamAndEnrich(
+                        message: gitResults,
                         originalText: originalText,
                         attachments: attachments,
                         provider: provider,

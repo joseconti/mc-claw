@@ -48,6 +48,7 @@ actor ConfigStore {
             configDirectory.appendingPathComponent("workspace/skills"),
             configDirectory.appendingPathComponent("connectors"),
             configDirectory.appendingPathComponent("skills"),
+            configDirectory.appendingPathComponent("git"),
         ]
 
         for dir in dirs {
@@ -137,6 +138,9 @@ actor ConfigStore {
         state.bitnetServerPort = config.bitnetServerPort
         state.bitnetAlwaysOn = config.bitnetAlwaysOn
 
+        // Git Integration
+        state.gitSectionEnabled = config.gitSectionEnabled
+
         // Project Memory
         state.memoryProviderId = config.memoryProviderId
         state.projectMemoryAutoUpdate = config.projectMemoryAutoUpdate
@@ -194,6 +198,7 @@ actor ConfigStore {
             bitnetTemperature: state.bitnetTemperature,
             bitnetServerPort: state.bitnetServerPort,
             bitnetAlwaysOn: state.bitnetAlwaysOn,
+            gitSectionEnabled: state.gitSectionEnabled,
             memoryProviderId: state.memoryProviderId,
             projectMemoryAutoUpdate: state.projectMemoryAutoUpdate,
             defaultModels: state.defaultModels.isEmpty ? nil : state.defaultModels,
@@ -265,6 +270,9 @@ struct McClawConfig: Codable, Sendable {
     var bitnetServerPort: Int
     var bitnetAlwaysOn: Bool
 
+    // Git Integration
+    var gitSectionEnabled: Bool
+
     // Project Memory
     var memoryProviderId: String?
     var projectMemoryAutoUpdate: Bool
@@ -313,6 +321,7 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature: Double = 0.7,
         bitnetServerPort: Int = 8921,
         bitnetAlwaysOn: Bool = true,
+        gitSectionEnabled: Bool = false,
         memoryProviderId: String? = nil,
         projectMemoryAutoUpdate: Bool = true,
         defaultModels: [String: String]? = nil,
@@ -357,6 +366,7 @@ struct McClawConfig: Codable, Sendable {
         self.bitnetTemperature = bitnetTemperature
         self.bitnetServerPort = bitnetServerPort
         self.bitnetAlwaysOn = bitnetAlwaysOn
+        self.gitSectionEnabled = gitSectionEnabled
         self.memoryProviderId = memoryProviderId
         self.projectMemoryAutoUpdate = projectMemoryAutoUpdate
         self.defaultModels = defaultModels
@@ -404,6 +414,7 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature = try container.decodeIfPresent(Double.self, forKey: .bitnetTemperature) ?? 0.7
         bitnetServerPort = try container.decodeIfPresent(Int.self, forKey: .bitnetServerPort) ?? 8921
         bitnetAlwaysOn = try container.decodeIfPresent(Bool.self, forKey: .bitnetAlwaysOn) ?? true
+        gitSectionEnabled = try container.decodeIfPresent(Bool.self, forKey: .gitSectionEnabled) ?? false
         memoryProviderId = try container.decodeIfPresent(String.self, forKey: .memoryProviderId)
         projectMemoryAutoUpdate = try container.decodeIfPresent(Bool.self, forKey: .projectMemoryAutoUpdate) ?? true
         defaultModels = try container.decodeIfPresent([String: String].self, forKey: .defaultModels)

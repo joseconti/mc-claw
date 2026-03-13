@@ -3,7 +3,7 @@
 ## Proyecto
 App nativa macOS (Swift/SwiftUI) que wrappea CLIs de IA (Claude, ChatGPT, Gemini, Ollama) via CLI Bridge. Conecta a Gateway via WebSocket para channels, plugins y automation.
 
-## Estado: Sprint 1-10 COMPLETADO | Sprint 11 COMPLETADO | Sprint 12 COMPLETADO | Sprint 13 COMPLETADO | Sprint 14 COMPLETADO | Sprint 15 COMPLETADO | Sprint 16 COMPLETADO | Sprint 17 COMPLETADO | Sprint 18 COMPLETADO | Sprint 19 COMPLETADO | Sprint 20 COMPLETADO | Sprint 21 COMPLETADO
+## Estado: Sprint 1-10 COMPLETADO | Sprint 11 COMPLETADO | Sprint 12 COMPLETADO | Sprint 13 COMPLETADO | Sprint 14 COMPLETADO | Sprint 15 COMPLETADO | Sprint 16 COMPLETADO | Sprint 17 COMPLETADO | Sprint 18 COMPLETADO | Sprint 19 COMPLETADO | Sprint 20 COMPLETADO | Sprint 21 COMPLETADO | Sprint 22 COMPLETADO
 
 ---
 
@@ -1321,5 +1321,131 @@ Expandir el sistema de Native Channels con 7 nuevas plataformas de mensajería (
 ```bash
 cd McClaw && swift build   # ✅ OK
 swift test                  # ✅ 692/692 passing (240 new)
+./scripts/build-app.sh     # ✅ McClaw.app built
+```
+
+---
+
+## Sprint 22: Git Integration ✅ COMPLETADO
+
+### Objetivo
+Añadir una sección Git dedicada en el sidebar donde el usuario pueda navegar repos de GitHub/GitLab, interactuar con ellos vía chat con IA, y ejecutar operaciones Git locales y remotas. Basado en `docs/McClaw/16-GIT-INTEGRATION.md`.
+
+### Sprint A: Core Infrastructure ✅
+
+#### 22.1 Git Models ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Models/Git/GitModels.swift`
+- Modelos: `GitPlatform`, `GitContext`, `GitRepoInfo`, `GitBranch`, `AheadBehind`, `GitPRInfo`, `GitIssueInfo`, `GitCommitInfo`, `LocalRepoInfo`, `GitSortOrder`, `StashAction`
+
+#### 22.2 GitService actor ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Services/Git/GitService.swift`
+- Actor singleton con `Foundation.Process` (mismo patrón que CLIBridge)
+- Read ops: `log`, `diff`, `status`, `blame`, `show`, `branches`
+- Write ops: `clone`, `checkout`, `pull`, `add`, `commit`, `push`, `tag`, `stash`, `createBranch`
+- Discovery: `isGitInstalled()`, `findLocalRepos()`, `getRepoPath(for:)`
+- `executeRaw(command:repoPath:)` para @git() intercept con allowlist
+
+#### 22.3 AppState + ConfigStore ✅
+- **Modificado**: `AppState.swift` — añadido `var gitSectionEnabled: Bool = false`
+- **Modificado**: `ConfigStore.swift` — añadido `gitSectionEnabled` a `McClawConfig`, `applyToState()`, `saveFromState()`, `ensureDirectories()`
+
+#### 22.4 Sidebar + Routing ✅
+- **Modificado**: `ChatSidebar.swift` — añadido `case git` a `SidebarSection`, nav item condicional
+- **Modificado**: `ChatWindow.swift` — routing `.git` → `GitPanelView`
+
+#### 22.5 Settings toggle ✅
+- **Modificado**: `SettingsWindow.swift` — toggle "Show Git section in sidebar" en Features
+
+#### 22.6 Connector actions nuevas ✅
+- **Modificado**: `ConnectorRegistry.swift` — GitHub: `get_repo`, `list_branches`, `get_pr_diff`, `list_commits`, `list_releases`, `create_release`; GitLab: `get_project`, `list_branches`, `get_mr_diff`, `list_commits`, `list_releases`, `create_note`, `create_release`
+
+#### 22.7 Localización ✅
+- **Modificado**: `Localizable.strings` — 17 strings nuevos para Git Integration
+
+### Sprint B: Git Panel UI ✅
+
+#### 22.8 GitPanelView ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Views/Git/GitPanelView.swift`
+- Layout: top bar (refresh + GitPlatformSelector + count), repo list, detail routing
+
+#### 22.9 GitPlatformSelector ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Views/Git/GitPlatformSelector.swift`
+- Capsule pill selector con matchedGeometryEffect (mismo estilo que CLI selector)
+
+#### 22.10 GitPanelViewModel ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/ViewModels/Git/GitPanelViewModel.swift`
+- @MainActor @Observable, carga repos vía ConnectorExecutor, filtrado, sorting, selección, detail loading
+
+#### 22.11 GitRepoListView + GitRepoRow ✅
+- **Archivos creados**: `Views/Git/GitRepoListView.swift`, `Views/Git/GitRepoRow.swift`
+- Search, sort menu, loading/error/empty states, single tap select, double tap detail
+
+#### 22.12 GitEmptyStateView ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Views/Git/GitEmptyStateView.swift`
+- ContentUnavailableView con link a Settings > Connectors
+
+### Sprint C: Chat Integration ✅
+
+#### 22.13 GitContextChip ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Views/Git/GitContextChip.swift`
+- Capsule chip `repo-name / branch` con dismiss (✕) e indicador de clone local
+
+#### 22.14 ChatViewModel wiring ✅
+- **Modificado**: `ChatViewModel.swift` — `gitContext: GitContext?`, header injection, @git() intercept
+
+#### 22.15 PromptEnrichmentService @git() ✅
+- **Modificado**: `PromptEnrichmentService.swift` — `buildGitContextHeader()`, `parseAndExecuteGit()`, `detectGitCommands()`, `removeGitCommands()`
+- Max 3 rounds, 8000 chars output truncation
+
+#### 22.16 GitActionConfirmationCard ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Views/Git/GitActionConfirmationCard.swift`
+- Card de confirmación para write actions con Cancel/Confirm
+
+### Sprint D: Repo Detail View ✅
+
+#### 22.17 GitRepoDetailView ✅
+- **Archivo creado**: `McClaw/Sources/McClaw/Views/Git/GitRepoDetailView.swift`
+- Tabs: Branches, Pull Requests, Issues, Commits
+- Breadcrumb: `← All Repositories / repo-name`
+
+#### 22.18 Tab views ✅
+- **Archivos creados**: `GitBranchListView.swift`, `GitPRListView.swift`, `GitIssueListView.swift`, `GitCommitListView.swift`
+- Branch selection actualiza GitContext
+
+### Archivos creados (14)
+| Archivo | Sprint |
+|---------|--------|
+| `Models/Git/GitModels.swift` | A |
+| `Services/Git/GitService.swift` | A |
+| `ViewModels/Git/GitPanelViewModel.swift` | B |
+| `Views/Git/GitPanelView.swift` | B |
+| `Views/Git/GitRepoListView.swift` | B |
+| `Views/Git/GitRepoRow.swift` | B |
+| `Views/Git/GitPlatformSelector.swift` | B |
+| `Views/Git/GitEmptyStateView.swift` | B |
+| `Views/Git/GitContextChip.swift` | C |
+| `Views/Git/GitActionConfirmationCard.swift` | C |
+| `Views/Git/GitRepoDetailView.swift` | D |
+| `Views/Git/GitBranchListView.swift` | D |
+| `Views/Git/GitPRListView.swift` | D |
+| `Views/Git/GitIssueListView.swift` | D |
+| `Views/Git/GitCommitListView.swift` | D |
+
+### Archivos modificados (9)
+| Archivo | Sprint |
+|---------|--------|
+| `State/AppState.swift` | A |
+| `Infrastructure/Config/ConfigStore.swift` | A |
+| `Views/Chat/ChatSidebar.swift` | A |
+| `Views/Chat/ChatWindow.swift` | A |
+| `Views/Settings/SettingsWindow.swift` | A |
+| `Services/Connectors/ConnectorRegistry.swift` | A |
+| `Views/Chat/ChatViewModel.swift` | B/C |
+| `Services/Connectors/PromptEnrichmentService.swift` | C |
+| `Resources/en.lproj/Localizable.strings` | A-D |
+
+### Verificación Sprint 22 ✅
+```bash
+cd McClaw && swift build   # ✅ OK
 ./scripts/build-app.sh     # ✅ McClaw.app built
 ```

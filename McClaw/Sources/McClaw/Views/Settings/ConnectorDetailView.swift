@@ -46,6 +46,7 @@ struct ConnectorDetailView: View {
         switch definition.category {
         case .google: return "https://mcclaw.app/docs/#google-setup"
         case .microsoft: return "https://mcclaw.app/docs/#microsoft-setup"
+        case .dev: return "https://mcclaw.app/docs/#dev-connectors"
         default: return "https://mcclaw.app/docs/#connector-tokens"
         }
     }
@@ -212,6 +213,7 @@ struct ConnectorDetailView: View {
                         .frame(maxWidth: 400)
 
                     tokenFormatHint
+                    tokenHelpLink
 
                     HStack {
                         Button("Save & Connect") {
@@ -245,6 +247,20 @@ struct ConnectorDetailView: View {
             Text("Format: glpat-... (GitLab PAT)")
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
+        }
+    }
+
+    /// Direct link to the platform's token creation page.
+    @ViewBuilder
+    private var tokenHelpLink: some View {
+        if definition.id == "dev.github" {
+            Link("Create a GitHub Personal Access Token →",
+                 destination: URL(string: "https://github.com/settings/tokens")!)
+                .font(.subheadline)
+        } else if definition.id == "dev.gitlab" {
+            Link("Create a GitLab Personal Access Token →",
+                 destination: URL(string: "https://gitlab.com/-/user_settings/personal_access_tokens")!)
+                .font(.subheadline)
         }
     }
 

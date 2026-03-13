@@ -1410,3 +1410,73 @@
 "help_connectors_types_desc" = "Google, Microsoft, GitHub, Slack, Discord, Telegram, WordPress, and more.";
 "help_connectors_oauth" = "OAuth Flow";
 "help_connectors_oauth_desc" = "Connectors authenticate via OAuth 2.0 with PKCE for secure access.";
+
+// Git Integration
+"Git" = "Git";
+"Git Repositories" = "Git Repositories";
+"Git section" = "Git section";
+"Show a Git section in the sidebar to browse repositories from GitHub and GitLab." = "Show a Git section in the sidebar to browse repositories from GitHub and GitLab.";
+"Connect a GitHub or GitLab connector in Settings to browse your repositories." = "Connect a GitHub or GitLab connector in Settings to browse your repositories.";
+"No Git Connector" = "No Git Connector";
+"Connect a GitHub or GitLab connector in Settings → Connectors to browse your repositories." = "Connect a GitHub or GitLab connector in Settings → Connectors to browse your repositories.";
+"Open Settings" = "Open Settings";
+"Search repositories…" = "Search repositories…";
+"Last updated" = "Last updated";
+"Name" = "Name";
+"Stars" = "Stars";
+"Loading repositories…" = "Loading repositories…";
+"Retry" = "Retry";
+"No repositories found" = "No repositories found";
+"No matching repositories" = "No matching repositories";
+"Cloned locally" = "Cloned locally";
+"Cancel" = "Cancel";
+"Confirm" = "Confirm";
+
+// Git Panel Chat
+"Ask anything about this repository" = "Ask anything about this repository";
+"The AI knows your selected repo and branch. Try: \"Show me recent commits\" or \"What open PRs are there?\"" = "The AI knows your selected repo and branch. Try: \"Show me recent commits\" or \"What open PRs are there?\"";
+"Select a repository below to start" = "Select a repository below to start";
+"Click a repository to set it as context, then chat with the AI about your code." = "Click a repository to set it as context, then chat with the AI about your code.";
+"Open Connectors" = "Open Connectors";
+"Show chat" = "Show chat";
+"Hide chat" = "Hide chat";
+"Code" = "Code";
+"Loading…" = "Loading…";
+"%lld lines" = "%lld lines";
+"Loading file…" = "Loading file…";
+"Unable to decode file content" = "Unable to decode file content";
+"Unable to load file content" = "Unable to load file content";
+"Error loading file" = "Error loading file";
+"Copy file contents" = "Copy file contents";
+"Select a file to view its contents" = "Select a file to view its contents";
+
+// =============================================================================
+// MARK: - Backup Settings
+// =============================================================================
+
+"Backup" = "Backup";
+"Export Backup" = "Export Backup";
+"Restore from Backup" = "Restore from Backup";
+"Restore Backup" = "Restore Backup";
+"Export everything: settings, connectors, credentials, sessions, projects, skills, and all app data to a single encrypted file." = "Export everything: settings, connectors, credentials, sessions, projects, skills, and all app data to a single encrypted file.";
+"Restore everything from a previously exported .mcb backup file." = "Restore everything from a previously exported .mcb backup file.";
+"Authenticate to Export" = "Authenticate to Export";
+"Authenticate to export your McClaw configuration" = "Authenticate to export your McClaw configuration";
+"Encryption password" = "Encryption password";
+"Confirm password" = "Confirm password";
+"Include chat sessions" = "Include chat sessions";
+"Include projects" = "Include projects";
+"Export…" = "Export…";
+"Exporting…" = "Exporting…";
+"Import…" = "Import…";
+"Restoring…" = "Restoring…";
+"Export McClaw Backup" = "Export McClaw Backup";
+"Select McClaw Backup" = "Select McClaw Backup";
+"Passwords do not match" = "Passwords do not match";
+"Backup exported successfully" = "Backup exported successfully";
+"This will replace all current settings, credentials, sessions, and projects. This action cannot be undone." = "This will replace all current settings, credentials, sessions, and projects. This action cannot be undone.";
+"Cancel" = "Cancel";
+"Restore" = "Restore";
+"Warnings:" = "Warnings:";
+"Failed to encrypt backup" = "Failed to encrypt backup";
+"Wrong password or corrupted backup" = "Wrong password or corrupted backup";

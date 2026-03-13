@@ -340,6 +340,23 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "query", description: "Search query", required: true),
                 ]),
                 ConnectorActionDef(id: "get_notifications", name: "Notifications", description: "Get unread notifications"),
+                ConnectorActionDef(id: "get_repo", name: "Get repo", description: "Get details of a specific repository", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                ]),
+                ConnectorActionDef(id: "list_branches", name: "List branches", description: "List branches of a repository", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                ]),
+                ConnectorActionDef(id: "get_pr_diff", name: "Get PR diff", description: "Get the diff of a pull request", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "pullNumber", description: "PR number", required: true),
+                ]),
+                ConnectorActionDef(id: "list_commits", name: "List commits", description: "List recent commits on a branch", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "sha", description: "Branch name or SHA", defaultValue: "main"),
+                ]),
+                ConnectorActionDef(id: "list_releases", name: "List releases", description: "List releases of a repository", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                ]),
                 ConnectorActionDef(id: "create_issue", name: "Create issue", description: "Create a new issue in a repository", parameters: [
                     ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
                     ConnectorActionParam(name: "title", description: "Issue title", required: true),
@@ -373,6 +390,13 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "issueNumber", description: "Issue or PR number", required: true),
                     ConnectorActionParam(name: "labels", description: "Comma-separated labels", required: true),
                 ], isWriteAction: true),
+                ConnectorActionDef(id: "create_release", name: "Create release", description: "Create a new release", parameters: [
+                    ConnectorActionParam(name: "repo", description: "Repository (owner/repo)", required: true),
+                    ConnectorActionParam(name: "tagName", description: "Tag name (e.g. v2.0)", required: true),
+                    ConnectorActionParam(name: "name", description: "Release title"),
+                    ConnectorActionParam(name: "body", description: "Release notes"),
+                    ConnectorActionParam(name: "generateNotes", description: "Auto-generate notes (true/false)", defaultValue: "false"),
+                ], isWriteAction: true),
             ]
         ),
         ConnectorDefinition(
@@ -392,6 +416,23 @@ enum ConnectorRegistry {
                     ConnectorActionParam(name: "state", description: "State filter", defaultValue: "opened"),
                 ]),
                 ConnectorActionDef(id: "list_projects", name: "List projects", description: "List your projects"),
+                ConnectorActionDef(id: "get_project", name: "Get project", description: "Get details of a specific project", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                ]),
+                ConnectorActionDef(id: "list_branches", name: "List branches", description: "List branches of a project", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                ]),
+                ConnectorActionDef(id: "get_mr_diff", name: "Get MR diff", description: "Get the diff of a merge request", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "mrIid", description: "MR IID", required: true),
+                ]),
+                ConnectorActionDef(id: "list_commits", name: "List commits", description: "List recent commits on a branch", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "refName", description: "Branch name", defaultValue: "main"),
+                ]),
+                ConnectorActionDef(id: "list_releases", name: "List releases", description: "List releases of a project", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                ]),
                 ConnectorActionDef(id: "create_issue", name: "Create issue", description: "Create a new issue in a project", parameters: [
                     ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
                     ConnectorActionParam(name: "title", description: "Issue title", required: true),
@@ -416,6 +457,17 @@ enum ConnectorRegistry {
                 ConnectorActionDef(id: "close_issue", name: "Close issue", description: "Close an issue", parameters: [
                     ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
                     ConnectorActionParam(name: "issueIid", description: "Issue IID", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_note", name: "Create note", description: "Add a note to a merge request", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "mrIid", description: "MR IID", required: true),
+                    ConnectorActionParam(name: "body", description: "Note body", required: true),
+                ], isWriteAction: true),
+                ConnectorActionDef(id: "create_release", name: "Create release", description: "Create a new release", parameters: [
+                    ConnectorActionParam(name: "projectId", description: "Project ID or path", required: true),
+                    ConnectorActionParam(name: "tagName", description: "Tag name (e.g. v2.0)", required: true),
+                    ConnectorActionParam(name: "name", description: "Release title"),
+                    ConnectorActionParam(name: "description", description: "Release notes"),
                 ], isWriteAction: true),
             ]
         ),

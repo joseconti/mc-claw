@@ -312,16 +312,16 @@ struct GitHubProvider: ConnectorProvider {
         case "list_issues":
             guard let repo = params["repo"] else { throw ConnectorProviderError.missingParameter("repo") }
             let state = params["state"] ?? "open"
-            data = try await listIssues(repo: repo, state: state, headers: headers, credentials: credentials)
+            data = try await listIssues(repo: repo, state: state, format: params["format"], headers: headers, credentials: credentials)
 
         case "list_prs":
             guard let repo = params["repo"] else { throw ConnectorProviderError.missingParameter("repo") }
             let state = params["state"] ?? "open"
-            data = try await listPRs(repo: repo, state: state, headers: headers, credentials: credentials)
+            data = try await listPRs(repo: repo, state: state, format: params["format"], headers: headers, credentials: credentials)
 
         case "list_repos":
             let sort = params["sort"] ?? "updated"
-            data = try await listRepos(sort: sort, headers: headers, credentials: credentials)
+            data = try await listRepos(sort: sort, format: params["format"], headers: headers, credentials: credentials)
 
         case "search_code":
             guard let query = params["query"] else { throw ConnectorProviderError.missingParameter("query") }
@@ -365,8 +365,34 @@ struct GitHubProvider: ConnectorProvider {
             guard let labels = params["labels"] else { throw ConnectorProviderError.missingParameter("labels") }
             data = try await addLabels(repo: repo, issueNumber: issueNumber, labels: labels, headers: headers, credentials: credentials)
 
+        case "list_branches":
+            guard let repo = params["repo"] else { throw ConnectorProviderError.missingParameter("repo") }
+            data = try await listBranches(repo: repo, format: params["format"], headers: headers, credentials: credentials)
+
+        case "get_repo":
+            guard let repo = params["repo"] else { throw ConnectorProviderError.missingParameter("repo") }
+            data = try await getRepo(repo: repo, headers: headers, credentials: credentials)
+
+        case "list_commits":
+            guard let repo = params["repo"] else { throw ConnectorProviderError.missingParameter("repo") }
+            data = try await listCommits(repo: repo, branch: params["branch"], headers: headers, credentials: credentials)
+
+        case "get_contents":
+            guard let repo = params["repo"] else { throw ConnectorProviderError.missingParameter("repo") }
+            data = try await getContents(repo: repo, path: params["path"] ?? "", ref: params["ref"], headers: headers, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
+        }
+
+        // Skip truncation for raw JSON responses (used by Git panel)
+        if params["format"] == "json" {
+            return ConnectorActionResult(
+                connectorId: Self.definitionId,
+                actionId: action,
+                data: data,
+                truncated: false
+            )
         }
 
         let (formatted, truncated) = ConnectorsKit.formatActionResult(data)
@@ -391,49 +417,129 @@ struct GitHubProvider: ConnectorProvider {
 
     // MARK: - API Calls
 
-    private func listIssues(repo: String, state: String, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+    private func listIssues(repo: String, state: String, format: String? = nil, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
         let (data, _) = try await RESTAPIClient.get(
             path: "/repos/\(repo)/issues",
             baseURL: Self.baseURL,
             queryItems: [
                 URLQueryItem(name: "state", value: state),
-                URLQueryItem(name: "per_page", value: "20"),
+                URLQueryItem(name: "per_page", value: "30"),
             ],
             credentials: credentials,
             authHeaders: headers
         )
+        if format == "json" {
+            return String(data: data, encoding: .utf8) ?? "[]"
+        }
         let items = try RESTAPIClient.parseJSONArray(data)
         return ConnectorsKit.formatGitHubIssues(items)
     }
 
-    private func listPRs(repo: String, state: String, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+    private func listPRs(repo: String, state: String, format: String? = nil, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
         let (data, _) = try await RESTAPIClient.get(
             path: "/repos/\(repo)/pulls",
             baseURL: Self.baseURL,
             queryItems: [
                 URLQueryItem(name: "state", value: state),
-                URLQueryItem(name: "per_page", value: "20"),
+                URLQueryItem(name: "per_page", value: "30"),
             ],
             credentials: credentials,
             authHeaders: headers
         )
+        if format == "json" {
+            return String(data: data, encoding: .utf8) ?? "[]"
+        }
         let items = try RESTAPIClient.parseJSONArray(data)
         return ConnectorsKit.formatGitHubPRs(items)
     }
 
-    private func listRepos(sort: String, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+    private func listRepos(sort: String, format: String?, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
         let (data, _) = try await RESTAPIClient.get(
             path: "/user/repos",
             baseURL: Self.baseURL,
             queryItems: [
                 URLQueryItem(name: "sort", value: sort),
-                URLQueryItem(name: "per_page", value: "20"),
+                URLQueryItem(name: "per_page", value: "100"),
+                URLQueryItem(name: "type", value: "all"),
             ],
             credentials: credentials,
             authHeaders: headers
         )
+        if format == "json" {
+            return String(data: data, encoding: .utf8) ?? "[]"
+        }
         let items = try RESTAPIClient.parseJSONArray(data)
         return ConnectorsKit.formatGitHubRepos(items)
+    }
+
+    private func listBranches(repo: String, format: String?, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+        let (data, _) = try await RESTAPIClient.get(
+            path: "/repos/\(repo)/branches",
+            baseURL: Self.baseURL,
+            queryItems: [URLQueryItem(name: "per_page", value: "100")],
+            credentials: credentials,
+            authHeaders: headers
+        )
+        if format == "json" {
+            return String(data: data, encoding: .utf8) ?? "[]"
+        }
+        let items = try RESTAPIClient.parseJSONArray(data)
+        return items.map { dict -> String in
+            let name = dict["name"] as? String ?? "?"
+            let isProtected = dict["protected"] as? Bool ?? false
+            return "\(name)\(isProtected ? " [protected]" : "")"
+        }.joined(separator: "\n")
+    }
+
+    private func getRepo(repo: String, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+        let (data, _) = try await RESTAPIClient.get(
+            path: "/repos/\(repo)",
+            baseURL: Self.baseURL,
+            credentials: credentials,
+            authHeaders: headers
+        )
+        let json = try RESTAPIClient.parseJSON(data)
+        let fullName = json["full_name"] as? String ?? repo
+        let description = json["description"] as? String ?? ""
+        let stars = json["stargazers_count"] as? Int ?? 0
+        let forks = json["forks_count"] as? Int ?? 0
+        let language = json["language"] as? String ?? ""
+        let isPrivate = json["private"] as? Bool ?? false
+        return "\(fullName)\(isPrivate ? " [private]" : "")\n\(description)\n\(language) | \(stars) stars | \(forks) forks"
+    }
+
+    private func listCommits(repo: String, branch: String?, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+        var queryItems = [URLQueryItem(name: "per_page", value: "20")]
+        if let branch { queryItems.append(URLQueryItem(name: "sha", value: branch)) }
+        let (data, _) = try await RESTAPIClient.get(
+            path: "/repos/\(repo)/commits",
+            baseURL: Self.baseURL,
+            queryItems: queryItems,
+            credentials: credentials,
+            authHeaders: headers
+        )
+        let items = try RESTAPIClient.parseJSONArray(data)
+        return items.map { dict -> String in
+            let sha = (dict["sha"] as? String ?? "").prefix(7)
+            let commit = dict["commit"] as? [String: Any] ?? [:]
+            let message = (commit["message"] as? String ?? "").components(separatedBy: "\n").first ?? ""
+            let author = (commit["author"] as? [String: Any])?["name"] as? String ?? ""
+            return "\(sha) \(message) (\(author))"
+        }.joined(separator: "\n")
+    }
+
+    private func getContents(repo: String, path: String, ref: String?, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+        var queryItems: [URLQueryItem] = []
+        if let ref { queryItems.append(URLQueryItem(name: "ref", value: ref)) }
+        let apiPath = path.isEmpty ? "/repos/\(repo)/contents" : "/repos/\(repo)/contents/\(path)"
+        let (data, _) = try await RESTAPIClient.get(
+            path: apiPath,
+            baseURL: Self.baseURL,
+            queryItems: queryItems,
+            credentials: credentials,
+            authHeaders: headers
+        )
+        return String(data: data, encoding: .utf8) ?? "[]"
     }
 
     private func searchCode(query: String, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
@@ -577,7 +683,7 @@ struct GitLabProvider: ConnectorProvider {
             data = try await listMRs(projectId: projectId, state: state, headers: headers, credentials: credentials)
 
         case "list_projects":
-            data = try await listProjects(headers: headers, credentials: credentials)
+            data = try await listProjects(format: params["format"], headers: headers, credentials: credentials)
 
         case "create_issue":
             guard let projectId = params["projectId"] else { throw ConnectorProviderError.missingParameter("projectId") }
@@ -607,8 +713,22 @@ struct GitLabProvider: ConnectorProvider {
             guard let issueIid = params["issueIid"] else { throw ConnectorProviderError.missingParameter("issueIid") }
             data = try await closeIssue(projectId: projectId, issueIid: issueIid, headers: headers, credentials: credentials)
 
+        case "list_branches":
+            guard let projectId = params["projectId"] else { throw ConnectorProviderError.missingParameter("projectId") }
+            data = try await listBranches(projectId: projectId, format: params["format"], headers: headers, credentials: credentials)
+
         default:
             throw ConnectorProviderError.unknownAction(action)
+        }
+
+        // Skip truncation for raw JSON responses (used by Git panel)
+        if params["format"] == "json" {
+            return ConnectorActionResult(
+                connectorId: Self.definitionId,
+                actionId: action,
+                data: data,
+                truncated: false
+            )
         }
 
         let (formatted, truncated) = ConnectorsKit.formatActionResult(data)
@@ -695,20 +815,43 @@ struct GitLabProvider: ConnectorProvider {
         return "Comment added to #\(issueIid)"
     }
 
-    private func listProjects(headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+    private func listProjects(format: String?, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
         let (data, _) = try await RESTAPIClient.get(
             path: "/projects",
             baseURL: Self.defaultBaseURL,
             queryItems: [
                 URLQueryItem(name: "membership", value: "true"),
-                URLQueryItem(name: "per_page", value: "20"),
+                URLQueryItem(name: "per_page", value: "100"),
                 URLQueryItem(name: "order_by", value: "last_activity_at"),
             ],
             credentials: credentials,
             authHeaders: headers
         )
+        if format == "json" {
+            return String(data: data, encoding: .utf8) ?? "[]"
+        }
         let items = try RESTAPIClient.parseJSONArray(data)
         return ConnectorsKit.formatGitLabProjects(items)
+    }
+
+    private func listBranches(projectId: String, format: String?, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {
+        let encoded = projectId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? projectId
+        let (data, _) = try await RESTAPIClient.get(
+            path: "/projects/\(encoded)/repository/branches",
+            baseURL: Self.defaultBaseURL,
+            queryItems: [URLQueryItem(name: "per_page", value: "100")],
+            credentials: credentials,
+            authHeaders: headers
+        )
+        if format == "json" {
+            return String(data: data, encoding: .utf8) ?? "[]"
+        }
+        let items = try RESTAPIClient.parseJSONArray(data)
+        return items.map { dict -> String in
+            let name = dict["name"] as? String ?? "?"
+            let isProtected = dict["protected"] as? Bool ?? false
+            return "\(name)\(isProtected ? " [protected]" : "")"
+        }.joined(separator: "\n")
     }
 
     private func createMR(projectId: String, title: String, sourceBranch: String, targetBranch: String, description: String?, headers: [String: String], credentials: ConnectorCredentials) async throws -> String {

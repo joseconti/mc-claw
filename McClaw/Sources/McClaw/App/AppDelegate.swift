@@ -67,6 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
             // 0b. Install bundled skills on first launch
             LocalSkillsStore.shared.installBundledSkillsIfNeeded()
 
+            // 0c. Load connector instances from disk (must happen before services that use connectors)
+            ConnectorStore.shared.start()
+
             // 1. Scan for installed CLIs
             let detector = CLIDetector()
             let detected = await detector.scan()

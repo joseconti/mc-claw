@@ -40,6 +40,13 @@ struct SettingsWindow: View {
             settingsDetail
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            if let tab = appState.pendingSettingsTab,
+               let section = SettingsSection(rawValue: tab) {
+                selectedSection = section
+                appState.pendingSettingsTab = nil
+            }
+        }
     }
 
     // MARK: - Sidebar
@@ -159,6 +166,8 @@ struct SettingsWindow: View {
                 .environment(appState)
         case .logs:
             DiagnosticsSettingsTab()
+        case .backup:
+            BackupSettingsTab()
         case .advanced:
             AdvancedSettingsTab()
                 .environment(appState)
@@ -174,7 +183,7 @@ struct SettingsWindow: View {
 enum SettingsSection: String, Hashable, CaseIterable {
     case general, clis, mcp, security
     case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote
-    case logs, advanced
+    case logs, backup, advanced
     case bitnet
 
     var title: String {
@@ -192,6 +201,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .cron: String(localized: "Cron")
         case .remote: String(localized: "Remote")
         case .logs: String(localized: "Logs")
+        case .backup: String(localized: "Backup", bundle: .module)
         case .advanced: String(localized: "Advanced")
         case .bitnet: String(localized: "BitNet")
         }
@@ -212,6 +222,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .cron: "clock.arrow.2.circlepath"
         case .remote: "network"
         case .logs: "doc.text.magnifyingglass"
+        case .backup: "externaldrive.badge.timemachine"
         case .advanced: "wrench.and.screwdriver"
         case .bitnet: "cpu"
         }
@@ -219,7 +230,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
 
     static let mainSections: [SettingsSection] = [.general, .clis, .mcp, .security]
     static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice]
-    static let advancedSections: [SettingsSection] = [.logs]
+    static let advancedSections: [SettingsSection] = [.logs, .backup]
     static let experimentalSections: [SettingsSection] = [.bitnet]
 }
 
@@ -464,6 +475,11 @@ struct GeneralSettingsTab: View {
                 description: "Allow the AI to capture the screen when requested.",
                 isOn: $state.screenEnabled
             )
+            settingsToggleRow(
+                title: String(localized: "Git section", bundle: .module),
+                description: String(localized: "Show a Git section in the sidebar to browse repositories from GitHub and GitLab.", bundle: .module),
+                isOn: $state.gitSectionEnabled
+            )
 
             sectionDivider()
 
@@ -555,6 +571,7 @@ struct GeneralSettingsTab: View {
         }
         .onChange(of: appState.voiceWakeEnabled) { _, _ in saveConfig() }
         .onChange(of: appState.canvasEnabled) { _, _ in saveConfig() }
+        .onChange(of: appState.gitSectionEnabled) { _, _ in saveConfig() }
         .onChange(of: appState.cameraEnabled) { _, newValue in
             NodeMode.shared.cameraEnabled = newValue
             saveConfig()
