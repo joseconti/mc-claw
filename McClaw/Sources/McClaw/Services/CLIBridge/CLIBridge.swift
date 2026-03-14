@@ -27,6 +27,11 @@ actor CLIBridge {
         allowedTools: [String]? = nil,
         planMode: Bool = false
     ) -> AsyncStream<CLIStreamEvent> {
+        // DashScope uses REST API (OpenAI-compatible)
+        if provider.id == "dashscope" {
+            return sendViaDashScope(message: message, model: model, systemPrompt: systemPrompt, planMode: planMode)
+        }
+
         // BitNet uses REST API server instead of CLI process
         if provider.id == "bitnet" {
             return sendViaBitNet(message: message, model: model, systemPrompt: systemPrompt, planMode: planMode)
@@ -219,6 +224,103 @@ actor CLIBridge {
         }
     }
 
+    // MARK: - DashScope REST API
+
+    /// Send a message via DashScope's OpenAI-compatible streaming API.
+    private func sendViaDashScope(
+        message: String,
+        model: String?,
+        systemPrompt: String?,
+        planMode: Bool = false
+    ) -> AsyncStream<CLIStreamEvent> {
+        AsyncStream { continuation in
+            Task {
+                // Get config from AppState
+                let (regionStr, apiKey) = await MainActor.run {
+                    let state = AppState.shared
+                    let region = state.dashscopeRegion
+                    let key = DashScopeKeychainHelper.loadAPIKey()
+                    return (region, key)
+                }
+
+                guard let apiKey, !apiKey.isEmpty else {
+                    continuation.yield(.error("DashScope API key not configured. Go to Settings → DashScope to add your key."))
+                    continuation.yield(.done)
+                    continuation.finish()
+                    return
+                }
+
+                let region = DashScopeKit.Region(rawValue: regionStr) ?? .international
+                let selectedModel = model ?? DashScopeKit.defaultModelId
+
+                // Build messages
+                var messages: [DashScopeKit.ChatMessage] = []
+
+                // System prompt (with plan mode if active)
+                let planPrefix = planMode ? "[PLAN MODE] You are in read-only analysis mode. Do NOT write, edit, or delete files. Do NOT execute commands. Only analyze, read, and create plans.\n\n" : ""
+                if let sp = systemPrompt, !sp.isEmpty {
+                    messages.append(DashScopeKit.ChatMessage(role: .system, content: planPrefix + sp))
+                } else if planMode {
+                    messages.append(DashScopeKit.ChatMessage(role: .system, content: planPrefix))
+                }
+
+                messages.append(DashScopeKit.ChatMessage(role: .user, content: message))
+
+                // Build request
+                guard let request = DashScopeKit.buildStreamRequest(
+                    region: region,
+                    apiKey: apiKey,
+                    model: selectedModel,
+                    messages: messages
+                ) else {
+                    continuation.yield(.error("Failed to build DashScope request"))
+                    continuation.yield(.done)
+                    continuation.finish()
+                    return
+                }
+
+                logger.info("DashScope: sending to \(region.rawValue) with model \(selectedModel)")
+
+                do {
+                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+
+                    if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                        // Try to read error body
+                        var errorBody = ""
+                        for try await line in bytes.lines {
+                            errorBody += line
+                        }
+                        continuation.yield(.error("DashScope API error (\(httpResponse.statusCode)): \(errorBody.prefix(500))"))
+                        continuation.yield(.done)
+                        continuation.finish()
+                        return
+                    }
+
+                    // Stream SSE lines
+                    for try await line in bytes.lines {
+                        let result = DashScopeKit.parseStreamLine(line)
+                        switch result {
+                        case .text(let text):
+                            continuation.yield(.text(text))
+                        case .done:
+                            break
+                        case .error(let msg):
+                            continuation.yield(.error(msg))
+                        case .skip:
+                            continue
+                        }
+                    }
+                } catch {
+                    logger.error("DashScope stream error: \(error)")
+                    continuation.yield(.error(error.localizedDescription))
+                }
+
+                continuation.yield(.done)
+                continuation.finish()
+            }
+        }
+    }
+
     // MARK: - BitNet REST Server
 
     /// Send a message via the BitNet REST API server.
@@ -387,5 +489,68 @@ private final class WatchdogTimer: Sendable {
     /// Seconds elapsed since the last output.
     var secondsSinceLastActivity: TimeInterval {
         Date().timeIntervalSince(lastActivity)
+    }
+}
+
+// MARK: - DashScope Keychain Helper
+
+/// Simple Keychain helper for DashScope API key, using Security framework directly.
+enum DashScopeKeychainHelper {
+    private static let service = "com.mcclaw.dashscope"
+    private static let account = "api-key"
+
+    /// Save or update the API key in Keychain.
+    static func saveAPIKey(_ key: String) -> Bool {
+        guard let data = key.data(using: .utf8) else { return false }
+
+        // Try to update first
+        let updateQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+        ]
+        let updateAttributes: [String: Any] = [
+            kSecValueData as String: data,
+        ]
+        let updateStatus = SecItemUpdate(updateQuery as CFDictionary, updateAttributes as CFDictionary)
+
+        if updateStatus == errSecSuccess {
+            return true
+        }
+
+        // If not found, add new
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecValueData as String: data,
+        ]
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+        return addStatus == errSecSuccess
+    }
+
+    /// Load the API key from Keychain.
+    static func loadAPIKey() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    /// Delete the API key from Keychain.
+    static func deleteAPIKey() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+        ]
+        return SecItemDelete(query as CFDictionary) == errSecSuccess
     }
 }

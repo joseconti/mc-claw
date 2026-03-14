@@ -25,17 +25,17 @@ struct GitQuickActionsPanel: View {
                 quickActionRow(
                     icon: "arrow.down",
                     label: String(localized: "git_quick_pull", bundle: .module),
-                    prompt: "Pull the latest changes from the remote for this repository."
+                    prompt: GitPromptTemplates.pullLatest()
                 )
                 quickActionRow(
                     icon: "arrow.triangle.branch",
                     label: String(localized: "git_quick_create_branch", bundle: .module),
-                    prompt: "Help me create a new branch. Ask me what feature or fix I'm working on and suggest a good branch name."
+                    prompt: GitPromptTemplates.createBranch()
                 )
                 quickActionRow(
                     icon: "arrow.triangle.pull",
                     label: String(localized: "git_quick_review_prs", bundle: .module),
-                    prompt: "List all open PRs in \(repoName) and give me a summary of each one. Flag any that need attention."
+                    prompt: GitPromptTemplates.reviewOpenPRs(repoName)
                 )
                 quickActionRow(
                     icon: "doc.plaintext",

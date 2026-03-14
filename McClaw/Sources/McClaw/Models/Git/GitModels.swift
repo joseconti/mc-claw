@@ -103,6 +103,7 @@ struct GitPRInfo: Identifiable, Codable, Sendable {
     let reviewState: String?
     let createdAt: Date
     let updatedAt: Date
+    let repoFullName: String
 }
 
 // MARK: - Issue
@@ -117,6 +118,7 @@ struct GitIssueInfo: Identifiable, Codable, Sendable {
     let labels: [String]
     let assignees: [String]
     let createdAt: Date
+    let repoFullName: String
 }
 
 // MARK: - Commit

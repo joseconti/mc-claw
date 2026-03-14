@@ -19,6 +19,25 @@ public enum CLIParser {
     ///   - provider: The CLI provider identifier (e.g. "claude", "chatgpt")
     /// - Returns: A parsed stream event
     public static func parseLine(_ line: String, provider: String) -> StreamEvent {
+        // DashScope uses OpenAI-compatible SSE streaming (handled in CLIBridge via URLSession).
+        // parseLine is only called for CLI stdout; DashScope SSE parsing is in DashScopeKit.
+        if provider == "dashscope" {
+            let result = DashScopeKit.parseStreamLine(line)
+            switch result {
+            case .text(let text): return .text(text)
+            case .done: return .done
+            case .error(let msg): return .text("[Error] \(msg)")
+            case .skip: return .passthrough("")
+            }
+        }
+
+        // GitHub Copilot CLI outputs plain text
+        if provider == "copilot" {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { return .passthrough("") }
+            return .text(trimmed)
+        }
+
         // BitNet outputs plain text (no structured JSON)
         if provider == "bitnet" {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -207,6 +226,23 @@ public enum CLIParser {
             let prefix = systemPromptPrefix(systemPrompt, provider: "ollama")
             args += [planPrefix + prefix + message + formattingHint]
             return args
+
+        case "copilot":
+            // GitHub Copilot CLI: `gh copilot` subcommand.
+            // The binary is `gh`, so args start with ["copilot", ...].
+            var args = ["copilot"]
+            if let model { args += ["--model", model] }
+            let planPrefix = planMode ? "[PLAN MODE]\n\(planModeSystemPrompt)\n[END PLAN MODE]\n\n" : ""
+            let prefix = systemPromptPrefix(systemPrompt, provider: "copilot")
+            args += [planPrefix + prefix + message + formattingHint]
+            return args
+
+        case "dashscope":
+            // DashScope uses REST API (handled in CLIBridge via URLSession).
+            // This case exists for interface completeness; actual dispatch is in CLIBridge.
+            let planPrefix = planMode ? "[PLAN MODE]\n\(planModeSystemPrompt)\n[END PLAN MODE]\n\n" : ""
+            let prefix = systemPromptPrefix(systemPrompt, provider: "dashscope")
+            return [planPrefix + prefix + message]
 
         case "bitnet":
             // BitNet primarily uses REST server (handled in CLIBridge).

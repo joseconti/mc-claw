@@ -40,6 +40,10 @@ public enum ModelRegistry {
             return geminiModels
         case "ollama":
             return ollamaModels
+        case "copilot":
+            return copilotModels
+        case "dashscope":
+            return dashscopeModels
         default:
             return []
         }
@@ -132,6 +136,69 @@ public enum ModelRegistry {
             displayName: "Llama 3.2",
             provider: "ollama",
             isDefault: true
+        ),
+    ]
+
+    private static let copilotModels: [RegisteredModel] = [
+        RegisteredModel(
+            modelId: "gpt-4o",
+            displayName: "GPT-4o",
+            provider: "copilot",
+            isDefault: true
+        ),
+        RegisteredModel(
+            modelId: "claude-sonnet-4",
+            displayName: "Claude Sonnet 4",
+            provider: "copilot"
+        ),
+        RegisteredModel(
+            modelId: "o3",
+            displayName: "o3",
+            provider: "copilot"
+        ),
+        RegisteredModel(
+            modelId: "gemini-2.5-pro",
+            displayName: "Gemini 2.5 Pro",
+            provider: "copilot"
+        ),
+    ]
+
+    private static let dashscopeModels: [RegisteredModel] = [
+        RegisteredModel(
+            modelId: "qwen3-coder-plus",
+            displayName: "Qwen 3 Coder Plus",
+            provider: "dashscope",
+            isDefault: true
+        ),
+        RegisteredModel(
+            modelId: "qwen3-coder-next",
+            displayName: "Qwen 3 Coder Next",
+            provider: "dashscope"
+        ),
+        RegisteredModel(
+            modelId: "qwen3.5-plus",
+            displayName: "Qwen 3.5 Plus",
+            provider: "dashscope"
+        ),
+        RegisteredModel(
+            modelId: "qwen3-max",
+            displayName: "Qwen 3 Max",
+            provider: "dashscope"
+        ),
+        RegisteredModel(
+            modelId: "kimi-k2.5",
+            displayName: "Kimi K2.5",
+            provider: "dashscope"
+        ),
+        RegisteredModel(
+            modelId: "glm-5",
+            displayName: "GLM-5",
+            provider: "dashscope"
+        ),
+        RegisteredModel(
+            modelId: "MiniMax-M2.5",
+            displayName: "MiniMax M2.5",
+            provider: "dashscope"
         ),
     ]
 

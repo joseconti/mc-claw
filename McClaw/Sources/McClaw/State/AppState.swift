@@ -191,6 +191,25 @@ final class AppState {
     /// Show experimental providers in UI
     var showExperimentalProviders: Bool = false
 
+    // MARK: - Ollama Settings
+
+    /// Server mode: always running or start on-demand
+    var ollamaAlwaysOn: Bool = false
+    /// Ollama REST server port
+    var ollamaServerPort: Int = 11434
+
+    // MARK: - DashScope Settings
+
+    /// DashScope API region (international or usVirginia)
+    var dashscopeRegion: String = "international"
+    /// Whether an API key is stored in Keychain (flag only, not the key itself)
+    var dashscopeAPIKeyStored: Bool = false
+
+    // MARK: - Hidden Providers
+
+    /// Cloud provider IDs hidden from sidebar (not yet activated by the user)
+    var hiddenProviders: Set<String> = ["dashscope"]
+
     // MARK: - Git Integration
 
     /// Git section enabled in sidebar

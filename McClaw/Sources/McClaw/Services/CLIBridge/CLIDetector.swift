@@ -78,6 +78,23 @@ actor CLIDetector {
             )
         ),
         CLIProviderDefinition(
+            id: "copilot",
+            displayName: "GitHub Copilot CLI",
+            binaryNames: ["gh"],
+            versionFlag: "--version",
+            authCheckCommand: nil,
+            installMethod: .multiStep(steps: CLIDetector.copilotInstallSteps),
+            capabilities: CLICapabilities(
+                supportsStreaming: true,
+                supportsToolUse: true,
+                supportsVision: false,
+                supportsThinking: false,
+                supportsConversation: true,
+                supportsPlanMode: true,
+                maxContextTokens: 128_000
+            )
+        ),
+        CLIProviderDefinition(
             id: "agent-browser",
             displayName: "Agent Browser",
             binaryNames: ["agent-browser"],
@@ -123,6 +140,11 @@ actor CLIDetector {
             results.append(info)
         }
 
+        // DashScope: cloud provider, no binary — checks Keychain for API key
+        let dashscopeInfo = await detectDashScope()
+        debugLog("provider 'dashscope' done - installed=\(dashscopeInfo.isInstalled)")
+        results.append(dashscopeInfo)
+
         // BitNet: custom detection (no binary to scan, checks directory structure)
         let bitnetInfo = await detectBitNet()
         debugLog("provider 'bitnet' done - installed=\(bitnetInfo.isInstalled)")
@@ -134,6 +156,11 @@ actor CLIDetector {
 
     /// Detect a single CLI provider.
     private func detectProvider(_ definition: CLIProviderDefinition) async -> CLIProviderInfo {
+        // GitHub Copilot CLI: binary is `gh` but we need the copilot extension installed
+        if definition.id == "copilot" {
+            return await detectCopilot(definition)
+        }
+
         // Check if binary exists
         print("[DEBUG]   findBinary for '\(definition.id)'...")
         let binaryPath = await findBinary(names: definition.binaryNames)
@@ -271,6 +298,142 @@ actor CLIDetector {
                 pricing: nil
             )
         }
+    }
+
+    // MARK: - GitHub Copilot CLI Detection
+
+    /// Detect GitHub Copilot CLI by checking for `gh` binary and the copilot extension.
+    private func detectCopilot(_ definition: CLIProviderDefinition) async -> CLIProviderInfo {
+        // 1. Find the `gh` binary
+        let ghPath = await findBinary(names: ["gh"])
+        debugLog("  copilot: gh binary = \(ghPath ?? "nil")")
+
+        guard let ghPath else {
+            debugLog("  copilot: gh not found")
+            return copilotProviderInfo(ghPath: nil, installed: false, version: nil, authenticated: false)
+        }
+
+        // 2. Check if copilot extension is installed: `gh extension list` should contain "copilot"
+        let extList = await runCommand(ghPath, arguments: ["extension", "list"], timeout: 10)
+        let hasCopilot = extList?.contains("copilot") ?? false
+        debugLog("  copilot: extension installed = \(hasCopilot)")
+
+        guard hasCopilot else {
+            debugLog("  copilot: gh found but copilot extension not installed")
+            return copilotProviderInfo(ghPath: ghPath, installed: false, version: "gh found, copilot extension missing", authenticated: false)
+        }
+
+        // 3. Get gh version
+        let version = await getVersion(binary: ghPath, flag: "--version")
+        debugLog("  copilot: version = \(version ?? "nil")")
+
+        // 4. Check auth: `gh auth status` succeeds if logged in
+        let authOutput = await runCommand(ghPath, arguments: ["auth", "status"], timeout: 5)
+        let isAuthenticated = authOutput != nil
+        debugLog("  copilot: authenticated = \(isAuthenticated)")
+
+        return copilotProviderInfo(ghPath: ghPath, installed: true, version: version, authenticated: isAuthenticated)
+    }
+
+    /// Build CLIProviderInfo for GitHub Copilot CLI.
+    private func copilotProviderInfo(ghPath: String?, installed: Bool, version: String?, authenticated: Bool) -> CLIProviderInfo {
+        let models = ModelRegistry.models(for: "copilot").map { reg in
+            ModelInfo(
+                modelId: reg.modelId,
+                displayName: reg.displayName,
+                provider: "copilot",
+                contextWindow: nil,
+                pricing: nil
+            )
+        }
+
+        return CLIProviderInfo(
+            id: "copilot",
+            displayName: "GitHub Copilot CLI",
+            binaryPath: ghPath,
+            version: version,
+            isInstalled: installed,
+            isAuthenticated: authenticated,
+            installMethod: .multiStep(steps: Self.copilotInstallSteps),
+            supportedModels: models,
+            capabilities: CLICapabilities(
+                supportsStreaming: true,
+                supportsToolUse: true,
+                supportsVision: false,
+                supportsThinking: false,
+                supportsConversation: true,
+                supportsPlanMode: true,
+                maxContextTokens: 128_000
+            )
+        )
+    }
+
+    /// Multi-step installation for GitHub Copilot CLI.
+    /// Step 1: Install GitHub CLI via Homebrew.
+    /// Step 2: Install the copilot extension.
+    /// Step 3: Authenticate with GitHub.
+    static let copilotInstallSteps: [InstallStep] = [
+        InstallStep(
+            id: "install-gh",
+            description: "Install GitHub CLI",
+            command: ["/opt/homebrew/bin/brew", "install", "gh"],
+            estimatedDuration: 60
+        ),
+        InstallStep(
+            id: "gh-auth",
+            description: "Authenticate with GitHub",
+            command: ["/opt/homebrew/bin/gh", "auth", "login"],
+            estimatedDuration: 30
+        ),
+        InstallStep(
+            id: "install-copilot-ext",
+            description: "Install Copilot extension",
+            command: ["/opt/homebrew/bin/gh", "extension", "install", "github/gh-copilot"],
+            estimatedDuration: 30
+        ),
+        InstallStep(
+            id: "verify-copilot",
+            description: "Verify Copilot CLI",
+            command: ["/opt/homebrew/bin/gh", "copilot", "--help"],
+            estimatedDuration: 5,
+            canRetry: false
+        ),
+    ]
+
+    // MARK: - DashScope Detection
+
+    /// Detect DashScope (Alibaba Cloud) by checking if an API key is stored in Keychain.
+    private func detectDashScope() async -> CLIProviderInfo {
+        let hasKey = await MainActor.run { AppState.shared.dashscopeAPIKeyStored }
+
+        let models = ModelRegistry.models(for: "dashscope").map { reg in
+            ModelInfo(
+                modelId: reg.modelId,
+                displayName: reg.displayName,
+                provider: "dashscope",
+                contextWindow: nil,
+                pricing: nil
+            )
+        }
+
+        return CLIProviderInfo(
+            id: "dashscope",
+            displayName: "DashScope (Alibaba Cloud)",
+            binaryPath: nil,
+            version: hasKey ? "API" : nil,
+            isInstalled: hasKey,
+            isAuthenticated: hasKey,
+            installMethod: .manual,
+            supportedModels: models,
+            capabilities: CLICapabilities(
+                supportsStreaming: true,
+                supportsToolUse: true,
+                supportsVision: false,
+                supportsThinking: false,
+                supportsConversation: true,
+                maxContextTokens: 131_072
+            )
+        )
     }
 
     // MARK: - BitNet Detection

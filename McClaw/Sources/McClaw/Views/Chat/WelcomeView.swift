@@ -18,31 +18,31 @@ struct WelcomeView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Logo
-            Group {
-                if let url = Bundle.module.url(forResource: "mcclaw-logo", withExtension: "png"),
-                   let nsImage = NSImage(contentsOf: url) {
-                    Image(nsImage: nsImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } else {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.orange.gradient)
-                        .overlay {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 36))
-                                .foregroundStyle(.white)
-                        }
+            // Logo + Greeting (horizontal, like Claude)
+            HStack(spacing: 16) {
+                Group {
+                    if let url = Bundle.module.url(forResource: "mcclaw-logo", withExtension: "png"),
+                       let nsImage = NSImage(contentsOf: url) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(.orange.gradient)
+                            .overlay {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 24))
+                                    .foregroundStyle(.white)
+                            }
+                    }
                 }
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+
+                Text(greeting)
+                    .font(.system(size: 40, weight: .semibold))
             }
-            .frame(width: 96, height: 96)
-            .clipShape(RoundedRectangle(cornerRadius: 22))
-            .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
-
-            Spacer().frame(height: 20)
-
-            Text(greeting)
-                .font(.system(size: 32, weight: .semibold))
 
             Spacer().frame(height: 36)
 

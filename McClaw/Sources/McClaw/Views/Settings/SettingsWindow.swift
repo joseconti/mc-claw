@@ -33,6 +33,17 @@ struct SettingsWindow: View {
     @Environment(AppState.self) private var appState
     @State private var selectedSection: SettingsSection = .general
 
+    /// Main sections filtered by hidden cloud providers.
+    private var visibleMainSections: [SettingsSection] {
+        SettingsSection.mainSections.filter { section in
+            switch section {
+            case .dashscope: !appState.hiddenProviders.contains("dashscope")
+            case .ollama: !appState.hiddenProviders.contains("ollama")
+            default: true
+            }
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             settingsSidebar
@@ -47,6 +58,13 @@ struct SettingsWindow: View {
                 appState.pendingSettingsTab = nil
             }
         }
+        .onChange(of: appState.pendingSettingsTab) {
+            if let tab = appState.pendingSettingsTab,
+               let section = SettingsSection(rawValue: tab) {
+                selectedSection = section
+                appState.pendingSettingsTab = nil
+            }
+        }
     }
 
     // MARK: - Sidebar
@@ -54,7 +72,7 @@ struct SettingsWindow: View {
     private var settingsSidebar: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 2) {
-                ForEach(SettingsSection.mainSections, id: \.self) { section in
+                ForEach(visibleMainSections, id: \.self) { section in
                     sidebarRow(section)
                 }
 
@@ -138,6 +156,12 @@ struct SettingsWindow: View {
         case .clis:
             CLIsSettingsTab()
                 .environment(appState)
+        case .ollama:
+            OllamaSettingsTab()
+                .environment(appState)
+        case .dashscope:
+            DashScopeSettingsTab()
+                .environment(appState)
         case .mcp:
             MCPSettingsTab()
                 .environment(appState)
@@ -181,7 +205,7 @@ struct SettingsWindow: View {
 // MARK: - Settings Sections
 
 enum SettingsSection: String, Hashable, CaseIterable {
-    case general, clis, mcp, security
+    case general, clis, ollama, dashscope, mcp, security
     case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote
     case logs, backup, advanced
     case bitnet
@@ -203,6 +227,8 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .logs: String(localized: "Logs")
         case .backup: String(localized: "Backup", bundle: .module)
         case .advanced: String(localized: "Advanced")
+        case .ollama: String(localized: "Ollama")
+        case .dashscope: String(localized: "DashScope")
         case .bitnet: String(localized: "BitNet")
         }
     }
@@ -224,14 +250,25 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .logs: "doc.text.magnifyingglass"
         case .backup: "externaldrive.badge.timemachine"
         case .advanced: "wrench.and.screwdriver"
+        case .ollama: "cpu.fill"
+        case .dashscope: "cloud.fill"
         case .bitnet: "cpu"
         }
     }
 
-    static let mainSections: [SettingsSection] = [.general, .clis, .mcp, .security]
+    static let mainSections: [SettingsSection] = [.general, .clis, .ollama, .dashscope, .mcp, .security]
     static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice]
     static let advancedSections: [SettingsSection] = [.logs, .backup]
     static let experimentalSections: [SettingsSection] = [.bitnet]
+
+    /// Map a CLI provider id to its dedicated settings section (for cloud providers).
+    static func settingsSection(for providerId: String) -> SettingsSection? {
+        switch providerId {
+        case "dashscope": .dashscope
+        case "ollama": .ollama
+        default: nil
+        }
+    }
 }
 
 // MARK: - Settings Tabs
@@ -984,7 +1021,40 @@ struct CLIsSettingsTab: View {
 
             Spacer()
 
-            if cli.isInstalled {
+            if isCloudProvider(cli) {
+                // Cloud providers: Install / Configure+✕ based on hiddenProviders
+                if appState.hiddenProviders.contains(cli.id) {
+                    // Not installed → "Install" activates and navigates to settings tab
+                    Button(String(localized: "cli_install_button", bundle: .module)) {
+                        activateCloudProvider(cli)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                } else {
+                    // Installed → Configure + ✕
+                    if cli.isAuthenticated {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+
+                    Button(String(localized: "cli_configure_button", bundle: .module)) {
+                        appState.pendingSettingsTab = cli.id
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Button {
+                        deactivateCloudProvider(cli)
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                            .foregroundStyle(.red.opacity(0.7))
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .help(String(localized: "cli_deactivate_help", bundle: .module))
+                }
+            } else if cli.isInstalled {
+                // Regular CLI providers
                 if !cli.isToolCLI {
                     if cli.isAuthenticated {
                         Image(systemName: "checkmark.circle.fill")
@@ -999,7 +1069,6 @@ struct CLIsSettingsTab: View {
                         .foregroundStyle(.green)
                 }
 
-                // Uninstall button
                 Button {
                     uninstallCLI(cli)
                 } label: {
@@ -1011,7 +1080,7 @@ struct CLIsSettingsTab: View {
                 .help("Uninstall \(cli.displayName)")
                 .disabled(installingCLI != nil || uninstallingCLI != nil)
             } else {
-                Button("Install") {
+                Button(String(localized: "cli_install_button", bundle: .module)) {
                     installCLI(cli)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1024,14 +1093,23 @@ struct CLIsSettingsTab: View {
                     .controlSize(.small)
             }
 
-            if !cli.isToolCLI && cli.id == appState.currentCLIIdentifier {
-                Text("Default")
-                    .font(.subheadline)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.blue.opacity(0.2))
-                    .clipShape(Capsule())
-                    .liquidGlassCapsule(interactive: false)
+            if !cli.isToolCLI && cli.isInstalled {
+                if cli.id == appState.currentCLIIdentifier {
+                    Text(String(localized: "cli_default_badge", bundle: .module))
+                        .font(.subheadline)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.blue.opacity(0.2))
+                        .clipShape(Capsule())
+                        .liquidGlassCapsule(interactive: false)
+                } else if cli.isAuthenticated {
+                    Button(String(localized: "cli_set_default_button", bundle: .module)) {
+                        appState.currentCLIIdentifier = cli.id
+                        Task { await ConfigStore.shared.saveFromState() }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
         }
         .padding(.vertical, 6)
@@ -1054,6 +1132,33 @@ struct CLIsSettingsTab: View {
             let detector = CLIDetector()
             appState.availableCLIs = await detector.scan()
         }
+    }
+
+    private func isCloudProvider(_ cli: CLIProviderInfo) -> Bool {
+        if case .manual = cli.installMethod {
+            return SettingsSection.settingsSection(for: cli.id) != nil
+        }
+        return false
+    }
+
+    private func activateCloudProvider(_ cli: CLIProviderInfo) {
+        appState.hiddenProviders.remove(cli.id)
+        Task { await ConfigStore.shared.saveFromState() }
+        appState.pendingSettingsTab = cli.id
+    }
+
+    private func deactivateCloudProvider(_ cli: CLIProviderInfo) {
+        // Remove stored credentials
+        switch cli.id {
+        case "dashscope":
+            _ = DashScopeKeychainHelper.deleteAPIKey()
+            appState.dashscopeAPIKeyStored = false
+        default:
+            break
+        }
+        // Hide provider tab from sidebar
+        appState.hiddenProviders.insert(cli.id)
+        Task { await ConfigStore.shared.saveFromState() }
     }
 
     private func uninstallCLI(_ cli: CLIProviderInfo) {

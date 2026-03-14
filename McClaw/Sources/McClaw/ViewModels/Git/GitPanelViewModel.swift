@@ -475,7 +475,7 @@ final class GitPanelViewModel {
                 actionId: selectedPlatform == .github ? "list_issues" : "list_issues",
                 params: [repoParam: repoValue, "state": "open", "format": "json"]
             )
-            issues = parseIssues(from: result.data)
+            issues = parseIssues(from: result.data, repoFullName: repoValue)
         } catch {
             logger.warning("Failed to load issues: \(error)")
         }
@@ -488,7 +488,7 @@ final class GitPanelViewModel {
                 actionId: selectedPlatform == .github ? "list_prs" : "list_mrs",
                 params: [repoParam: repoValue, "state": "open", "format": "json"]
             )
-            pullRequests = parsePullRequests(from: result.data)
+            pullRequests = parsePullRequests(from: result.data, repoFullName: repoValue)
         } catch {
             logger.warning("Failed to load PRs: \(error)")
         }
@@ -630,7 +630,7 @@ final class GitPanelViewModel {
         }
     }
 
-    private func parseIssues(from data: String) -> [GitIssueInfo] {
+    private func parseIssues(from data: String, repoFullName: String) -> [GitIssueInfo] {
         guard let jsonData = data.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]] else { return [] }
 
@@ -666,12 +666,13 @@ final class GitPanelViewModel {
                 state: state,
                 labels: labels,
                 assignees: assignees,
-                createdAt: parseDate(dict["created_at"] as? String)
+                createdAt: parseDate(dict["created_at"] as? String),
+                repoFullName: repoFullName
             )
         }
     }
 
-    private func parsePullRequests(from data: String) -> [GitPRInfo] {
+    private func parsePullRequests(from data: String, repoFullName: String) -> [GitPRInfo] {
         guard let jsonData = data.data(using: .utf8),
               let array = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]] else { return [] }
 
@@ -706,7 +707,8 @@ final class GitPanelViewModel {
                 targetBranch: targetBranch,
                 reviewState: nil,
                 createdAt: parseDate(dict["created_at"] as? String),
-                updatedAt: parseDate(dict["updated_at"] as? String)
+                updatedAt: parseDate(dict["updated_at"] as? String),
+                repoFullName: repoFullName
             )
         }
     }

@@ -238,7 +238,7 @@ enum MCPProviderSupport {
     /// Reason why MCP is not supported for a provider.
     static func unsupportedReason(_ provider: String) -> String? {
         switch provider {
-        case "claude", "gemini": nil
+        case "claude", "gemini", "copilot": nil
         case "chatgpt": "ChatGPT CLI does not support MCP servers yet."
         case "ollama": "Ollama does not support MCP servers."
         default: "This provider does not support MCP configuration."

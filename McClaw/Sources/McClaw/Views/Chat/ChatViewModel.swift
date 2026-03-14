@@ -1162,7 +1162,11 @@ final class ChatViewModel {
                 persistCurrentSession()
                 appState.currentSessionId = name
                 // Try to load existing session
-                if let loaded = sessionStore.load(sessionId: name) {
+                if var loaded = sessionStore.load(sessionId: name) {
+                    for i in loaded.indices {
+                        loaded[i].isStreaming = false
+                        loaded[i].isGeneratingImage = false
+                    }
                     messages = loaded
                     // Rebuild providers used set from loaded messages
                     providersUsedInSession.removeAll()
@@ -1342,7 +1346,12 @@ final class ChatViewModel {
         let appState = AppState.shared
         sessionStore.refreshIndex()
         guard let sessionId = appState.currentSessionId,
-              let loaded = sessionStore.load(sessionId: sessionId) else { return }
+              var loaded = sessionStore.load(sessionId: sessionId) else { return }
+        // Clear stale streaming flags from persisted messages
+        for i in loaded.indices {
+            loaded[i].isStreaming = false
+            loaded[i].isGeneratingImage = false
+        }
         messages = loaded
         lastUsedProviderId = appState.currentCLIIdentifier
 
@@ -1379,7 +1388,12 @@ final class ChatViewModel {
 
     /// Load messages for a specific Git session (independent of AppState.currentSessionId).
     func loadGitSession(sessionId: String) {
-        guard let loaded = sessionStore.load(sessionId: sessionId) else { return }
+        guard var loaded = sessionStore.load(sessionId: sessionId) else { return }
+        // Clear stale streaming flags from persisted messages
+        for i in loaded.indices {
+            loaded[i].isStreaming = false
+            loaded[i].isGeneratingImage = false
+        }
         messages = loaded
         overrideSessionId = sessionId
 

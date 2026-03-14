@@ -346,6 +346,7 @@ struct SchedulesContentView: View {
         case "chatgpt": return "ChatGPT"
         case "gemini": return "Gemini"
         case "ollama": return "Ollama"
+        case "copilot": return "GitHub Copilot"
         default: return id.capitalized
         }
     }

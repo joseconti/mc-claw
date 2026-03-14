@@ -131,18 +131,18 @@ struct GitPanelView: View {
                         Label(String(localized: "git_quick_commit", bundle: .module), systemImage: "checkmark.circle")
                     }
                     Button {
-                        viewModel.sendToChat("Pull the latest changes from the remote for this repository.")
+                        viewModel.sendToChat(GitPromptTemplates.pullLatest())
                     } label: {
                         Label(String(localized: "git_quick_pull", bundle: .module), systemImage: "arrow.down")
                     }
                     Button {
-                        viewModel.sendToChat("Help me create a new branch. Ask me what feature or fix I'm working on and suggest a good branch name.")
+                        viewModel.sendToChat(GitPromptTemplates.createBranch())
                     } label: {
                         Label(String(localized: "git_quick_create_branch", bundle: .module), systemImage: "arrow.triangle.branch")
                     }
                     Divider()
                     Button {
-                        viewModel.sendToChat("List all open PRs in \(repo.fullName) and give me a summary of each one. Flag any that need attention.")
+                        viewModel.sendToChat(GitPromptTemplates.reviewOpenPRs(repo.fullName))
                     } label: {
                         Label(String(localized: "git_quick_review_prs", bundle: .module), systemImage: "arrow.triangle.pull")
                     }

@@ -138,6 +138,17 @@ actor ConfigStore {
         state.bitnetServerPort = config.bitnetServerPort
         state.bitnetAlwaysOn = config.bitnetAlwaysOn
 
+        // Ollama settings
+        state.ollamaAlwaysOn = config.ollamaAlwaysOn
+        state.ollamaServerPort = config.ollamaServerPort
+
+        // DashScope settings
+        state.dashscopeRegion = config.dashscopeRegion
+        state.dashscopeAPIKeyStored = config.dashscopeAPIKeyStored
+
+        // Hidden providers
+        state.hiddenProviders = config.hiddenProviders
+
         // Git Integration
         state.gitSectionEnabled = config.gitSectionEnabled
 
@@ -198,6 +209,11 @@ actor ConfigStore {
             bitnetTemperature: state.bitnetTemperature,
             bitnetServerPort: state.bitnetServerPort,
             bitnetAlwaysOn: state.bitnetAlwaysOn,
+            ollamaAlwaysOn: state.ollamaAlwaysOn,
+            ollamaServerPort: state.ollamaServerPort,
+            dashscopeRegion: state.dashscopeRegion,
+            dashscopeAPIKeyStored: state.dashscopeAPIKeyStored,
+            hiddenProviders: state.hiddenProviders,
             gitSectionEnabled: state.gitSectionEnabled,
             memoryProviderId: state.memoryProviderId,
             projectMemoryAutoUpdate: state.projectMemoryAutoUpdate,
@@ -270,6 +286,17 @@ struct McClawConfig: Codable, Sendable {
     var bitnetServerPort: Int
     var bitnetAlwaysOn: Bool
 
+    // Ollama
+    var ollamaAlwaysOn: Bool
+    var ollamaServerPort: Int
+
+    // DashScope (Alibaba Cloud)
+    var dashscopeRegion: String
+    var dashscopeAPIKeyStored: Bool
+
+    // Hidden Providers
+    var hiddenProviders: Set<String>
+
     // Git Integration
     var gitSectionEnabled: Bool
 
@@ -321,6 +348,11 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature: Double = 0.7,
         bitnetServerPort: Int = 8921,
         bitnetAlwaysOn: Bool = true,
+        ollamaAlwaysOn: Bool = false,
+        ollamaServerPort: Int = 11434,
+        dashscopeRegion: String = "international",
+        dashscopeAPIKeyStored: Bool = false,
+        hiddenProviders: Set<String> = ["dashscope"],
         gitSectionEnabled: Bool = false,
         memoryProviderId: String? = nil,
         projectMemoryAutoUpdate: Bool = true,
@@ -366,6 +398,11 @@ struct McClawConfig: Codable, Sendable {
         self.bitnetTemperature = bitnetTemperature
         self.bitnetServerPort = bitnetServerPort
         self.bitnetAlwaysOn = bitnetAlwaysOn
+        self.ollamaAlwaysOn = ollamaAlwaysOn
+        self.ollamaServerPort = ollamaServerPort
+        self.dashscopeRegion = dashscopeRegion
+        self.dashscopeAPIKeyStored = dashscopeAPIKeyStored
+        self.hiddenProviders = hiddenProviders
         self.gitSectionEnabled = gitSectionEnabled
         self.memoryProviderId = memoryProviderId
         self.projectMemoryAutoUpdate = projectMemoryAutoUpdate
@@ -414,6 +451,11 @@ struct McClawConfig: Codable, Sendable {
         bitnetTemperature = try container.decodeIfPresent(Double.self, forKey: .bitnetTemperature) ?? 0.7
         bitnetServerPort = try container.decodeIfPresent(Int.self, forKey: .bitnetServerPort) ?? 8921
         bitnetAlwaysOn = try container.decodeIfPresent(Bool.self, forKey: .bitnetAlwaysOn) ?? true
+        ollamaAlwaysOn = try container.decodeIfPresent(Bool.self, forKey: .ollamaAlwaysOn) ?? false
+        ollamaServerPort = try container.decodeIfPresent(Int.self, forKey: .ollamaServerPort) ?? 11434
+        dashscopeRegion = try container.decodeIfPresent(String.self, forKey: .dashscopeRegion) ?? "international"
+        dashscopeAPIKeyStored = try container.decodeIfPresent(Bool.self, forKey: .dashscopeAPIKeyStored) ?? false
+        hiddenProviders = try container.decodeIfPresent(Set<String>.self, forKey: .hiddenProviders) ?? ["dashscope"]
         gitSectionEnabled = try container.decodeIfPresent(Bool.self, forKey: .gitSectionEnabled) ?? false
         memoryProviderId = try container.decodeIfPresent(String.self, forKey: .memoryProviderId)
         projectMemoryAutoUpdate = try container.decodeIfPresent(Bool.self, forKey: .projectMemoryAutoUpdate) ?? true

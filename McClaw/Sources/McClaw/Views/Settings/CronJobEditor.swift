@@ -512,6 +512,7 @@ struct CronJobEditor: View {
         case let s where s.contains("gemini"): "sparkle"
         case let s where s.contains("chatgpt"): "bubble.left.and.bubble.right"
         case let s where s.contains("ollama"): "desktopcomputer"
+        case let s where s.contains("copilot"): "curlybraces"
         default: "cpu"
         }
     }
