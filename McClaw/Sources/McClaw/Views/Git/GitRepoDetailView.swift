@@ -23,8 +23,22 @@ struct GitRepoDetailView: View {
     let isLoadingFile: Bool
     let onCloseFile: () -> Void
 
+    // Chat integration
+    var onSendToChat: ((String) -> Void)?
+
+    // Project association
+    var associatedProject: ProjectInfo?
+    var availableProjects: [ProjectInfo] = []
+    var onAssociateProject: ((ProjectInfo) -> Void)?
+    var onVisitProject: ((String) -> Void)?
+
+    // Monitor sheet
+    var platform: GitPlatform = .github
+
     @State private var selectedTab: DetailTab = .code
     @State private var treePanelWidth: CGFloat = 240
+    @State private var showingMonitorSheet: Bool = false
+    @State private var showingProjectPicker: Bool = false
 
     enum DetailTab: String, CaseIterable {
         case code
@@ -55,7 +69,22 @@ struct GitRepoDetailView: View {
         VStack(spacing: 0) {
             // Header: repo name + back button
             repoHeader
+
+            // Project association row
+            projectBadgeRow
             Divider()
+
+            // Action bar (repo-level AI actions)
+            if let sendToChat = onSendToChat {
+                GitRepoActionBar(
+                    repoName: repo.fullName,
+                    onSendToChat: sendToChat,
+                    onSetupMonitor: { showingMonitorSheet = true }
+                )
+                Divider()
+            } else {
+                Divider()
+            }
 
             // Branch selector + tab bar row
             HStack(spacing: 12) {
@@ -69,6 +98,13 @@ struct GitRepoDetailView: View {
 
             // Tab content
             tabContent
+        }
+        .sheet(isPresented: $showingMonitorSheet) {
+            GitMonitorSetupSheet(
+                repoFullName: repo.fullName,
+                platform: platform,
+                onDismiss: { showingMonitorSheet = false }
+            )
         }
     }
 
@@ -199,11 +235,11 @@ struct GitRepoDetailView: View {
         case .code:
             codeTab
         case .issues:
-            GitIssueListView(issues: issues)
+            GitIssueListView(issues: issues, onSendToChat: onSendToChat)
         case .pullRequests:
-            GitPRListView(pullRequests: pullRequests)
+            GitPRListView(pullRequests: pullRequests, onSendToChat: onSendToChat)
         case .commits:
-            GitCommitListView(commits: commits)
+            GitCommitListView(commits: commits, onSendToChat: onSendToChat)
         }
     }
 
@@ -217,7 +253,8 @@ struct GitRepoDetailView: View {
                 nodes: treeNodes,
                 selectedFilePath: viewingFile?.path,
                 onToggleDir: onToggleDir,
-                onSelectFile: onSelectFile
+                onSelectFile: onSelectFile,
+                onSendToChat: onSendToChat
             )
             .frame(width: treePanelWidth)
 
@@ -232,7 +269,8 @@ struct GitRepoDetailView: View {
                     file: file,
                     content: fileContent,
                     isLoading: isLoadingFile,
-                    onClose: onCloseFile
+                    onClose: onCloseFile,
+                    onSendToChat: onSendToChat
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -280,6 +318,125 @@ struct GitRepoDetailView: View {
                         treePanelWidth = max(160, min(400, newWidth))
                     }
             )
+    }
+
+    // MARK: - Project Badge Row
+
+    @ViewBuilder
+    private var projectBadgeRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "folder.fill")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            if let project = associatedProject {
+                // Show project name
+                Text(project.name)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                // Visit button
+                if let onVisit = onVisitProject {
+                    Button {
+                        onVisit(project.id)
+                    } label: {
+                        Text(String(localized: "git_project_visit", bundle: .module))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.accentColor.opacity(0.8))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                // Add to Project button
+                Button {
+                    showingProjectPicker = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle")
+                            .font(.caption2)
+                        Text(String(localized: "git_project_add", bundle: .module))
+                            .font(.caption.weight(.medium))
+                    }
+                    .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showingProjectPicker, arrowEdge: .bottom) {
+                    projectPickerPopover
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+    }
+
+    @ViewBuilder
+    private var projectPickerPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(String(localized: "git_project_select", bundle: .module))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.top, 10)
+                .padding(.bottom, 6)
+
+            if availableProjects.isEmpty {
+                Text(String(localized: "git_project_none", bundle: .module))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            } else {
+                ScrollView {
+                    VStack(spacing: 2) {
+                        ForEach(availableProjects) { project in
+                            Button {
+                                onAssociateProject?(project)
+                                showingProjectPicker = false
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "folder.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(project.name)
+                                            .font(.caption.weight(.medium))
+                                            .foregroundStyle(.primary)
+                                        if !project.description.isEmpty {
+                                            Text(project.description)
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .background {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.clear)
+                            }
+                            .onHover { hovering in
+                                // Handled by SwiftUI automatically
+                            }
+                        }
+                    }
+                }
+                .frame(maxHeight: 200)
+            }
+        }
+        .frame(width: 240)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Helpers

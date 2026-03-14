@@ -41,6 +41,131 @@ final class GitPanelViewModel {
     var fileContent: String?
     var isLoadingFile: Bool = false
 
+    // MARK: - Project Association
+
+    /// The project that the currently selected repo belongs to (if any).
+    var associatedProject: ProjectInfo?
+
+    /// Whether the project picker popover is showing.
+    var showingProjectPicker: Bool = false
+
+    /// Find which project a repo belongs to, by matching its localPath or cloneURL against project directories.
+    func findProject(for repo: GitRepoInfo) -> ProjectInfo? {
+        let projects = ProjectStore.shared.projects
+        for project in projects {
+            for dir in project.directories {
+                // Match by local path
+                if let localPath = repo.localPath,
+                   localPath.hasPrefix(dir) || dir.hasPrefix(localPath) {
+                    return project
+                }
+                // Match by repo name in directory path
+                if dir.lowercased().contains(repo.name.lowercased()) {
+                    return project
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Associate the current repo with a project by adding its local path (or name) to the project's directories.
+    func associateRepo(_ repo: GitRepoInfo, withProject project: ProjectInfo) {
+        let directory = repo.localPath ?? repo.fullName
+        var updatedDirs = project.directories
+        if !updatedDirs.contains(directory) {
+            updatedDirs.append(directory)
+        }
+        ProjectStore.shared.update(
+            projectId: project.id,
+            name: project.name,
+            description: project.description,
+            rules: project.rules,
+            directories: updatedDirs
+        )
+        associatedProject = ProjectStore.shared.load(projectId: project.id)
+    }
+
+    /// Update the associated project when a repo is selected.
+    func updateAssociatedProject() {
+        if let repo = selectedRepo {
+            associatedProject = findProject(for: repo)
+        } else {
+            associatedProject = nil
+        }
+    }
+
+    // MARK: - Chat Integration
+
+    /// Closure to send a prompt to the chat. Set by GitPanelView.
+    var onSendToChat: ((String) -> Void)?
+
+    /// Send a contextual prompt to the chat.
+    func sendToChat(_ prompt: String) {
+        onSendToChat?(prompt)
+    }
+
+    // MARK: - Git Session Management
+
+    /// Current Git chat session ID for the active repo.
+    var currentGitSessionId: String?
+
+    /// Available sessions for the currently selected repo.
+    var repoSessions: [SessionInfo] = []
+
+    /// Callback to save current Git session. Set by GitPanelView.
+    var onSaveGitSession: (() -> Void)?
+    /// Callback to load a Git session by ID. Set by GitPanelView.
+    var onLoadGitSession: ((String) -> Void)?
+    /// Callback to start a new empty Git session. Set by GitPanelView.
+    var onNewGitSession: (() -> Void)?
+
+    /// Generate a new session ID for a repo. Uses a standard UUID because Claude CLI requires valid UUIDs.
+    /// The repo association is tracked separately via SessionStore's git_repo_assignments.json sidecar.
+    func newGitSessionId(for repoFullName: String) -> String {
+        UUID().uuidString
+    }
+
+    /// Load available sessions for a repo from SessionStore.
+    func loadSessionsForRepo(_ repoFullName: String) {
+        repoSessions = SessionStore.shared.sessions(forGitRepo: repoFullName)
+    }
+
+    /// Switch to a different session for the current repo.
+    func switchToSession(_ session: SessionInfo) {
+        onSaveGitSession?()
+        currentGitSessionId = session.id
+        onLoadGitSession?(session.id)
+    }
+
+    /// Start a new conversation for the current repo.
+    func startNewSession() {
+        guard let repo = selectedRepo else { return }
+        onSaveGitSession?()
+        let newId = newGitSessionId(for: repo.fullName)
+        currentGitSessionId = newId
+        onNewGitSession?()
+        loadSessionsForRepo(repo.fullName)
+    }
+
+    /// Delete a session from the history (moves to trash).
+    /// If it's the current session, starts a new one.
+    func deleteSession(_ session: SessionInfo) {
+        let store = SessionStore.shared
+        let wasCurrent = session.id == currentGitSessionId
+
+        store.delete(sessionId: session.id)
+        store.unassignFromGitRepo(sessionId: session.id)
+
+        if let repo = selectedRepo {
+            loadSessionsForRepo(repo.fullName)
+            if wasCurrent {
+                let newId = newGitSessionId(for: repo.fullName)
+                currentGitSessionId = newId
+                onNewGitSession?()
+            }
+        }
+    }
+
     // MARK: - Dependencies
 
     private let connectorStore = ConnectorStore.shared
@@ -114,8 +239,11 @@ final class GitPanelViewModel {
         }
     }
 
-    /// Select a repository: set context and open detail view.
+    /// Select a repository: set context, open detail view, and load/create Git session.
     func selectRepo(_ repo: GitRepoInfo) {
+        // Save current session before switching
+        onSaveGitSession?()
+
         selectedRepo = repo
         selectedBranch = nil
         isShowingDetail = true
@@ -131,6 +259,15 @@ final class GitPanelViewModel {
             branch: repo.defaultBranch,
             localPath: repo.localPath
         )
+
+        updateAssociatedProject()
+
+        // Always start with a fresh chat when entering a repo.
+        // Past sessions are accessible from the history menu.
+        loadSessionsForRepo(repo.fullName)
+        let newId = newGitSessionId(for: repo.fullName)
+        currentGitSessionId = newId
+        onNewGitSession?()
     }
 
     /// Select a branch within the current repo.

@@ -143,8 +143,12 @@ final class PromptEnrichmentService {
 
     // MARK: - Git Context Header
 
-    /// Build a context header for the active Git repository.
+    /// Build a context header for the active Git repository with READ/WRITE separation
+    /// and confirmation format instructions.
     func buildGitContextHeader(_ context: GitContext) -> String {
+        let platformId = context.platform == .github ? "github" : "gitlab"
+        let clonedLocally = context.localPath != nil ? "yes" : "no"
+
         var lines: [String] = []
         lines.append("[McClaw Git Context]")
         lines.append("Platform: \(context.platform.displayName)")
@@ -153,10 +157,37 @@ final class PromptEnrichmentService {
         if let path = context.localPath {
             lines.append("Local path: \(path)")
         }
-        lines.append("Available actions:")
-        lines.append("  Platform (\(context.platform.displayName) API): list_issues, list_prs, get_pr_diff, create_issue, create_pr, create_comment, search_code, list_releases, list_branches, list_commits")
-        lines.append("  Local (git CLI): log, diff, status, blame, show, clone, checkout, branch, add, commit, push, pull, tag, stash")
-        lines.append("To execute an action, use: @fetch(\(context.platform == .github ? "github" : "gitlab").list_prs, repo=\(context.repoFullName), state=open) or @git(log --since=\"1 week ago\" --oneline)")
+        lines.append("Cloned locally: \(clonedLocally)")
+        lines.append("")
+        lines.append("Available platform actions (via @fetch):")
+        lines.append("  READ: list_repos, list_branches, list_issues, list_prs, get_pr_diff, list_commits, list_releases, search_code, get_contents")
+        lines.append("  WRITE: create_issue, close_issue, create_comment, create_pr, merge_pr, create_release")
+        lines.append("")
+        if context.localPath != nil {
+            lines.append("Available local git actions (via @git):")
+            lines.append("  READ: log, diff, status, blame, show, branch, shortlog, ls-files, ls-tree, describe, tag --list")
+            lines.append("  WRITE: clone, checkout, pull, add, commit, push, tag, stash, fetch, merge, rebase, cherry-pick, reset")
+            lines.append("")
+        }
+        lines.append("Rules:")
+        lines.append("  - For READ actions, execute directly: @git(log -10 --oneline) or @fetch(\(platformId).list_prs, repo=\(context.repoFullName), state=open)")
+        lines.append("  - For WRITE actions, ALWAYS use the confirmation format:")
+        lines.append("    @git-confirm(command, title=Title, details=key1=value1|key2=value2)")
+        lines.append("    @fetch-confirm(connector.action, param1=value1, param2=value2)")
+        lines.append("  - Maximum 5 @git rounds per message")
+        lines.append("  - Maximum 3 @fetch rounds per message")
+        lines.append("  - Output truncation: 8000 chars for @git, 4000 chars for @fetch")
+
+        // Cross-repo context
+        if let additionalRepos = context.additionalRepos, !additionalRepos.isEmpty {
+            lines.append("")
+            lines.append("Additional repositories in context (cross-repo intelligence):")
+            for repo in additionalRepos {
+                let localInfo = repo.localPath != nil ? ", local: \(repo.localPath!)" : ""
+                lines.append("  - \(repo.fullName) (\(repo.platform.displayName)\(localInfo))")
+            }
+        }
+
         return lines.joined(separator: "\n")
     }
 
@@ -247,6 +278,122 @@ final class PromptEnrichmentService {
         let nsText = text as NSString
         return regex.stringByReplacingMatches(in: text, range: NSRange(location: 0, length: nsText.length), withTemplate: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: - @git-confirm() / @fetch-confirm() Processing
+
+    /// Detect @git-confirm(...) commands in AI response.
+    /// Format: @git-confirm(command, title=Title, details=key1=value1|key2=value2)
+    func detectGitConfirmations(in text: String) -> [PendingGitAction] {
+        var actions: [PendingGitAction] = []
+        // Match @git-confirm(command, title=..., details=...)
+        let pattern = #"@git-confirm\(([^,]+),\s*title=([^,]+),\s*details=([^)]+)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+        for match in matches {
+            guard match.numberOfRanges > 3 else { continue }
+            let command = nsText.substring(with: match.range(at: 1))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let title = nsText.substring(with: match.range(at: 2))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let detailsRaw = nsText.substring(with: match.range(at: 3))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            var details = parseKeyValuePairs(detailsRaw)
+
+            // Mark destructive operations
+            let destructivePatterns = ["reset", "rebase", "--force", "push --force", "push -f"]
+            if destructivePatterns.contains(where: { command.lowercased().contains($0) }) {
+                details["warning"] = "destructive"
+            }
+
+            actions.append(PendingGitAction(
+                type: .localGit,
+                command: command,
+                title: title,
+                details: details
+            ))
+        }
+        return actions
+    }
+
+    /// Detect @fetch-confirm(...) commands in AI response.
+    /// Format: @fetch-confirm(connector.action, param1=value1, param2=value2, ...)
+    func detectFetchConfirmations(in text: String) -> [PendingGitAction] {
+        var actions: [PendingGitAction] = []
+        // Match @fetch-confirm(connector.action, rest...)
+        let pattern = #"@fetch-confirm\(([a-zA-Z_]+\.[a-zA-Z_]+),\s*(.+?)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .dotMatchesLineSeparators) else { return [] }
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+        for match in matches {
+            guard match.numberOfRanges > 2 else { continue }
+            let connectorAction = nsText.substring(with: match.range(at: 1))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let paramsRaw = nsText.substring(with: match.range(at: 2))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Parse params as key=value pairs separated by commas
+            var details: [String: String] = [:]
+            let parts = paramsRaw.components(separatedBy: ", ")
+            for part in parts {
+                let kv = part.components(separatedBy: "=")
+                if kv.count >= 2 {
+                    let key = kv[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                    let value = kv.dropFirst().joined(separator: "=").trimmingCharacters(in: .whitespacesAndNewlines)
+                    details[key] = value
+                }
+            }
+
+            // Derive title from action name
+            let actionParts = connectorAction.split(separator: ".")
+            let actionName = actionParts.count > 1 ? String(actionParts[1]) : connectorAction
+            let title = actionName
+                .replacingOccurrences(of: "_", with: " ")
+                .capitalized
+
+            actions.append(PendingGitAction(
+                type: .platformAPI,
+                command: connectorAction,
+                title: title,
+                details: details
+            ))
+        }
+        return actions
+    }
+
+    /// Remove @git-confirm(...) and @fetch-confirm(...) tokens from text.
+    func removeConfirmationCommands(from text: String) -> String {
+        var result = text
+        // Remove @git-confirm(...)
+        if let regex = try? NSRegularExpression(pattern: #"@git-confirm\([^)]+\)\s*"#) {
+            let nsText = result as NSString
+            result = regex.stringByReplacingMatches(in: result, range: NSRange(location: 0, length: nsText.length), withTemplate: "")
+        }
+        // Remove @fetch-confirm(...)
+        if let regex = try? NSRegularExpression(pattern: #"@fetch-confirm\(.+?\)\s*"#, options: .dotMatchesLineSeparators) {
+            let nsText = result as NSString
+            result = regex.stringByReplacingMatches(in: result, range: NSRange(location: 0, length: nsText.length), withTemplate: "")
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Parse "key1=value1|key2=value2" into a dictionary.
+    private func parseKeyValuePairs(_ raw: String) -> [String: String] {
+        var result: [String: String] = [:]
+        let pairs = raw.components(separatedBy: "|")
+        for pair in pairs {
+            let kv = pair.components(separatedBy: "=")
+            if kv.count >= 2 {
+                let key = kv[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                let value = kv.dropFirst().joined(separator: "=").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !key.isEmpty {
+                    result[key] = value
+                }
+            }
+        }
+        return result
     }
 
     // MARK: - Private Helpers

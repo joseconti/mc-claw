@@ -17,40 +17,41 @@ struct ProjectEditorView: View {
     @State private var hasChanges = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // Header
-                HStack {
-                    Button {
-                        onDismiss()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                                .font(.body.weight(.medium))
-                            Text("Back", bundle: .module)
-                                .font(.body)
-                        }
-                        .foregroundStyle(.secondary)
-                        .contentShape(Rectangle())
+        VStack(spacing: 0) {
+            // Header — outside scroll so buttons always respond
+            HStack {
+                Button {
+                    onDismiss()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.medium))
+                        Text("Back", bundle: .module)
+                            .font(.body)
                     }
-                    .buttonStyle(.borderless)
-
-                    Spacer()
-
-                    if hasChanges {
-                        Button("Save") {
-                            saveProject()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 32)
-                .padding(.top, 20)
-                .padding(.bottom, 16)
+                .buttonStyle(.borderless)
 
-                // Cover image
-                coverImageSection
-                    .padding(.horizontal, 32)
+                Spacer()
+
+                if hasChanges {
+                    Button("Save") {
+                        saveProject()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(.horizontal, 32)
+            .padding(.top, 20)
+            .padding(.bottom, 16)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Cover image
+                    coverImageSection
+                        .padding(.horizontal, 32)
                     .padding(.bottom, 24)
 
                 // Form fields
@@ -167,6 +168,7 @@ struct ProjectEditorView: View {
             }
             .frame(maxWidth: 700)
             .frame(maxWidth: .infinity)
+            }
         }
         .onAppear(perform: loadProject)
     }

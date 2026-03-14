@@ -13,7 +13,11 @@ struct GitPanelView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = GitPanelViewModel()
     @State private var chatViewModel = ChatViewModel()
+    @State private var projectStore = ProjectStore.shared
     @Namespace private var cliSelectorNamespace
+
+    /// Callback to navigate to a project detail view.
+    var onNavigateToProject: ((String) -> Void)?
 
     /// Whether the chat area is collapsed.
     @State private var isChatCollapsed: Bool = false
@@ -44,12 +48,60 @@ struct GitPanelView: View {
             .onAppear {
                 viewModel.detectAvailablePlatforms()
                 Task { await viewModel.loadRepos() }
+                // Wire sendToChat: expand chat if collapsed, then send prompt
+                viewModel.onSendToChat = { [self] prompt in
+                    if isChatCollapsed {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isChatCollapsed = false
+                        }
+                    }
+                    chatViewModel.sendPrefilled(prompt)
+                }
+                // Wire Git session callbacks
+                viewModel.onSaveGitSession = { [self] in
+                    guard let sessionId = viewModel.currentGitSessionId else { return }
+                    chatViewModel.persistGitSession(sessionId: sessionId)
+                    if let repo = viewModel.selectedRepo {
+                        SessionStore.shared.assignToGitRepo(sessionId: sessionId, repoFullName: repo.fullName)
+                    }
+                }
+                viewModel.onLoadGitSession = { [self] sessionId in
+                    chatViewModel.loadGitSession(sessionId: sessionId)
+                    chatViewModel.gitContext = viewModel.gitContext
+                }
+                viewModel.onNewGitSession = { [self] in
+                    chatViewModel.messages = []
+                    if let sessionId = viewModel.currentGitSessionId {
+                        chatViewModel.overrideSessionId = sessionId
+                    }
+                    chatViewModel.gitContext = viewModel.gitContext
+                }
+            }
+            .onDisappear {
+                // Persist current Git session when leaving the panel
+                if let sessionId = viewModel.currentGitSessionId {
+                    chatViewModel.persistGitSession(sessionId: sessionId)
+                    if let repo = viewModel.selectedRepo {
+                        SessionStore.shared.assignToGitRepo(sessionId: sessionId, repoFullName: repo.fullName)
+                    }
+                }
             }
             .onChange(of: viewModel.selectedPlatform) { _, _ in
                 Task { await viewModel.loadRepos() }
             }
             .onChange(of: viewModel.gitContext) { _, newContext in
                 chatViewModel.gitContext = newContext
+            }
+            .onChange(of: chatViewModel.isStreaming) { oldValue, newValue in
+                // Auto-save when streaming finishes
+                if oldValue && !newValue,
+                   let sessionId = viewModel.currentGitSessionId {
+                    chatViewModel.persistGitSession(sessionId: sessionId)
+                    if let repo = viewModel.selectedRepo {
+                        SessionStore.shared.assignToGitRepo(sessionId: sessionId, repoFullName: repo.fullName)
+                        viewModel.loadSessionsForRepo(repo.fullName)
+                    }
+                }
             }
         }
     }
@@ -70,6 +122,46 @@ struct GitPanelView: View {
                 availablePlatforms: viewModel.availablePlatforms
             )
 
+            // Quick actions menu (visible when a repo is selected)
+            if let repo = viewModel.selectedRepo, viewModel.isShowingDetail {
+                Menu {
+                    Button {
+                        viewModel.sendToChat(GitPromptTemplates.commitAssistant())
+                    } label: {
+                        Label(String(localized: "git_quick_commit", bundle: .module), systemImage: "checkmark.circle")
+                    }
+                    Button {
+                        viewModel.sendToChat("Pull the latest changes from the remote for this repository.")
+                    } label: {
+                        Label(String(localized: "git_quick_pull", bundle: .module), systemImage: "arrow.down")
+                    }
+                    Button {
+                        viewModel.sendToChat("Help me create a new branch. Ask me what feature or fix I'm working on and suggest a good branch name.")
+                    } label: {
+                        Label(String(localized: "git_quick_create_branch", bundle: .module), systemImage: "arrow.triangle.branch")
+                    }
+                    Divider()
+                    Button {
+                        viewModel.sendToChat("List all open PRs in \(repo.fullName) and give me a summary of each one. Flag any that need attention.")
+                    } label: {
+                        Label(String(localized: "git_quick_review_prs", bundle: .module), systemImage: "arrow.triangle.pull")
+                    }
+                    Button {
+                        viewModel.sendToChat(GitPromptTemplates.generateChangelog(repo.fullName))
+                    } label: {
+                        Label(String(localized: "git_quick_changelog", bundle: .module), systemImage: "doc.plaintext")
+                    }
+                } label: {
+                    Image(systemName: "bolt.circle")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(String(localized: "git_quick_actions_title", bundle: .module))
+            }
+
             // Refresh
             Button {
                 Task { await viewModel.refreshAll() }
@@ -80,6 +172,23 @@ struct GitPanelView: View {
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isLoadingRepos)
+
+            // Session history menu (visible when a repo is selected)
+            if viewModel.selectedRepo != nil {
+                GitSessionHistoryMenu(
+                    sessions: viewModel.repoSessions,
+                    currentSessionId: viewModel.currentGitSessionId,
+                    onSelect: { session in
+                        viewModel.switchToSession(session)
+                    },
+                    onNewSession: {
+                        viewModel.startNewSession()
+                    },
+                    onDelete: { session in
+                        viewModel.deleteSession(session)
+                    }
+                )
+            }
 
             // Chat collapse toggle
             Button {
@@ -156,31 +265,23 @@ struct GitPanelView: View {
                 gitMessagesArea
             }
 
-            // Context chip + Input bar
-            VStack(spacing: 4) {
-                if let ctx = viewModel.gitContext {
-                    HStack {
-                        GitContextChip(context: ctx) {
-                            viewModel.clearSelection()
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
+            // Input bar with context chip embedded
+            ChatInputBar(
+                onSend: { text, attachments in
+                    Task { await chatViewModel.send(text, attachments: attachments) }
+                },
+                onAbort: {
+                    Task { await chatViewModel.abort() }
+                },
+                isWorking: chatViewModel.isStreaming,
+                compact: true,
+                contextChip: viewModel.gitContext.map { ctx in
+                    AnyView(GitContextChip(context: ctx) {
+                        viewModel.clearSelection()
+                    })
                 }
-
-                ChatInputBar(
-                    onSend: { text, attachments in
-                        Task { await chatViewModel.send(text, attachments: attachments) }
-                    },
-                    onAbort: {
-                        Task { await chatViewModel.abort() }
-                    },
-                    isWorking: chatViewModel.isStreaming,
-                    compact: true
-                )
-                .environment(appState)
-            }
+            )
+            .environment(appState)
         }
     }
 
@@ -204,7 +305,15 @@ struct GitPanelView: View {
                 viewingFile: viewModel.viewingFile,
                 fileContent: viewModel.fileContent,
                 isLoadingFile: viewModel.isLoadingFile,
-                onCloseFile: { viewModel.closeFileViewer() }
+                onCloseFile: { viewModel.closeFileViewer() },
+                onSendToChat: { prompt in viewModel.sendToChat(prompt) },
+                associatedProject: viewModel.associatedProject,
+                availableProjects: projectStore.projects,
+                onAssociateProject: { project in
+                    viewModel.associateRepo(repo, withProject: project)
+                },
+                onVisitProject: onNavigateToProject,
+                platform: viewModel.selectedPlatform
             )
             .task { await viewModel.loadRepoDetail(repo) }
         } else {
@@ -241,22 +350,30 @@ struct GitPanelView: View {
     @ViewBuilder
     private var gitMessagesArea: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(chatViewModel.messages) { message in
-                        MessageBubbleView(
-                            message: message,
-                            userAvatarImage: appState.userAvatarImage,
-                            fontSize: appState.chatFontSize,
-                            fontFamily: appState.chatFontFamily,
-                            isLastMessage: message.id == chatViewModel.messages.last?.id
-                        )
-                        .id(message.id)
+            GeometryReader { geometry in
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(chatViewModel.messages) { message in
+                            MessageBubbleView(
+                                message: message,
+                                userAvatarImage: appState.userAvatarImage,
+                                fontSize: appState.chatFontSize,
+                                fontFamily: appState.chatFontFamily,
+                                isLastMessage: message.id == chatViewModel.messages.last?.id,
+                                onConfirmGitAction: { msgId, actId in
+                                    chatViewModel.confirmGitAction(messageId: msgId, actionId: actId)
+                                },
+                                onCancelGitAction: { msgId, actId in
+                                    chatViewModel.cancelGitAction(messageId: msgId, actionId: actId)
+                                }
+                            )
+                            .id(message.id)
+                        }
                     }
+                    .frame(maxWidth: 820, minHeight: geometry.size.height, alignment: .bottom)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
                 }
-                .frame(maxWidth: 820)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 8)
             }
             .onChange(of: chatViewModel.messages.count) { _, _ in
                 if let last = chatViewModel.messages.last {

@@ -3,6 +3,7 @@ import SwiftUI
 /// List of pull requests / merge requests for a repository.
 struct GitPRListView: View {
     let pullRequests: [GitPRInfo]
+    var onSendToChat: ((String) -> Void)?
 
     var body: some View {
         if pullRequests.isEmpty {
@@ -15,6 +16,7 @@ struct GitPRListView: View {
                 LazyVStack(spacing: 2) {
                     ForEach(pullRequests) { pr in
                         prRow(pr)
+                            .contextMenu { prContextMenu(pr) }
                     }
                 }
                 .padding(.horizontal, 6)
@@ -62,6 +64,45 @@ struct GitPRListView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private func prContextMenu(_ pr: GitPRInfo) -> some View {
+        Button {
+            onSendToChat?(GitPromptTemplates.reviewPR(pr))
+        } label: {
+            Label(String(localized: "git_action_review_pr", bundle: .module), systemImage: "eye")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.summarizePR(pr))
+        } label: {
+            Label(String(localized: "git_action_summarize_pr", bundle: .module), systemImage: "doc.text")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.suggestImprovementsPR(pr))
+        } label: {
+            Label(String(localized: "git_action_suggest_improvements", bundle: .module), systemImage: "lightbulb")
+        }
+
+        Divider()
+
+        Button {
+            onSendToChat?(GitPromptTemplates.postReviewPR(pr))
+        } label: {
+            Label(String(localized: "git_action_post_review", bundle: .module), systemImage: "bubble.left.and.text.bubble.right")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.mergePR(pr))
+        } label: {
+            Label(String(localized: "git_action_merge_pr", bundle: .module), systemImage: "arrow.triangle.merge")
+        }
+    }
+
+    // MARK: - Helpers
 
     private func prColor(_ state: String) -> Color {
         switch state.lowercased() {

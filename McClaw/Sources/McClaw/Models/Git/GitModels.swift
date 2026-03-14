@@ -40,6 +40,15 @@ struct GitContext: Equatable, Sendable {
     let repoURL: String
     var branch: String
     var localPath: String?
+    /// Additional repos for cross-repo intelligence (comparing dependent repos).
+    var additionalRepos: [AdditionalRepoContext]?
+}
+
+/// Lightweight reference to an additional repo for cross-repo prompts.
+struct AdditionalRepoContext: Equatable, Sendable {
+    let fullName: String
+    let platform: GitPlatform
+    let localPath: String?
 }
 
 // MARK: - Repository

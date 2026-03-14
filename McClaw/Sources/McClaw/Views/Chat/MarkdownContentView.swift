@@ -264,6 +264,10 @@ private struct CodeBlockView: View {
         }
     }
 
+    private var isDarkTheme: Bool {
+        ThemeManager.shared.selectedPreset.isDark != false
+    }
+
     @ViewBuilder
     private var copyButton: some View {
         Button {
@@ -276,11 +280,14 @@ private struct CodeBlockView: View {
         } label: {
             Image(systemName: copied ? "checkmark" : "doc.on.doc")
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(isDarkTheme ? .white.opacity(0.8) : Color.primary.opacity(0.7))
                 .frame(width: 30, height: 30)
-                .background(.white.opacity(0.15))
+                .background(isDarkTheme ? .white.opacity(0.15) : Color.primary.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
-                .liquidGlass(cornerRadius: 6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(isDarkTheme ? .clear : Color.primary.opacity(0.15), lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
         .help("Copy")
@@ -307,16 +314,44 @@ struct SyntaxHighlightedCode: View {
 
 enum SyntaxHighlighter {
 
-    // MARK: Theme colors (dark background)
-    private static let keywordColor = NSColor(red: 0.78, green: 0.47, blue: 0.86, alpha: 1.0)   // purple
-    private static let stringColor = NSColor(red: 0.58, green: 0.79, blue: 0.49, alpha: 1.0)     // green
-    private static let commentColor = NSColor(red: 0.45, green: 0.50, blue: 0.55, alpha: 1.0)    // gray
-    private static let numberColor = NSColor(red: 0.82, green: 0.68, blue: 0.45, alpha: 1.0)     // orange
-    private static let functionColor = NSColor(red: 0.38, green: 0.69, blue: 0.93, alpha: 1.0)   // blue
-    private static let typeColor = NSColor(red: 0.38, green: 0.80, blue: 0.77, alpha: 1.0)       // teal
-    private static let variableColor = NSColor(red: 0.90, green: 0.55, blue: 0.47, alpha: 1.0)   // red/coral
-    private static let defaultColor = NSColor(red: 0.85, green: 0.85, blue: 0.87, alpha: 1.0)    // light gray
+    // MARK: Theme-aware colors
 
+    /// Whether the active theme is a light theme.
+    @MainActor
+    private static var isLightTheme: Bool {
+        ThemeManager.shared.selectedPreset.isDark == false
+    }
+
+    // Dark theme colors
+    private static let darkKeyword = NSColor(red: 0.78, green: 0.47, blue: 0.86, alpha: 1.0)   // purple
+    private static let darkString = NSColor(red: 0.58, green: 0.79, blue: 0.49, alpha: 1.0)     // green
+    private static let darkComment = NSColor(red: 0.45, green: 0.50, blue: 0.55, alpha: 1.0)    // gray
+    private static let darkNumber = NSColor(red: 0.82, green: 0.68, blue: 0.45, alpha: 1.0)     // orange
+    private static let darkFunction = NSColor(red: 0.38, green: 0.69, blue: 0.93, alpha: 1.0)   // blue
+    private static let darkType = NSColor(red: 0.38, green: 0.80, blue: 0.77, alpha: 1.0)       // teal
+    private static let darkVariable = NSColor(red: 0.90, green: 0.55, blue: 0.47, alpha: 1.0)   // red/coral
+    private static let darkDefault = NSColor(red: 0.85, green: 0.85, blue: 0.87, alpha: 1.0)    // light gray
+
+    // Light theme colors (high contrast on light backgrounds)
+    private static let lightKeyword = NSColor(red: 0.55, green: 0.08, blue: 0.69, alpha: 1.0)   // dark purple
+    private static let lightString = NSColor(red: 0.15, green: 0.50, blue: 0.13, alpha: 1.0)     // dark green
+    private static let lightComment = NSColor(red: 0.42, green: 0.45, blue: 0.48, alpha: 1.0)    // medium gray
+    private static let lightNumber = NSColor(red: 0.72, green: 0.42, blue: 0.00, alpha: 1.0)     // dark orange
+    private static let lightFunction = NSColor(red: 0.00, green: 0.38, blue: 0.72, alpha: 1.0)   // dark blue
+    private static let lightType = NSColor(red: 0.00, green: 0.50, blue: 0.47, alpha: 1.0)       // dark teal
+    private static let lightVariable = NSColor(red: 0.72, green: 0.20, blue: 0.15, alpha: 1.0)   // dark red
+    private static let lightDefault = NSColor(red: 0.15, green: 0.15, blue: 0.17, alpha: 1.0)    // near-black
+
+    @MainActor private static var keywordColor: NSColor { isLightTheme ? lightKeyword : darkKeyword }
+    @MainActor private static var stringColor: NSColor { isLightTheme ? lightString : darkString }
+    @MainActor private static var commentColor: NSColor { isLightTheme ? lightComment : darkComment }
+    @MainActor private static var numberColor: NSColor { isLightTheme ? lightNumber : darkNumber }
+    @MainActor private static var functionColor: NSColor { isLightTheme ? lightFunction : darkFunction }
+    @MainActor private static var typeColor: NSColor { isLightTheme ? lightType : darkType }
+    @MainActor private static var variableColor: NSColor { isLightTheme ? lightVariable : darkVariable }
+    @MainActor private static var defaultColor: NSColor { isLightTheme ? lightDefault : darkDefault }
+
+    @MainActor
     static func highlight(_ code: String, language: String, fontSize: CGFloat) -> AttributedString {
         let lang = language.lowercased()
         let font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
@@ -360,6 +395,7 @@ enum SyntaxHighlighter {
         }
     }
 
+    @MainActor
     private static func tokenRules(for language: String) -> [TokenRule] {
         // Common rules applied to all languages
         var rules: [TokenRule] = []

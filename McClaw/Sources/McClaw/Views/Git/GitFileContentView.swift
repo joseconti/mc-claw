@@ -6,6 +6,10 @@ struct GitFileContentView: View {
     let content: String?
     let isLoading: Bool
     let onClose: () -> Void
+    var onSendToChat: ((String) -> Void)?
+
+    @State private var selectedLineStart: Int?
+    @State private var selectedLineEnd: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -16,6 +20,7 @@ struct GitFileContentView: View {
                 loadingState
             } else if let content {
                 codeView(content)
+                    .contextMenu { fileContextMenu }
             } else {
                 emptyState
             }
@@ -78,6 +83,7 @@ struct GitFileContentView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.quaternary.opacity(0.3))
+        .contextMenu { fileContextMenu }
     }
 
     // MARK: - Code View
@@ -85,50 +91,142 @@ struct GitFileContentView: View {
     @ViewBuilder
     private func codeView(_ text: String) -> some View {
         let lines = text.components(separatedBy: "\n")
-        let gutterWidth = max(36, CGFloat(String(lines.count).count) * 10 + 16)
+        let gutterWidth: CGFloat = 48  // Fixed width — fits up to 99999 lines consistently
         let lang = GitSyntaxHighlighter.language(for: file.name)
         let highlighted = GitSyntaxHighlighter.highlight(lines: lines, language: lang)
 
-        ScrollView([.horizontal, .vertical]) {
-            HStack(alignment: .top, spacing: 0) {
-                // Line numbers gutter
-                VStack(alignment: .trailing, spacing: 0) {
-                    ForEach(Array(lines.enumerated()), id: \.offset) { index, _ in
-                        Text("\(index + 1)")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-                            .frame(height: 19, alignment: .trailing)
-                    }
-                }
-                .frame(width: gutterWidth)
-                .padding(.trailing, 8)
-                .background(
-                    Rectangle()
-                        .fill(.quaternary.opacity(0.15))
-                )
+        ZStack(alignment: .bottomTrailing) {
+            GeometryReader { geo in
+                let minCodeWidth = max(0, geo.size.width - gutterWidth - 8 - 1) // available width after gutter+padding+separator
+                ScrollView([.horizontal, .vertical]) {
+                    HStack(alignment: .top, spacing: 0) {
+                        // Line numbers gutter (clickable for selection)
+                        VStack(alignment: .trailing, spacing: 0) {
+                            ForEach(Array(lines.enumerated()), id: \.offset) { index, _ in
+                                let lineNum = index + 1
+                                let selected = isLineSelected(lineNum)
+                                Text(verbatim: "\(lineNum)")
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .foregroundColor(selected ? Color.accentColor : Color.secondary.opacity(0.5))
+                                    .fontWeight(selected ? .semibold : .regular)
+                                    .frame(height: 19, alignment: .trailing)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        handleLineClick(lineNum, shiftHeld: NSEvent.modifierFlags.contains(.shift))
+                                    }
+                            }
+                        }
+                        .frame(width: gutterWidth)
+                        .padding(.trailing, 8)
+                        .background(
+                            Rectangle()
+                                .fill(.quaternary.opacity(0.15))
+                        )
 
-                // Separator
-                Rectangle()
-                    .fill(.quaternary.opacity(0.5))
-                    .frame(width: 1)
+                        // Separator
+                        Rectangle()
+                            .fill(.quaternary.opacity(0.5))
+                            .frame(width: 1)
 
-                // Code content — left-aligned
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(highlighted.enumerated()), id: \.offset) { _, attrLine in
-                        Text(attrLine)
-                            .font(.system(size: 12, design: .monospaced))
-                            .frame(height: 19, alignment: .leading)
-                            .textSelection(.enabled)
+                        // Code content — fills available width, scrolls horizontally for long lines
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(highlighted.enumerated()), id: \.offset) { index, attrLine in
+                                let lineNum = index + 1
+                                Text(attrLine)
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .frame(height: 19, alignment: .leading)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                    .textSelection(.enabled)
+                                    .background(isLineSelected(lineNum) ? Color.accentColor.opacity(0.1) : Color.clear)
+                            }
+                        }
+                        .frame(minWidth: minCodeWidth, alignment: .leading)
+                        .padding(.leading, 12)
+                        .padding(.trailing, 16)
                     }
+                    .padding(.vertical, 4)
                 }
-                .padding(.leading, 12)
-                .padding(.trailing, 16)
             }
-            .padding(.vertical, 4)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: .textBackgroundColor))
+
+            // Floating "Ask AI" button when lines are selected
+            if let start = selectedLineStart, let end = selectedLineEnd {
+                Button {
+                    let selectedLines = Array(lines[(start - 1)...(min(end, lines.count) - 1)])
+                    let code = selectedLines.joined(separator: "\n")
+                    let langName = languageName(for: lang)
+                    let prompt = GitPromptTemplates.askAboutLines(
+                        filePath: file.path,
+                        startLine: start,
+                        endLine: end,
+                        code: code,
+                        language: langName
+                    )
+                    onSendToChat?(prompt)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.caption2)
+                        Text(String(localized: "git_action_ask_about_lines \(start) \(end)", bundle: .module))
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.thinMaterial)
+                    .clipShape(Capsule())
+                    .shadow(radius: 4)
+                }
+                .buttonStyle(.plain)
+                .padding(12)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    // MARK: - Line Selection
+
+    private func isLineSelected(_ lineNum: Int) -> Bool {
+        guard let start = selectedLineStart, let end = selectedLineEnd else { return false }
+        return lineNum >= start && lineNum <= end
+    }
+
+    private func handleLineClick(_ lineNum: Int, shiftHeld: Bool) {
+        if shiftHeld, let start = selectedLineStart {
+            // Extend selection from start to clicked line
+            let newEnd = max(start, lineNum)
+            let newStart = min(start, lineNum)
+            selectedLineStart = newStart
+            selectedLineEnd = newEnd
+        } else {
+            // New single-line selection (or deselect if same line)
+            if selectedLineStart == lineNum && selectedLineEnd == lineNum {
+                selectedLineStart = nil
+                selectedLineEnd = nil
+            } else {
+                selectedLineStart = lineNum
+                selectedLineEnd = lineNum
+            }
+        }
+    }
+
+    private func languageName(for lang: GitSyntaxHighlighter.Language) -> String {
+        switch lang {
+        case .swift: return "swift"
+        case .php: return "php"
+        case .javascript: return "javascript"
+        case .python: return "python"
+        case .ruby: return "ruby"
+        case .go: return "go"
+        case .rust: return "rust"
+        case .cLike: return "c"
+        case .html: return "html"
+        case .css: return "css"
+        case .json: return "json"
+        case .yaml: return "yaml"
+        case .shell: return "shell"
+        case .markdown: return "markdown"
+        case .plain: return ""
+        }
     }
 
     // MARK: - Loading
@@ -162,6 +260,35 @@ struct GitFileContentView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - File Context Menu
+
+    @ViewBuilder
+    private var fileContextMenu: some View {
+        Button {
+            onSendToChat?(GitPromptTemplates.explainFile(file.path))
+        } label: {
+            Label(String(localized: "git_action_explain_file", bundle: .module), systemImage: "doc.text.magnifyingglass")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.findUsagesFile(file.path))
+        } label: {
+            Label(String(localized: "git_action_find_usages", bundle: .module), systemImage: "magnifyingglass")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.suggestImprovementsFile(file.path))
+        } label: {
+            Label(String(localized: "git_action_suggest_improvements_file", bundle: .module), systemImage: "lightbulb")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.writeTestsFile(file.path))
+        } label: {
+            Label(String(localized: "git_action_write_tests", bundle: .module), systemImage: "checkmark.shield")
+        }
     }
 
     // MARK: - Helpers
@@ -214,6 +341,7 @@ enum GitSyntaxHighlighter {
     }
 
     /// Highlight an array of lines, returning an `AttributedString` per line.
+    @MainActor
     static func highlight(lines: [String], language: Language) -> [AttributedString] {
         guard language != .plain else {
             return lines.map { line in
@@ -234,6 +362,7 @@ enum GitSyntaxHighlighter {
 
     // MARK: - Per-line Highlighting
 
+    @MainActor
     private static func highlightLine(_ line: String, language: Language, inBlockComment: Bool) -> (AttributedString, Bool) {
         if line.isEmpty {
             var attr = AttributedString(" ")
@@ -471,6 +600,7 @@ enum GitSyntaxHighlighter {
 
     // MARK: - Apply Rules
 
+    @MainActor
     private static func applyRules(to line: String, rules: [TokenRule]) -> AttributedString {
         guard !line.isEmpty else {
             var attr = AttributedString(" ")
@@ -545,7 +675,22 @@ enum GitSyntaxHighlighter {
 
     // MARK: - Colors
 
+    @MainActor
+    private static var isLightTheme: Bool {
+        ThemeManager.shared.selectedPreset.isDark == false
+    }
+
+    @MainActor
     private static func color(for type: TokenType) -> Color {
+        if isLightTheme {
+            return lightColor(for: type)
+        } else {
+            return darkColor(for: type)
+        }
+    }
+
+    // Dark theme colors
+    private static func darkColor(for type: TokenType) -> Color {
         switch type {
         case .keyword: return Color(nsColor: NSColor(red: 0.78, green: 0.35, blue: 0.78, alpha: 1.0)) // purple
         case .type: return Color(nsColor: NSColor(red: 0.31, green: 0.72, blue: 0.85, alpha: 1.0)) // cyan
@@ -560,8 +705,25 @@ enum GitSyntaxHighlighter {
         }
     }
 
+    // Light theme colors (high contrast on light backgrounds)
+    private static func lightColor(for type: TokenType) -> Color {
+        switch type {
+        case .keyword: return Color(nsColor: NSColor(red: 0.55, green: 0.08, blue: 0.69, alpha: 1.0)) // dark purple
+        case .type: return Color(nsColor: NSColor(red: 0.00, green: 0.50, blue: 0.65, alpha: 1.0)) // dark cyan
+        case .string: return Color(nsColor: NSColor(red: 0.60, green: 0.32, blue: 0.05, alpha: 1.0)) // dark orange
+        case .comment: return Color(nsColor: NSColor(red: 0.42, green: 0.45, blue: 0.42, alpha: 1.0)) // gray-green
+        case .number: return Color(nsColor: NSColor(red: 0.15, green: 0.50, blue: 0.13, alpha: 1.0)) // dark green
+        case .annotation: return Color(nsColor: NSColor(red: 0.68, green: 0.52, blue: 0.00, alpha: 1.0)) // dark gold
+        case .tag: return Color(nsColor: NSColor(red: 0.00, green: 0.38, blue: 0.72, alpha: 1.0)) // dark blue
+        case .attribute: return Color(nsColor: NSColor(red: 0.22, green: 0.50, blue: 0.15, alpha: 1.0)) // dark green
+        case .property: return Color(nsColor: NSColor(red: 0.10, green: 0.40, blue: 0.70, alpha: 1.0)) // dark blue
+        case .plain: return .primary
+        }
+    }
+
     // MARK: - Helper
 
+    @MainActor
     private static func coloredString(_ text: String, _ type: TokenType) -> AttributedString {
         var attr = AttributedString(text)
         attr.foregroundColor = color(for: type)

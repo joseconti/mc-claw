@@ -172,9 +172,9 @@ final class SessionStore {
         removeProjectAssignment(sessionId: sessionId)
     }
 
-    /// Sessions not assigned to any project (shown in main sidebar).
+    /// Sessions not assigned to any project and not Git sessions (shown in main sidebar).
     var unassignedSessions: [SessionInfo] {
-        sessions.filter { $0.projectId == nil }
+        sessions.filter { $0.projectId == nil && $0.gitRepoFullName == nil }
     }
 
     /// Sessions belonging to a specific project.
@@ -215,6 +215,58 @@ final class SessionStore {
         var assignments = loadAssignments()
         assignments.removeValue(forKey: sessionId)
         saveAssignments(assignments)
+    }
+
+    // MARK: - Git Repo Assignment
+
+    /// Mark a session as belonging to a Git repository.
+    func assignToGitRepo(sessionId: String, repoFullName: String) {
+        if let idx = sessions.firstIndex(where: { $0.id == sessionId }) {
+            sessions[idx].gitRepoFullName = repoFullName
+        }
+        var assignments = loadGitRepoAssignments()
+        assignments[sessionId] = repoFullName
+        saveGitRepoAssignments(assignments)
+    }
+
+    /// Remove Git repo assignment from a session.
+    func unassignFromGitRepo(sessionId: String) {
+        if let idx = sessions.firstIndex(where: { $0.id == sessionId }) {
+            sessions[idx].gitRepoFullName = nil
+        }
+        var assignments = loadGitRepoAssignments()
+        assignments.removeValue(forKey: sessionId)
+        saveGitRepoAssignments(assignments)
+    }
+
+    /// Sessions belonging to a specific Git repository, sorted by most recent first.
+    func sessions(forGitRepo repoFullName: String) -> [SessionInfo] {
+        sessions
+            .filter { $0.gitRepoFullName == repoFullName }
+            .sorted { $0.lastMessageAt > $1.lastMessageAt }
+    }
+
+    // MARK: - Git Repo Assignment Persistence
+
+    private var gitRepoAssignmentsFile: URL {
+        fileManager.homeDirectoryForCurrentUser
+            .appendingPathComponent(".mcclaw/sessions/git_repo_assignments.json")
+    }
+
+    private func loadGitRepoAssignments() -> [String: String] {
+        guard let data = try? Data(contentsOf: gitRepoAssignmentsFile),
+              let dict = try? JSONDecoder().decode([String: String].self, from: data) else {
+            return [:]
+        }
+        return dict
+    }
+
+    private func saveGitRepoAssignments(_ assignments: [String: String]) {
+        ensureDirectory()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(assignments) else { return }
+        try? data.write(to: gitRepoAssignmentsFile, options: .atomic)
     }
 
     // MARK: - Index
@@ -259,6 +311,12 @@ final class SessionStore {
         let assignments = loadAssignments()
         for i in infos.indices {
             infos[i].projectId = assignments[infos[i].id]
+        }
+
+        // Apply git repo assignments
+        let gitAssignments = loadGitRepoAssignments()
+        for i in infos.indices {
+            infos[i].gitRepoFullName = gitAssignments[infos[i].id]
         }
 
         sessions = infos.sorted { $0.lastMessageAt > $1.lastMessageAt }

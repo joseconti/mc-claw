@@ -14,6 +14,8 @@ final class ChatViewModel {
     var pendingArtifactSave: PendingArtifactSave?
     /// Active Git context for prompt enrichment (set by Git panel).
     var gitContext: GitContext?
+    /// When set, overrides `AppState.currentSessionId` for session ID resolution (used by Git panel).
+    var overrideSessionId: String?
 
     private let logger = Logger(label: "ai.mcclaw.chat-vm")
     private let sessionStore = SessionStore.shared
@@ -28,6 +30,10 @@ final class ChatViewModel {
     private var providersUsedInSession: Set<String> = []
     /// Whether the connectors header has been injected in this conversation turn.
     private var headerInjectedThisTurn = false
+    /// Tracks chain depth for multi-step Git confirmations. Max 10 to prevent loops.
+    private var chainDepth: Int = 0
+    /// Maximum allowed chain depth before stopping multi-step operations.
+    private static let maxChainDepth = 10
 
     /// Register this view model to receive chat messages from Gateway.
     func subscribeToGateway() {
@@ -54,8 +60,18 @@ final class ChatViewModel {
         }
     }
 
+    /// Send a pre-filled prompt to the chat (e.g., from contextual actions).
+    /// If `autoSend` is true, the prompt is sent immediately. Otherwise it would need
+    /// UI support for pre-filling the input bar (handled by the caller).
+    func sendPrefilled(_ prompt: String) {
+        Task { await send(prompt) }
+    }
+
     /// Send a message to the active CLI provider.
     func send(_ text: String, attachments: [Attachment] = []) async {
+        // Reset chain depth on new user message
+        chainDepth = 0
+
         // Intercept slash commands
         if text.hasPrefix("/") {
             if handleSlashCommand(text) { return }
@@ -67,13 +83,13 @@ final class ChatViewModel {
             let systemMessage = ChatMessage(
                 role: .system,
                 content: "No AI CLI detected. Please install one from Settings → CLIs, then restart the app.",
-                sessionId: appState.currentSessionId ?? "main"
+                sessionId: overrideSessionId ?? appState.currentSessionId ?? "main"
             )
             messages.append(systemMessage)
             return
         }
 
-        let sessionId = appState.currentSessionId ?? "main"
+        let sessionId = overrideSessionId ?? appState.currentSessionId ?? "main"
 
         // Determine if we need to inject conversation context.
         // Context is needed when:
@@ -151,7 +167,7 @@ final class ChatViewModel {
     /// (same approach as project cover images) instead of routing through a CLI.
     func sendImageGeneration(prompt: String) async {
         let appState = AppState.shared
-        let sessionId = appState.currentSessionId ?? "main"
+        let sessionId = overrideSessionId ?? appState.currentSessionId ?? "main"
 
         // Check that Gemini CLI is installed (needed for OAuth token)
         guard imageCapableProvider() != nil else {
@@ -217,7 +233,7 @@ final class ChatViewModel {
     /// Send an install prompt to be parsed by the AI and presented as a plan.
     func sendInstallPrompt(_ prompt: String) async {
         let appState = AppState.shared
-        let sessionId = appState.currentSessionId ?? "main"
+        let sessionId = overrideSessionId ?? appState.currentSessionId ?? "main"
 
         // Show user message
         let userMessage = ChatMessage(
@@ -245,7 +261,7 @@ final class ChatViewModel {
     /// Execute an approved install plan, showing progress in the chat.
     func executeInstallPlan(_ plan: AgentInstallPlan) async {
         let appState = AppState.shared
-        let sessionId = appState.currentSessionId ?? "main"
+        let sessionId = overrideSessionId ?? appState.currentSessionId ?? "main"
 
         // Create assistant message with install progress view
         let progressMessage = ChatMessage(
@@ -501,6 +517,21 @@ final class ChatViewModel {
                 }
             }
 
+            // Check for @git-confirm() and @fetch-confirm() in the AI response
+            if !hasError && !planMode {
+                let gitConfirmations = self.enrichmentService.detectGitConfirmations(in: assistantMessage.content)
+                let fetchConfirmations = self.enrichmentService.detectFetchConfirmations(in: assistantMessage.content)
+                let allConfirmations = gitConfirmations + fetchConfirmations
+
+                if !allConfirmations.isEmpty {
+                    assistantMessage.content = self.enrichmentService.removeConfirmationCommands(from: assistantMessage.content)
+                    assistantMessage.gitActions = allConfirmations
+                    self.updateLastMessage(assistantMessage)
+                    self.logger.info("Detected \(allConfirmations.count) git/fetch confirmation(s)")
+                    // Do NOT block — cards render inline and user confirms/cancels asynchronously
+                }
+            }
+
             isStreaming = false
             appState.isWorking = false
 
@@ -513,8 +544,28 @@ final class ChatViewModel {
                     assistantMessage.content += "\nFailing over to \(fallback.displayName)…"
                     self.updateLastMessage(assistantMessage)
                     appState.currentCLIIdentifier = fallback.id
+                    self.lastUsedProviderId = fallback.id
                     self.logger.info("Failover: \(provider.id) → \(fallback.id)")
-                    await self.send(originalText, attachments: attachments)
+
+                    // Build the message for the fallback provider (re-enrich with context)
+                    var fallbackMessage = originalText
+                    if let ctx = self.gitContext {
+                        let gitHeader = self.enrichmentService.buildGitContextHeader(ctx)
+                        fallbackMessage = "\(gitHeader)\n\n\(fallbackMessage)"
+                    }
+                    if let header = self.enrichmentService.buildConnectorsHeader() {
+                        fallbackMessage = "\(header)\n\n\(fallbackMessage)"
+                    }
+
+                    // Call streamAndEnrich directly to avoid duplicating the user message
+                    await self.streamAndEnrich(
+                        message: fallbackMessage,
+                        originalText: originalText,
+                        attachments: attachments,
+                        provider: fallback,
+                        sessionId: sessionId,
+                        fetchRound: 1
+                    )
                     return
                 }
             }
@@ -631,6 +682,143 @@ final class ChatViewModel {
             last.isStreaming = false
             last.content += "\n[Aborted]"
             updateLastMessage(last)
+        }
+    }
+
+    // MARK: - Git Action Confirmation
+
+    /// Confirm and execute a pending git/platform action.
+    func confirmGitAction(messageId: UUID, actionId: UUID) {
+        // Check chain depth to prevent infinite loops
+        chainDepth += 1
+        if chainDepth > Self.maxChainDepth {
+            logger.warning("Max chain depth (\(Self.maxChainDepth)) reached, stopping multi-step chain")
+            let systemMsg = ChatMessage(
+                role: .system,
+                content: String(localized: "git_chain_depth_exceeded", bundle: .module),
+                sessionId: "main"
+            )
+            messages.append(systemMsg)
+            chainDepth = 0
+            return
+        }
+
+        guard let msgIdx = messages.firstIndex(where: { $0.id == messageId }),
+              let actIdx = messages[msgIdx].gitActions.firstIndex(where: { $0.id == actionId }) else {
+            logger.warning("confirmGitAction: message or action not found")
+            return
+        }
+
+        // Set executing state
+        messages[msgIdx].gitActions[actIdx].status = .executing
+
+        let action = messages[msgIdx].gitActions[actIdx]
+        let sessionId = messages[msgIdx].sessionId
+
+        Task {
+            var output: String
+            var success = true
+
+            switch action.type {
+            case .localGit:
+                guard let repoPath = gitContext?.localPath else {
+                    messages[msgIdx].gitActions[actIdx].status = .failed(error: "No local repository path")
+                    return
+                }
+                do {
+                    output = try await GitService.shared.executeRaw(command: action.command, repoPath: repoPath)
+                    if output.isEmpty { output = "(no output)" }
+                } catch {
+                    output = error.localizedDescription
+                    success = false
+                }
+
+            case .platformAPI:
+                // Parse connector.action from command
+                let parts = action.command.split(separator: ".", maxSplits: 1)
+                guard parts.count == 2 else {
+                    messages[msgIdx].gitActions[actIdx].status = .failed(error: "Invalid action format: \(action.command)")
+                    return
+                }
+                let connectorName = String(parts[0])
+                let actionName = String(parts[1])
+
+                // Resolve connector instance
+                guard let instance = ConnectorStore.shared.connectedInstances.first(where: {
+                    $0.definitionId.lowercased().contains(connectorName.lowercased())
+                }) else {
+                    messages[msgIdx].gitActions[actIdx].status = .failed(error: "No connected connector for '\(connectorName)'")
+                    return
+                }
+
+                do {
+                    let result = try await ConnectorExecutor.shared.execute(
+                        instanceId: instance.id,
+                        actionId: actionName,
+                        params: action.details.filter { $0.key != "warning" }
+                    )
+                    output = result.data
+                } catch {
+                    output = error.localizedDescription
+                    success = false
+                }
+            }
+
+            // Update action status
+            if success {
+                messages[msgIdx].gitActions[actIdx].status = .completed(output: output)
+            } else {
+                messages[msgIdx].gitActions[actIdx].status = .failed(error: output)
+            }
+
+            // Send result back to AI for continuation
+            let resultMessage: String
+            if success {
+                resultMessage = "[Git Result] \(action.title) completed.\nOutput: \(output)"
+            } else {
+                resultMessage = "[Git Result] \(action.title) failed: \(output)"
+            }
+
+            logger.info("Git action \(action.title) \(success ? "completed" : "failed"), sending result to AI")
+
+            // Continue the conversation with the result
+            guard let provider = AppState.shared.currentCLI else { return }
+            await streamAndEnrich(
+                message: resultMessage,
+                originalText: resultMessage,
+                attachments: [],
+                provider: provider,
+                sessionId: sessionId,
+                fetchRound: 1
+            )
+        }
+    }
+
+    /// Cancel a pending git/platform action.
+    func cancelGitAction(messageId: UUID, actionId: UUID) {
+        guard let msgIdx = messages.firstIndex(where: { $0.id == messageId }),
+              let actIdx = messages[msgIdx].gitActions.firstIndex(where: { $0.id == actionId }) else {
+            logger.warning("cancelGitAction: message or action not found")
+            return
+        }
+
+        let action = messages[msgIdx].gitActions[actIdx]
+        messages[msgIdx].gitActions[actIdx].status = .cancelled
+
+        let sessionId = messages[msgIdx].sessionId
+
+        // Inform AI about cancellation
+        Task {
+            guard let provider = AppState.shared.currentCLI else { return }
+            let cancellationMessage = "[Git Action Cancelled] User declined: \(action.command)"
+            await streamAndEnrich(
+                message: cancellationMessage,
+                originalText: cancellationMessage,
+                attachments: [],
+                provider: provider,
+                sessionId: sessionId,
+                fetchRound: 1
+            )
         }
     }
 
@@ -877,7 +1065,7 @@ final class ChatViewModel {
         let command = parts[0].lowercased()
         let argument = parts.count > 1 ? parts[1] : nil
         let appState = AppState.shared
-        let sessionId = appState.currentSessionId ?? "main"
+        let sessionId = overrideSessionId ?? appState.currentSessionId ?? "main"
 
         switch command {
         case "/status":
@@ -1141,7 +1329,8 @@ final class ChatViewModel {
     /// Save current messages to disk.
     func persistCurrentSession() {
         let appState = AppState.shared
-        guard let sessionId = appState.currentSessionId, !messages.isEmpty else { return }
+        let sessionId = overrideSessionId ?? appState.currentSessionId
+        guard let sessionId, !messages.isEmpty else { return }
         // Only persist user/assistant messages (skip empty or system-only sessions)
         let meaningful = messages.filter { $0.role == .user || $0.role == .assistant }
         guard !meaningful.isEmpty else { return }
@@ -1175,5 +1364,33 @@ final class ChatViewModel {
         let hasMeaningful = !meaningful.isEmpty
         needsContextInjection = hasMeaningful
         logger.info("Restored session \(sessionId) with \(loaded.count) messages, providers=\(providersUsedInSession), needsContext=\(hasMeaningful)")
+    }
+
+    // MARK: - Git Session Persistence
+
+    /// Save messages for a specific Git session (independent of AppState.currentSessionId).
+    func persistGitSession(sessionId: String) {
+        let meaningful = messages.filter { $0.role == .user || $0.role == .assistant }
+        guard !meaningful.isEmpty else { return }
+        let provider = AppState.shared.currentCLI?.id
+        sessionStore.save(sessionId: sessionId, messages: messages, provider: provider)
+        logger.info("Git session saved: \(sessionId) (\(messages.count) messages)")
+    }
+
+    /// Load messages for a specific Git session (independent of AppState.currentSessionId).
+    func loadGitSession(sessionId: String) {
+        guard let loaded = sessionStore.load(sessionId: sessionId) else { return }
+        messages = loaded
+        overrideSessionId = sessionId
+
+        // Rebuild provider tracking
+        let meaningful = loaded.filter { $0.role == .user || $0.role == .assistant }
+        providersUsedInSession = Set(meaningful.compactMap(\.providerId))
+        if !meaningful.isEmpty, providersUsedInSession.isEmpty,
+           let currentCLI = AppState.shared.currentCLIIdentifier {
+            providersUsedInSession.insert(currentCLI)
+        }
+        needsContextInjection = !meaningful.isEmpty
+        logger.info("Git session loaded: \(sessionId) (\(loaded.count) messages)")
     }
 }

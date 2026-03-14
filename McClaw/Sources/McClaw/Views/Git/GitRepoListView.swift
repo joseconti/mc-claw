@@ -10,7 +10,7 @@ struct GitRepoListView: View {
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                         .font(.callout)
                     TextField(
                         String(localized: "Search repositories…", bundle: .module),
@@ -18,9 +18,20 @@ struct GitRepoListView: View {
                     )
                     .textFieldStyle(.plain)
                     .font(.callout)
+
+                    if !viewModel.searchText.isEmpty {
+                        Button {
+                            viewModel.searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, 7)
                 .background(.quaternary.opacity(0.5))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
@@ -45,13 +56,26 @@ struct GitRepoListView: View {
                 .menuStyle(.borderlessButton)
                 .frame(width: 28)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
 
             Divider()
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 14)
 
-            // Repo list
+            // Repo count
+            if !viewModel.isLoadingRepos && viewModel.loadError == nil && !viewModel.filteredRepos.isEmpty {
+                HStack {
+                    Text(String(localized: "git_repo_count \(viewModel.filteredRepos.count)", bundle: .module))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+            }
+
+            // Content
             if viewModel.isLoadingRepos {
                 VStack(spacing: 12) {
                     ProgressView()
@@ -62,7 +86,7 @@ struct GitRepoListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = viewModel.loadError {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.title2)
                         .foregroundStyle(.orange)
@@ -80,7 +104,7 @@ struct GitRepoListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.filteredRepos.isEmpty {
                 VStack(spacing: 8) {
-                    Image(systemName: "tray")
+                    Image(systemName: "magnifyingglass")
                         .font(.title2)
                         .foregroundStyle(.tertiary)
                     Text(viewModel.searchText.isEmpty
@@ -106,7 +130,7 @@ struct GitRepoListView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                 }
             }

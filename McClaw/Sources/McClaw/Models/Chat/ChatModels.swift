@@ -24,6 +24,8 @@ struct ChatMessage: Identifiable, Codable, Sendable {
     var promptResponses: [InteractivePromptKit.PromptResponse]
     /// Path to the plan file generated in Plan Mode (e.g. ~/.claude/plans/xxx.md).
     var planFilePath: String?
+    /// Git/platform actions proposed by the AI that require user confirmation.
+    var gitActions: [PendingGitAction]
 
     init(
         id: UUID = UUID(),
@@ -40,7 +42,8 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         installPlanId: UUID? = nil,
         interactivePrompts: [InteractivePromptKit.InteractivePrompt] = [],
         promptResponses: [InteractivePromptKit.PromptResponse] = [],
-        planFilePath: String? = nil
+        planFilePath: String? = nil,
+        gitActions: [PendingGitAction] = []
     ) {
         self.id = id
         self.role = role
@@ -57,13 +60,14 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         self.interactivePrompts = interactivePrompts
         self.promptResponses = promptResponses
         self.planFilePath = planFilePath
+        self.gitActions = gitActions
     }
 
     // Custom Codable to maintain backwards compatibility with existing session files
     enum CodingKeys: String, CodingKey {
         case id, role, content, timestamp, sessionId, attachments, toolCalls
         case generatedImages, isStreaming, isGeneratingImage, providerId, installPlanId
-        case interactivePrompts, promptResponses, planFilePath
+        case interactivePrompts, promptResponses, planFilePath, gitActions
     }
 
     init(from decoder: Decoder) throws {
@@ -83,6 +87,7 @@ struct ChatMessage: Identifiable, Codable, Sendable {
         interactivePrompts = try container.decodeIfPresent([InteractivePromptKit.InteractivePrompt].self, forKey: .interactivePrompts) ?? []
         promptResponses = try container.decodeIfPresent([InteractivePromptKit.PromptResponse].self, forKey: .promptResponses) ?? []
         planFilePath = try container.decodeIfPresent(String.self, forKey: .planFilePath)
+        gitActions = try container.decodeIfPresent([PendingGitAction].self, forKey: .gitActions) ?? []
     }
 }
 
@@ -194,6 +199,8 @@ struct SessionInfo: Identifiable, Codable, Sendable {
     var cliProvider: String?
     /// If non-nil, the session belongs to this project and won't show in the main sidebar.
     var projectId: String?
+    /// If non-nil, the session is a Git conversation associated with this repo (e.g. "owner/repo").
+    var gitRepoFullName: String?
 }
 
 // MARK: - Projects
@@ -261,6 +268,7 @@ enum SessionType: String, Codable, Sendable {
     case cron
     case subagent
     case channel
+    case git
 }
 
 /// Parsed session key following canonical format.

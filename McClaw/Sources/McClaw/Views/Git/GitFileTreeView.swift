@@ -7,6 +7,7 @@ struct GitFileTreeView: View {
     let selectedFilePath: String?
     let onToggleDir: (FileTreeNode) -> Void
     let onSelectFile: (GitFileEntry) -> Void
+    var onSendToChat: ((String) -> Void)?
 
     var body: some View {
         if nodes.isEmpty {
@@ -27,7 +28,8 @@ struct GitFileTreeView: View {
                             depth: 0,
                             selectedFilePath: selectedFilePath,
                             onToggleDir: onToggleDir,
-                            onSelectFile: onSelectFile
+                            onSelectFile: onSelectFile,
+                            onSendToChat: onSendToChat
                         )
                     }
                 }
@@ -53,6 +55,7 @@ private struct FileTreeNodeRow: View {
     let selectedFilePath: String?
     let onToggleDir: (FileTreeNode) -> Void
     let onSelectFile: (GitFileEntry) -> Void
+    var onSendToChat: ((String) -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,7 +67,8 @@ private struct FileTreeNodeRow: View {
                         depth: depth + 1,
                         selectedFilePath: selectedFilePath,
                         onToggleDir: onToggleDir,
-                        onSelectFile: onSelectFile
+                        onSelectFile: onSelectFile,
+                        onSendToChat: onSendToChat
                     )
                 }
             }
@@ -131,6 +135,33 @@ private struct FileTreeNodeRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            if node.entry.type == .file, let sendToChat = onSendToChat {
+                Button {
+                    sendToChat(GitPromptTemplates.explainFile(node.entry.path))
+                } label: {
+                    Label(String(localized: "git_action_explain_file", bundle: .module), systemImage: "doc.text.magnifyingglass")
+                }
+
+                Button {
+                    sendToChat(GitPromptTemplates.findUsagesFile(node.entry.path))
+                } label: {
+                    Label(String(localized: "git_action_find_usages", bundle: .module), systemImage: "magnifyingglass")
+                }
+
+                Button {
+                    sendToChat(GitPromptTemplates.suggestImprovementsFile(node.entry.path))
+                } label: {
+                    Label(String(localized: "git_action_suggest_improvements_file", bundle: .module), systemImage: "lightbulb")
+                }
+
+                Button {
+                    sendToChat(GitPromptTemplates.writeTestsFile(node.entry.path))
+                } label: {
+                    Label(String(localized: "git_action_write_tests", bundle: .module), systemImage: "checkmark.shield")
+                }
+            }
+        }
     }
 }
 

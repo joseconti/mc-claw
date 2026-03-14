@@ -11,6 +11,10 @@ struct MessageBubbleView: View {
     var fontSize: CGFloat = 16
     var fontFamily: ChatFontFamily = .default
     var isLastMessage: Bool = false
+    /// Callback when user confirms a pending git action (messageId, actionId).
+    var onConfirmGitAction: ((UUID, UUID) -> Void)?
+    /// Callback when user cancels a pending git action (messageId, actionId).
+    var onCancelGitAction: ((UUID, UUID) -> Void)?
 
     var body: some View {
         if message.role == .system {
@@ -133,6 +137,17 @@ struct MessageBubbleView: View {
                             currentIndex: index,
                             totalCount: message.interactivePrompts.count,
                             existingResponse: message.promptResponses.first(where: { $0.promptId == prompt.id })
+                        )
+                    }
+                }
+
+                // Git action confirmation cards
+                if !message.gitActions.isEmpty {
+                    ForEach(message.gitActions) { action in
+                        GitActionConfirmationCard(
+                            action: action,
+                            onConfirm: { onConfirmGitAction?(message.id, action.id) },
+                            onCancel: { onCancelGitAction?(message.id, action.id) }
                         )
                     }
                 }

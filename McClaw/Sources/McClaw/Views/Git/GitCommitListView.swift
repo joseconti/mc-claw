@@ -3,6 +3,7 @@ import SwiftUI
 /// List of recent commits for a repository.
 struct GitCommitListView: View {
     let commits: [GitCommitInfo]
+    var onSendToChat: ((String) -> Void)?
 
     var body: some View {
         if commits.isEmpty {
@@ -15,6 +16,7 @@ struct GitCommitListView: View {
                 LazyVStack(spacing: 2) {
                     ForEach(commits) { commit in
                         commitRow(commit)
+                            .contextMenu { commitContextMenu(commit) }
                     }
                 }
                 .padding(.horizontal, 6)
@@ -48,5 +50,36 @@ struct GitCommitListView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
+    }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private func commitContextMenu(_ commit: GitCommitInfo) -> some View {
+        Button {
+            onSendToChat?(GitPromptTemplates.explainCommit(commit))
+        } label: {
+            Label(String(localized: "git_action_explain_commit", bundle: .module), systemImage: "text.magnifyingglass")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.analyzeImpactCommit(commit))
+        } label: {
+            Label(String(localized: "git_action_analyze_impact", bundle: .module), systemImage: "waveform.path.ecg")
+        }
+
+        Divider()
+
+        Button {
+            onSendToChat?(GitPromptTemplates.revertCommit(commit))
+        } label: {
+            Label(String(localized: "git_action_revert_commit", bundle: .module), systemImage: "arrow.uturn.backward")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.cherryPickCommit(commit))
+        } label: {
+            Label(String(localized: "git_action_cherry_pick", bundle: .module), systemImage: "arrow.right.doc.on.clipboard")
+        }
     }
 }

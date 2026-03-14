@@ -10,6 +10,10 @@ actor CLIBridge {
 
     private let logger = Logger(label: "ai.mcclaw.cli-bridge")
     private var activeProcess: Process?
+    private var watchdogTask: Task<Void, Never>?
+
+    /// Maximum seconds of silence (no stdout output) before killing a hung CLI process.
+    private static let streamTimeoutSeconds: TimeInterval = 180 // 3 minutes
 
     /// Send a message to an AI provider via its CLI and stream the response.
     /// Includes execution approval check before running the process.
@@ -137,6 +141,7 @@ actor CLIBridge {
                 // fires as soon as data arrives in the pipe.
                 let providerId = provider.id
                 let lineBuffer = LineBuffer()
+                let watchdog = WatchdogTimer()
                 stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
                     let data = handle.availableData
                     if data.isEmpty {
@@ -151,6 +156,7 @@ actor CLIBridge {
                         stdoutPipe.fileHandleForReading.readabilityHandler = nil
                         return
                     }
+                    watchdog.touch()
                     if let text = String(data: data, encoding: .utf8) {
                         // Split into lines; the last segment may be incomplete
                         let lines = lineBuffer.feed(text)
@@ -175,10 +181,27 @@ actor CLIBridge {
                     return
                 }
 
-                // Wait for process in a detached task to avoid blocking the actor
+                // Start watchdog: kill process if no output for 3 minutes
                 let processRef = process
+                let timeout = CLIBridge.streamTimeoutSeconds
+                self.watchdogTask = Task.detached {
+                    while !Task.isCancelled && processRef.isRunning {
+                        try? await Task.sleep(for: .seconds(30)) // Check every 30s
+                        guard !Task.isCancelled && processRef.isRunning else { break }
+                        if watchdog.secondsSinceLastActivity > timeout {
+                            print("[WATCHDOG] CLIBridge: killing hung process PID=\(processRef.processIdentifier) after \(Int(timeout))s of silence")
+                            continuation.yield(.error("CLI process timed out after \(Int(timeout / 60)) minutes of inactivity"))
+                            processRef.terminate()
+                            break
+                        }
+                    }
+                }
+
+                // Wait for process in a detached task to avoid blocking the actor
+                let watchdogRef = self.watchdogTask
                 Task.detached {
                     processRef.waitUntilExit()
+                    watchdogRef?.cancel()
                     print("[DEBUG] CLIBridge: stream ended, status=\(processRef.terminationStatus)")
                     if processRef.terminationStatus != 0 {
                         let stderrText = stderrBuffer.flush()
@@ -302,6 +325,8 @@ actor CLIBridge {
 
     /// Abort the currently running CLI process.
     func abort() {
+        watchdogTask?.cancel()
+        watchdogTask = nil
         activeProcess?.terminate()
         activeProcess = nil
         logger.info("CLI process aborted")
@@ -346,5 +371,21 @@ private final class LineBuffer: Sendable {
         let result = buffer
         buffer = ""
         return result
+    }
+}
+
+/// Tracks when the last stdout output was received.
+/// Used by the watchdog to detect hung CLI processes.
+private final class WatchdogTimer: Sendable {
+    nonisolated(unsafe) private var lastActivity: Date = Date()
+
+    /// Reset the timer (called each time stdout receives data).
+    func touch() {
+        lastActivity = Date()
+    }
+
+    /// Seconds elapsed since the last output.
+    var secondsSinceLastActivity: TimeInterval {
+        Date().timeIntervalSince(lastActivity)
     }
 }

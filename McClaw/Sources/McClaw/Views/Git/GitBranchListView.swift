@@ -4,7 +4,9 @@ import SwiftUI
 struct GitBranchListView: View {
     let branches: [GitBranch]
     let selectedBranch: GitBranch?
+    let defaultBranch: String
     let onSelect: (GitBranch) -> Void
+    var onSendToChat: ((String) -> Void)?
 
     var body: some View {
         if branches.isEmpty {
@@ -17,6 +19,7 @@ struct GitBranchListView: View {
                 LazyVStack(spacing: 2) {
                     ForEach(branches) { branch in
                         branchRow(branch)
+                            .contextMenu { branchContextMenu(branch) }
                     }
                 }
                 .padding(.horizontal, 6)
@@ -80,5 +83,37 @@ struct GitBranchListView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private func branchContextMenu(_ branch: GitBranch) -> some View {
+        Button {
+            onSendToChat?(GitPromptTemplates.compareBranch(branch, defaultBranch: defaultBranch))
+        } label: {
+            Label(String(localized: "git_action_compare_branch", bundle: .module), systemImage: "arrow.left.arrow.right")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.createPRFromBranch(branch, defaultBranch: defaultBranch))
+        } label: {
+            Label(String(localized: "git_action_create_pr", bundle: .module), systemImage: "arrow.triangle.pull")
+        }
+
+        Divider()
+
+        Button {
+            onSendToChat?(GitPromptTemplates.deleteBranch(branch))
+        } label: {
+            Label(String(localized: "git_action_delete_branch", bundle: .module), systemImage: "trash")
+        }
+
+        Button {
+            let current = selectedBranch?.name ?? defaultBranch
+            onSendToChat?(GitPromptTemplates.mergeBranch(branch, currentBranch: current))
+        } label: {
+            Label(String(localized: "git_action_merge_branch", bundle: .module), systemImage: "arrow.triangle.merge")
+        }
     }
 }

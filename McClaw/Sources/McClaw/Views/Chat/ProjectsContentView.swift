@@ -22,6 +22,7 @@ struct ProjectsContentView: View {
     @State private var showMemorySheet = false
     @State private var memoryStore = ProjectMemoryStore.shared
     @State private var artifactStore = ProjectArtifactStore.shared
+    @State private var repoPickerProjectId: RepoPickerId?
     @Namespace private var cliSelectorNamespace
 
     var body: some View {
@@ -38,6 +39,16 @@ struct ProjectsContentView: View {
         }
         .sheet(isPresented: $showNewProjectSheet) {
             newProjectSheet
+        }
+        .sheet(item: $repoPickerProjectId) { item in
+            GitRepoPickerSheet(
+                onSelect: { repo in
+                    addRepoFromPicker(repo, toProject: item.id)
+                },
+                onBrowseLocal: {
+                    browseLocalRepo(projectId: item.id)
+                }
+            )
         }
     }
 
@@ -367,8 +378,11 @@ struct ProjectsContentView: View {
 
                 Divider()
 
-                // Right column: artifacts
+                // Right column: git repos + artifacts
                 ScrollView {
+                    projectGitReposSection(projectId: projectId)
+                    Divider()
+                        .padding(.horizontal, 16)
                     projectArtifactsSection(projectId: projectId)
                 }
                 .frame(width: 280)
@@ -378,6 +392,216 @@ struct ProjectsContentView: View {
         .onAppear {
             artifactStore.refresh(for: projectId)
         }
+    }
+
+    // MARK: - Git Repos Section
+
+    @ViewBuilder
+    private func projectGitReposSection(projectId: String) -> some View {
+        let project = projectStore.projects.first { $0.id == projectId }
+        // Show directories that are local git repos OR remote repo references (e.g. "owner/repo")
+        let gitDirs = (project?.directories ?? []).filter { dir in
+            FileManager.default.fileExists(atPath: "\(dir)/.git") || isRemoteRepoRef(dir)
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+            // Section header
+            HStack {
+                Text(String(localized: "project_git_repos", bundle: .module))
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                if !gitDirs.isEmpty {
+                    Text(verbatim: "\(gitDirs.count)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.7))
+                        .clipShape(Capsule())
+                }
+
+                Spacer()
+
+                // Add repo button
+                Button {
+                    addGitRepoToProject(projectId: projectId)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            if gitDirs.isEmpty {
+                // Empty state
+                VStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.branch")
+                        .font(.title2)
+                        .foregroundStyle(.tertiary)
+                    Text(String(localized: "project_no_git_repos", bundle: .module))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text(String(localized: "project_git_repos_description", bundle: .module))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+
+                    Button {
+                        addGitRepoToProject(projectId: projectId)
+                    } label: {
+                        Label(String(localized: "project_add_git_repo", bundle: .module), systemImage: "folder.badge.plus")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 20)
+            } else {
+                // Repos list
+                VStack(spacing: 2) {
+                    ForEach(gitDirs, id: \.self) { dir in
+                        let isRemote = isRemoteRepoRef(dir)
+                        let repoName = isRemote
+                            ? (dir.components(separatedBy: "/").last ?? dir)
+                            : (dir as NSString).lastPathComponent
+                        HStack(spacing: 8) {
+                            Image(systemName: isRemote ? "cloud" : "arrow.triangle.branch")
+                                .font(.caption)
+                                .foregroundStyle(isRemote ? .purple : .blue)
+                                .frame(width: 24, height: 24)
+                                .background((isRemote ? Color.purple : Color.blue).opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(verbatim: repoName)
+                                    .font(.callout.weight(.medium))
+                                    .lineLimit(1)
+                                Text(verbatim: dir)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                    .lineLimit(1)
+                                    .truncationMode(.head)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            if !isRemote {
+                                Button {
+                                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: dir)
+                                } label: {
+                                    Label(String(localized: "Show in Finder", bundle: .module), systemImage: "folder")
+                                }
+                                Divider()
+                            }
+
+                            Button(role: .destructive) {
+                                removeGitRepoFromProject(dir: dir, projectId: projectId)
+                            } label: {
+                                Label(String(localized: "project_remove_git_repo", bundle: .module), systemImage: "minus.circle")
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, 8)
+            }
+        }
+    }
+
+    private func addGitRepoToProject(projectId: String) {
+        repoPickerProjectId = RepoPickerId(id: projectId)
+    }
+
+    /// Called when user picks a repo from the GitRepoPickerSheet.
+    private func addRepoFromPicker(_ repo: GitRepoInfo, toProject projectId: String) {
+        guard let project = projectStore.projects.first(where: { $0.id == projectId }) else { return }
+        // Prefer local path if cloned, otherwise store fullName for reference
+        let directory = repo.localPath ?? repo.fullName
+        var dirs = project.directories
+        if !dirs.contains(directory) {
+            dirs.append(directory)
+            projectStore.update(
+                projectId: projectId,
+                name: project.name,
+                description: project.description,
+                rules: project.rules,
+                directories: dirs
+            )
+            updateProjectMemoryDirs(projectId: projectId, project: project, directories: dirs)
+        }
+    }
+
+    /// Fallback: open NSOpenPanel for browsing a local repo folder.
+    private func browseLocalRepo(projectId: String) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.message = String(localized: "project_select_git_repo_message", bundle: .module)
+        panel.prompt = String(localized: "project_select_git_repo_prompt", bundle: .module)
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let path = url.path
+
+        guard FileManager.default.fileExists(atPath: "\(path)/.git") else { return }
+
+        guard let project = projectStore.projects.first(where: { $0.id == projectId }) else { return }
+        var dirs = project.directories
+        if !dirs.contains(path) {
+            dirs.append(path)
+            projectStore.update(
+                projectId: projectId,
+                name: project.name,
+                description: project.description,
+                rules: project.rules,
+                directories: dirs
+            )
+            updateProjectMemoryDirs(projectId: projectId, project: project, directories: dirs)
+        }
+    }
+
+    /// Check if a directory string is a remote repo reference like "owner/repo".
+    private func isRemoteRepoRef(_ dir: String) -> Bool {
+        // Remote refs contain "/" but don't start with "/" (not absolute paths)
+        !dir.hasPrefix("/") && dir.contains("/")
+    }
+
+    private func removeGitRepoFromProject(dir: String, projectId: String) {
+        guard let project = projectStore.projects.first(where: { $0.id == projectId }) else { return }
+        var dirs = project.directories
+        dirs.removeAll { $0 == dir }
+        projectStore.update(
+            projectId: projectId,
+            name: project.name,
+            description: project.description,
+            rules: project.rules,
+            directories: dirs
+        )
+        updateProjectMemoryDirs(projectId: projectId, project: project, directories: dirs)
+    }
+
+    /// Update the Directories section in the project memory file.
+    private func updateProjectMemoryDirs(projectId: String, project: ProjectInfo, directories: [String]) {
+        let memoryStore = ProjectMemoryStore.shared
+        // Only update if memory file already exists
+        guard memoryStore.loadMemory(for: projectId) != nil else { return }
+        memoryStore.updateProjectSections(
+            for: projectId,
+            name: project.name,
+            description: project.description,
+            rules: project.rules,
+            directories: directories
+        )
     }
 
     // MARK: - Project Artifacts Section
@@ -962,4 +1186,11 @@ struct SessionListRow: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+// MARK: - Repo Picker Identifiable Wrapper
+
+/// Simple wrapper to make a project ID usable with `.sheet(item:)`.
+private struct RepoPickerId: Identifiable {
+    let id: String
 }

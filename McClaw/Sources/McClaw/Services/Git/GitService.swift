@@ -174,8 +174,16 @@ actor GitService {
             throw GitServiceError.disallowedCommand(subcommand)
         }
 
+        // For write commands, validate no blocked patterns
+        if Self.writeSubcommands.contains(subcommand) {
+            try validateWriteCommand(command)
+        }
+
         let args = ["-C", repoPath] + parts
-        return try await run(args: args)
+        let output = try await run(args: args)
+
+        // Sanitize output to redact any secrets
+        return sanitizeOutput(output)
     }
 
     /// Sub-commands allowed via @git() intercept.
@@ -187,6 +195,66 @@ actor GitService {
         "clone", "checkout", "pull", "add", "commit", "push", "stash",
         "fetch", "merge", "rebase", "reset", "cherry-pick",
     ]
+
+    /// Sub-commands that modify the repository (write operations).
+    static let writeSubcommands: Set<String> = [
+        "clone", "checkout", "pull", "add", "commit", "push", "stash",
+        "fetch", "merge", "rebase", "reset", "cherry-pick", "tag",
+    ]
+
+    /// Check whether a raw command string is a write operation.
+    func isWriteCommand(_ command: String) -> Bool {
+        guard let subcommand = command.split(separator: " ", omittingEmptySubsequences: true).first else {
+            return false
+        }
+        return Self.writeSubcommands.contains(String(subcommand))
+    }
+
+    /// Blocked argument patterns that should never be executed without explicit allowance.
+    private static let blockedPatterns: [String] = [
+        "--force", "-f", "--force-with-lease",
+        "filter-branch", "reflog", "gc",
+    ]
+
+    /// Validate that a write command does not contain blocked patterns.
+    private func validateWriteCommand(_ command: String) throws {
+        let lower = command.lowercased()
+        for pattern in Self.blockedPatterns {
+            if lower.contains(pattern) {
+                throw GitServiceError.blockedCommand(
+                    "Command contains blocked pattern '\(pattern)'. Dangerous operations are not allowed."
+                )
+            }
+        }
+    }
+
+    /// Scan output for patterns that look like secrets and redact them.
+    func sanitizeOutput(_ output: String) -> String {
+        var result = output
+        let secretPatterns: [(name: String, regex: String)] = [
+            ("GitHub Token", #"ghp_[A-Za-z0-9]{36,}"#),
+            ("GitHub OAuth", #"gho_[A-Za-z0-9]{36,}"#),
+            ("GitLab Token", #"glpat-[A-Za-z0-9\-]{20,}"#),
+            ("OpenAI Key", #"sk-[A-Za-z0-9]{32,}"#),
+            ("AWS Key", #"AKIA[A-Z0-9]{16}"#),
+            ("Generic Secret", #"(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*\S+"#),
+        ]
+
+        for (name, pattern) in secretPatterns {
+            if let regex = try? NSRegularExpression(pattern: pattern) {
+                let nsResult = result as NSString
+                let matches = regex.matches(in: result, range: NSRange(location: 0, length: nsResult.length))
+                // Replace in reverse order to preserve ranges
+                for match in matches.reversed() {
+                    result = (result as NSString).replacingCharacters(
+                        in: match.range,
+                        with: "[REDACTED: \(name)]"
+                    )
+                }
+            }
+        }
+        return result
+    }
 
     // MARK: - Internal
 
@@ -276,6 +344,7 @@ actor GitService {
 enum GitServiceError: LocalizedError {
     case emptyCommand
     case disallowedCommand(String)
+    case blockedCommand(String)
     case commandFailed(String)
 
     var errorDescription: String? {
@@ -284,6 +353,8 @@ enum GitServiceError: LocalizedError {
             return "Empty git command"
         case .disallowedCommand(let cmd):
             return "Git sub-command '\(cmd)' is not allowed"
+        case .blockedCommand(let reason):
+            return "Blocked: \(reason)"
         case .commandFailed(let msg):
             return "Git command failed: \(msg)"
         }

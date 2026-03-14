@@ -1,39 +1,50 @@
 import SwiftUI
 
-/// A single repository row in the Git repo list.
+/// A single repository row in the Git repo list — card-like modern style.
 struct GitRepoRow: View {
     let repo: GitRepoInfo
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
+            // Repo icon
+            Image(systemName: repo.isPrivate ? "lock.fill" : "arrow.triangle.branch")
+                .font(.callout)
+                .foregroundStyle(repo.isPrivate ? .orange : .blue)
+                .frame(width: 36, height: 36)
+                .background(repo.isPrivate ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            // Repo info
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(repo.name)
                         .font(.body.weight(.medium))
                         .lineLimit(1)
 
-                    if repo.isPrivate {
-                        Image(systemName: "lock.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-
                     if repo.isFork {
                         Image(systemName: "tuningfork")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
                     }
                 }
 
-                HStack(spacing: 8) {
+                if let desc = repo.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                // Metadata row
+                HStack(spacing: 10) {
                     if let lang = repo.language {
                         HStack(spacing: 3) {
                             Circle()
                                 .fill(languageColor(lang))
-                                .frame(width: 8, height: 8)
+                                .frame(width: 7, height: 7)
                             Text(lang)
-                                .font(.subheadline)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -41,39 +52,64 @@ struct GitRepoRow: View {
                     if repo.starCount > 0 {
                         HStack(spacing: 2) {
                             Image(systemName: "star.fill")
-                                .font(.caption2)
-                            Text("\(repo.starCount)")
-                                .font(.subheadline)
+                                .font(.system(size: 8))
+                            Text(verbatim: "\(repo.starCount)")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+
+                    if repo.openIssueCount > 0 {
+                        HStack(spacing: 2) {
+                            Image(systemName: "exclamationmark.circle")
+                                .font(.system(size: 8))
+                            Text(verbatim: "\(repo.openIssueCount)")
+                                .font(.caption)
                         }
                         .foregroundStyle(.secondary)
                     }
 
                     Text(repo.updatedAt, style: .relative)
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            if repo.openPRCount > 0 {
-                HStack(spacing: 3) {
-                    Image(systemName: "arrow.triangle.pull")
-                        .font(.caption2)
-                    Text("\(repo.openPRCount)")
-                        .font(.subheadline)
+            // Right indicators
+            VStack(alignment: .trailing, spacing: 4) {
+                if repo.localPath != nil {
+                    Image(systemName: "internaldrive")
+                        .font(.caption)
+                        .foregroundStyle(.green)
                 }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(.quaternary)
-                .clipShape(Capsule())
+
+                if repo.openPRCount > 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.triangle.pull")
+                            .font(.system(size: 9))
+                        Text(verbatim: "\(repo.openPRCount)")
+                            .font(.caption2.weight(.medium))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.quaternary.opacity(0.6))
+                    .clipShape(Capsule())
+                }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(isSelected ? Color.accentColor.opacity(0.3) : .clear, lineWidth: 1)
+        )
         .contentShape(Rectangle())
     }
 

@@ -1480,3 +1480,119 @@
 "Warnings:" = "Warnings:";
 "Failed to encrypt backup" = "Failed to encrypt backup";
 "Wrong password or corrupted backup" = "Wrong password or corrupted backup";
+
+// MARK: - Git Repo List
+"git_repo_count %lld" = "%lld repositories";
+
+// MARK: - Git Action Confirmation Cards
+"git_action_executing" = "Executing…";
+"git_action_completed" = "Completed";
+"git_action_failed" = "Failed";
+"git_action_cancelled" = "Cancelled";
+"git_action_destructive_warning" = "This is a destructive operation that may lose data.";
+"git_action_confirm" = "Confirm";
+"git_action_cancel" = "Cancel";
+
+// MARK: - Git Contextual Actions (PR)
+"git_action_review_pr" = "Review this PR";
+"git_action_summarize_pr" = "Summarize PR";
+"git_action_suggest_improvements" = "Suggest improvements";
+"git_action_post_review" = "Post AI review as comment";
+"git_action_merge_pr" = "Merge PR";
+
+// MARK: - Git Contextual Actions (Issues)
+"git_action_analyze_issue" = "Analyze issue";
+"git_action_suggest_fix" = "Suggest fix";
+"git_action_create_branch_issue" = "Create branch for issue";
+"git_action_close_issue" = "Close with comment";
+"git_action_find_related" = "Find related issues";
+
+// MARK: - Git Contextual Actions (Commits)
+"git_action_explain_commit" = "Explain commit";
+"git_action_analyze_impact" = "Analyze impact";
+"git_action_revert_commit" = "Revert commit";
+"git_action_cherry_pick" = "Cherry-pick to branch";
+
+// MARK: - Git Contextual Actions (Branches)
+"git_action_compare_branch" = "Compare with default";
+"git_action_create_pr" = "Create PR from branch";
+"git_action_delete_branch" = "Delete branch";
+"git_action_merge_branch" = "Merge into current";
+
+// MARK: - Git Contextual Actions (Files)
+"git_action_explain_file" = "Explain file";
+"git_action_find_usages" = "Find usages";
+"git_action_suggest_improvements_file" = "Suggest improvements";
+"git_action_write_tests" = "Write tests";
+"git_action_ask_about_lines %lld %lld" = "Ask AI about lines %lld–%lld";
+
+// MARK: - Git Repo Action Bar
+"git_repo_explain" = "Explain Repo";
+"git_repo_what_broke" = "What Broke?";
+"git_repo_changelog" = "Changelog";
+"git_repo_health" = "Health Check";
+"git_repo_security" = "Security Audit";
+"git_repo_todos" = "Find TODOs";
+"git_repo_what_changed" = "This Week";
+
+// MARK: - Git Quick Actions Panel
+"Quick Actions" = "Quick Actions";
+"git_quick_commit" = "Commit changes";
+"git_quick_pull" = "Pull latest";
+"git_quick_create_branch" = "Create branch";
+"git_quick_review_prs" = "Review open PRs";
+"git_quick_changelog" = "Generate changelog";
+"git_quick_actions_title" = "Quick Actions";
+
+// MARK: - Project Git Repos
+"project_git_repos" = "Git Repos";
+"project_no_git_repos" = "No repos yet";
+"project_git_repos_description" = "Add Git repositories to give the AI context about your codebase.";
+"project_add_git_repo" = "Add Repository";
+"project_remove_git_repo" = "Remove from Project";
+"project_select_git_repo_message" = "Select a Git repository folder";
+"project_select_git_repo_prompt" = "Add";
+"project_select_repo_title" = "Add Repository";
+"project_repo_search_placeholder" = "Search repositories…";
+"project_repo_no_results" = "No repositories found";
+"project_browse_local_repo" = "Browse local folder…";
+"project_no_git_platforms" = "No Git platforms connected";
+"project_no_git_platforms_hint" = "Connect GitHub or GitLab in Settings → Connectors to browse your repositories.";
+
+// MARK: - Git Monitor Templates
+"git_monitor_pr_reviewer" = "PR Reviewer";
+"git_monitor_pr_reviewer_desc" = "Lists PRs that need review, warns about old PRs";
+"git_monitor_ci_watcher" = "CI Watcher";
+"git_monitor_ci_watcher_desc" = "Checks for failed CI pipelines on main";
+"git_monitor_stale_branches" = "Stale Branch Cleaner";
+"git_monitor_stale_branches_desc" = "Lists branches with no activity in 30+ days";
+"git_monitor_security_scan" = "Security Scan";
+"git_monitor_security_scan_desc" = "Checks for vulnerabilities and hardcoded secrets";
+"git_monitor_activity_summary" = "Activity Summary";
+"git_monitor_activity_summary_desc" = "Weekly development activity report";
+"git_monitor_issue_triage" = "Issue Triage";
+"git_monitor_issue_triage_desc" = "New unassigned issues daily";
+
+// MARK: - Git Monitor Setup Sheet
+"Set Up Monitor" = "Set Up Monitor";
+"Schedule:" = "Schedule:";
+"Create Monitor" = "Create Monitor";
+"git_monitor_created" = "Monitor created successfully";
+"git_monitor_error_no_connector" = "No connected connector for this platform";
+"git_monitor_error_create" = "Error creating monitor";
+"git_repo_monitor" = "Monitor";
+
+// MARK: - Git Project Association
+"git_project_add" = "Add to Project";
+"git_project_visit" = "Visit";
+"git_project_select" = "Select a project";
+"git_project_none" = "No projects yet. Create one in the Projects section.";
+
+// MARK: - Git Session History
+"git_session_new" = "New Conversation";
+"git_session_history" = "Conversation history";
+"git_session_open" = "Open";
+"git_session_delete" = "Delete";
+
+// MARK: - Git Chain Depth
+"git_chain_depth_exceeded" = "Maximum chain depth reached (10 steps). Please start a new request to continue.";

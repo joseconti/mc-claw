@@ -209,7 +209,9 @@ struct ChatWindow: View {
         case .installations:
             InstallationsContentView()
         case .git:
-            GitPanelView()
+            GitPanelView(onNavigateToProject: { projectId in
+                currentSection = .projectDetail(projectId)
+            })
         case .multimedia:
             MultimediaContentView(
                 onNavigateToChat: { sessionId in

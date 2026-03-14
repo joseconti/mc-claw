@@ -3,6 +3,7 @@ import SwiftUI
 /// List of issues for a repository.
 struct GitIssueListView: View {
     let issues: [GitIssueInfo]
+    var onSendToChat: ((String) -> Void)?
 
     var body: some View {
         if issues.isEmpty {
@@ -15,6 +16,7 @@ struct GitIssueListView: View {
                 LazyVStack(spacing: 2) {
                     ForEach(issues) { issue in
                         issueRow(issue)
+                            .contextMenu { issueContextMenu(issue) }
                     }
                 }
                 .padding(.horizontal, 6)
@@ -64,5 +66,42 @@ struct GitIssueListView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+    }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private func issueContextMenu(_ issue: GitIssueInfo) -> some View {
+        Button {
+            onSendToChat?(GitPromptTemplates.analyzeIssue(issue))
+        } label: {
+            Label(String(localized: "git_action_analyze_issue", bundle: .module), systemImage: "magnifyingglass")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.suggestFixIssue(issue))
+        } label: {
+            Label(String(localized: "git_action_suggest_fix", bundle: .module), systemImage: "wrench")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.createBranchForIssue(issue))
+        } label: {
+            Label(String(localized: "git_action_create_branch_issue", bundle: .module), systemImage: "arrow.triangle.branch")
+        }
+
+        Divider()
+
+        Button {
+            onSendToChat?(GitPromptTemplates.closeIssue(issue))
+        } label: {
+            Label(String(localized: "git_action_close_issue", bundle: .module), systemImage: "xmark.circle")
+        }
+
+        Button {
+            onSendToChat?(GitPromptTemplates.findRelatedIssues(issue))
+        } label: {
+            Label(String(localized: "git_action_find_related", bundle: .module), systemImage: "link")
+        }
     }
 }

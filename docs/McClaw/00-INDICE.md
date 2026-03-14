@@ -25,6 +25,7 @@ Complete documentation for McClaw, a native macOS application (Swift/SwiftUI) th
 | 14 | [APP-MOVIL.md](14-APP-MOVIL.md) | Mobile app study (iPhone and Android) for communicating with McClaw |
 | 15 | [BITNET-PROVIDER.md](15-BITNET-PROVIDER.md) | BitNet 1-bit LLM provider (experimental): installation flow, model management, CLI integration, session handling, configuration |
 | 16 | [GIT-INTEGRATION.md](16-GIT-INTEGRATION.md) | Git integration: dedicated sidebar section, platform selector (GitHub/GitLab), AI-assisted repo operations (read/write), local git CLI via GitService, chat context enrichment, confirmation flow for write actions |
+| 16.2 | [GIT-INTEGRATION-WITH-IA.md](16.2-GIT-INTEGRATION-WITH-IA.md) | Deep AI interaction layer for Git: execution pipeline (@git/@git-confirm/@fetch-confirm), contextual AI actions on PRs/issues/commits/files/branches, intelligent features (Explain Repo, PR Review, What Broke, Changelog, Commit Assistant, Merge Conflict Resolution), repo monitoring via Schedules, cross-repo intelligence, line-level code questions, prompt templates |
 | 17 | [ACCESSIBILITY.md](17-ACCESSIBILITY.md) | Accesibilidad: VoiceOver labels, Dynamic Type (@ScaledMetric), Reduce Motion, Alto Contraste, Focus Management, convenciones para vistas nuevas |
 
 ---

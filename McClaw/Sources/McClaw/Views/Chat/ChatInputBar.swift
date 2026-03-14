@@ -205,6 +205,8 @@ struct ChatInputBar: View {
     var compact: Bool = false
     var onImageGenerate: ((String) -> Void)?
     var onInstallPrompt: ((String) -> Void)?
+    /// Optional context chip (e.g. Git repo/branch) shown inside the input card.
+    var contextChip: AnyView?
 
     @Environment(AppState.self) private var appState
     @State private var text: String = ""
@@ -225,6 +227,16 @@ struct ChatInputBar: View {
 
             // Main input area
             VStack(spacing: 0) {
+                // Context chip (Git repo, etc.)
+                if let chip = contextChip {
+                    HStack {
+                        chip
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, compact ? 8 : 12)
+                }
+
                 // Text field
                 MultiLineTextInput(
                     text: $text,
@@ -252,7 +264,7 @@ struct ChatInputBar: View {
                     isPopupVisible: showCommandPopup
                 )
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, compact ? 10 : 16)
+                .padding(.top, contextChip != nil ? (compact ? 4 : 8) : (compact ? 10 : 16))
                 .padding(.horizontal, 14)
                 .padding(.bottom, compact ? 6 : 12)
 
