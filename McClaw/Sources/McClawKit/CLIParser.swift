@@ -31,6 +31,20 @@ public enum CLIParser {
             }
         }
 
+        // Codex CLI outputs plain text
+        if provider == "codex" {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { return .passthrough("") }
+            return .text(trimmed)
+        }
+
+        // Amazon Q Developer CLI outputs plain text
+        if provider == "amazonq" {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { return .passthrough("") }
+            return .text(trimmed)
+        }
+
         // GitHub Copilot CLI outputs plain text
         if provider == "copilot" {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -237,6 +251,32 @@ public enum CLIParser {
             args += [planPrefix + prefix + message + formattingHint]
             return args
 
+        case "codex":
+            // Codex CLI: non-interactive mode via --quiet flag.
+            // --approval-mode controls agentic behavior:
+            //   suggest  → read-only (plan mode)
+            //   full-auto → fully automated (no approval prompts)
+            var args: [String] = []
+            if planMode {
+                args += ["--approval-mode", "suggest"]
+            } else {
+                args += ["--approval-mode", "full-auto"]
+            }
+            if let model { args += ["--model", model] }
+            args += ["--quiet"]
+            let codexPrefix = systemPromptPrefix(systemPrompt, provider: "codex")
+            args += [codexPrefix + message + formattingHint]
+            return args
+
+        case "amazonq":
+            // Amazon Q Developer CLI: chat in non-interactive mode.
+            // `q chat --no-interactive` reads the prompt from the last argument.
+            var args = ["chat", "--no-interactive"]
+            let qPlanPrefix = planMode ? "[PLAN MODE]\n\(planModeSystemPrompt)\n[END PLAN MODE]\n\n" : ""
+            let qPrefix = systemPromptPrefix(systemPrompt, provider: "amazonq")
+            args += [qPlanPrefix + qPrefix + message + formattingHint]
+            return args
+
         case "dashscope":
             // DashScope uses REST API (handled in CLIBridge via URLSession).
             // This case exists for interface completeness; actual dispatch is in CLIBridge.
@@ -266,19 +306,17 @@ public enum CLIParser {
     /// Unlike `buildArguments`, this does NOT use `--print` (so the process stays alive).
     /// The session is launched via PTY (pseudo-terminal) so the CLI activates its
     /// interactive mode, enabling slash commands like `/loop`.
-    /// Input is sent as plain text (not JSON), so `--input-format stream-json` is NOT used.
+    ///
+    /// **No `--output-format` flags**: the PTY needs pure interactive mode.
+    /// The CLI manages its own UI rendering. We don't parse PTY output.
     public static func buildBackgroundSessionArguments(
         sessionId: String,
-        model: String? = nil,
-        systemPrompt: String? = nil
+        model: String? = nil
     ) -> [String] {
-        // PTY mode: no --input-format stream-json (text input via terminal)
-        // Keep --output-format stream-json for parseable output
-        var args = ["--output-format", "stream-json", "--verbose"]
+        // Pure interactive mode: no --output-format, no --verbose, no --input-format.
+        // The PTY needs the CLI in its native interactive state for /loop to work.
+        var args: [String] = []
         if let model { args += ["--model", model] }
-        if let systemPrompt, !systemPrompt.isEmpty {
-            args += ["--system-prompt", systemPrompt]
-        }
         args += ["--session-id", sessionId]
         return args
     }
@@ -323,13 +361,22 @@ public enum CLIParser {
     /// PTY output may contain terminal control codes (colors, cursor movement, etc.)
     /// that would corrupt JSON parsing. This removes them.
     public static func stripANSI(_ text: String) -> String {
-        // CSI sequences: ESC [ ... final_byte (e.g. colors, cursor)
-        // OSC sequences: ESC ] ... BEL (e.g. terminal title)
-        // Charset sequences: ESC ( X (e.g. charset selection)
-        text.replacingOccurrences(
-            of: "\\x1B\\[[0-9;]*[A-Za-z]|\\x1B\\].*?\\x07|\\x1B\\([A-Z]",
+        // Step 1: Replace cursor-forward sequences (ESC[NC) with a space.
+        // Claude CLI uses these to pad text to terminal column widths. Stripping without
+        // replacement concatenates adjacent words: "a real-time" → "areal-time".
+        var result = text.replacingOccurrences(
+            of: "\\x1B\\[[0-9]*C",
+            with: " ",
+            options: .regularExpression
+        )
+        // Step 2: Strip all remaining CSI/OSC/escape sequences.
+        // CSI parameter bytes per ANSI: 0x30-0x3F = 0-9 : ; < = > ?
+        // Includes ? to handle ESC[?2026h (synchronized output mode used by Claude CLI).
+        result = result.replacingOccurrences(
+            of: "\\x1B\\[[0-9;:<=?>]*[A-Za-z@]|\\x1B\\].*?\\x07|\\x1B[()][A-Z0-9]|\\x1B[A-Z]",
             with: "",
             options: .regularExpression
         )
+        return result
     }
 }

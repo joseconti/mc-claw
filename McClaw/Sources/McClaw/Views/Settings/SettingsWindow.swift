@@ -195,6 +195,9 @@ struct SettingsWindow: View {
         case .advanced:
             AdvancedSettingsTab()
                 .environment(appState)
+        case .learning:
+            LearningSettingsTab()
+                .environment(appState)
         case .bitnet:
             BitNetSettingsTab()
                 .environment(appState)
@@ -207,6 +210,7 @@ struct SettingsWindow: View {
 enum SettingsSection: String, Hashable, CaseIterable {
     case general, clis, ollama, dashscope, mcp, security
     case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote
+    case learning
     case logs, backup, advanced
     case bitnet
 
@@ -229,6 +233,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .advanced: String(localized: "Advanced")
         case .ollama: String(localized: "Ollama")
         case .dashscope: String(localized: "DashScope")
+        case .learning: String(localized: "Learning")
         case .bitnet: String(localized: "BitNet")
         }
     }
@@ -252,12 +257,13 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .advanced: "wrench.and.screwdriver"
         case .ollama: "cpu.fill"
         case .dashscope: "cloud.fill"
+        case .learning: "brain"
         case .bitnet: "cpu"
         }
     }
 
     static let mainSections: [SettingsSection] = [.general, .clis, .ollama, .dashscope, .mcp, .security]
-    static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice]
+    static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice, .learning]
     static let advancedSections: [SettingsSection] = [.logs, .backup]
     static let experimentalSections: [SettingsSection] = [.bitnet]
 

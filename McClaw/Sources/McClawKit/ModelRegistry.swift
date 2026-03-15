@@ -44,6 +44,10 @@ public enum ModelRegistry {
             return copilotModels
         case "dashscope":
             return dashscopeModels
+        case "codex":
+            return codexModels
+        case "amazonq":
+            return amazonqModels
         default:
             return []
         }
@@ -199,6 +203,34 @@ public enum ModelRegistry {
             modelId: "MiniMax-M2.5",
             displayName: "MiniMax M2.5",
             provider: "dashscope"
+        ),
+    ]
+
+    private static let codexModels: [RegisteredModel] = [
+        RegisteredModel(
+            modelId: "codex-mini-latest",
+            displayName: "Codex Mini",
+            provider: "codex",
+            isDefault: true
+        ),
+        RegisteredModel(
+            modelId: "o4-mini",
+            displayName: "o4 Mini",
+            provider: "codex"
+        ),
+        RegisteredModel(
+            modelId: "o3",
+            displayName: "o3",
+            provider: "codex"
+        ),
+    ]
+
+    private static let amazonqModels: [RegisteredModel] = [
+        RegisteredModel(
+            modelId: "amazon-q-developer",
+            displayName: "Amazon Q Developer",
+            provider: "amazonq",
+            isDefault: true
         ),
     ]
 

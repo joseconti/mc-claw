@@ -135,6 +135,25 @@ final class ChatViewModel {
             messageForCLI = "\(gitHeader)\n\n\(messageForCLI)"
         }
 
+        // Adaptive Learning: detect signals from previous assistant response
+        if appState.adaptiveLearningEnabled,
+           let lastAssistant = messages.last(where: { $0.role == .assistant }) {
+            let reactionProxy = ChatMessage(
+                role: .user,
+                content: text,
+                sessionId: sessionId,
+                providerId: provider.id
+            )
+            if let event = SignalDetector.shared.analyze(
+                agentResponse: lastAssistant,
+                userReaction: reactionProxy,
+                sessionKey: sessionId
+            ) {
+                Task { try? await FeedbackStore.shared.record(event) }
+                Task { await PreferenceEngine.shared.processFeedback(event) }
+            }
+        }
+
         // Add user message (show original text, not the context-enriched version)
         let userMessage = ChatMessage(
             role: .user,
@@ -344,13 +363,19 @@ final class ChatViewModel {
             skills: LocalSkillsStore.shared.activeSkills()
         )
 
+        // Build adaptive learning enrichment block
+        var learningPrompt: String?
+        if appState.adaptiveLearningEnabled {
+            learningPrompt = await PreferenceEngine.shared.enrichmentBlock(provider: provider.id)
+        }
+
         // Combine prompts (skip interactive prompts for local/small models that misuse them)
         let supportsInteractivePrompts = !["ollama", "bitnet"].contains(provider.id)
         let interactiveInstruction = appState.planModeActive || !supportsInteractivePrompts ? nil : interactivePromptInstruction()
-        let combinedPrompt: String? = [projectSystemPrompt, skillsPrompt, interactiveInstruction]
+        let combinedPrompt: String? = [projectSystemPrompt, skillsPrompt, interactiveInstruction, learningPrompt]
             .compactMap { $0 }
             .joined(separator: "\n\n")
-            .isEmpty == true ? nil : [projectSystemPrompt, skillsPrompt, interactiveInstruction]
+            .isEmpty == true ? nil : [projectSystemPrompt, skillsPrompt, interactiveInstruction, learningPrompt]
             .compactMap { $0 }
             .joined(separator: "\n\n")
 

@@ -213,6 +213,14 @@ final class AppState {
     /// Cloud provider IDs hidden from sidebar (not yet activated by the user)
     var hiddenProviders: Set<String> = ["dashscope"]
 
+    // MARK: - Adaptive Learning
+
+    /// Whether adaptive learning (signal detection + preference enrichment) is active.
+    var adaptiveLearningEnabled: Bool = true
+
+    /// Whether to show learning indicators in the chat UI.
+    var showLearningIndicators: Bool = true
+
     // MARK: - Git Integration
 
     /// Git section enabled in sidebar

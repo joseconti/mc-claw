@@ -44,6 +44,23 @@ actor CLIDetector {
             )
         ),
         CLIProviderDefinition(
+            id: "codex",
+            displayName: "Codex CLI",
+            binaryNames: ["codex"],
+            versionFlag: "--version",
+            authCheckCommand: nil,
+            installMethod: .npm,
+            capabilities: CLICapabilities(
+                supportsStreaming: true,
+                supportsToolUse: true,
+                supportsVision: false,
+                supportsThinking: false,
+                supportsConversation: false,
+                supportsPlanMode: true,
+                maxContextTokens: 128_000
+            )
+        ),
+        CLIProviderDefinition(
             id: "gemini",
             displayName: "Gemini CLI",
             binaryNames: ["gemini"],
@@ -92,6 +109,23 @@ actor CLIDetector {
                 supportsConversation: true,
                 supportsPlanMode: true,
                 maxContextTokens: 128_000
+            )
+        ),
+        CLIProviderDefinition(
+            id: "amazonq",
+            displayName: "Amazon Q Developer",
+            binaryNames: ["q"],
+            versionFlag: "--version",
+            authCheckCommand: nil,
+            installMethod: .homebrew,
+            capabilities: CLICapabilities(
+                supportsStreaming: true,
+                supportsToolUse: true,
+                supportsVision: false,
+                supportsThinking: false,
+                supportsConversation: true,
+                supportsPlanMode: false,
+                maxContextTokens: 100_000
             )
         ),
         CLIProviderDefinition(

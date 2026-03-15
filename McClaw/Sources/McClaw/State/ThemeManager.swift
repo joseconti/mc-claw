@@ -8,7 +8,7 @@ final class ThemeManager {
     static let shared = ThemeManager()
 
     /// Currently selected preset identifier.
-    var selectedPreset: ThemePresetId = .mcclawDark {
+    var selectedPreset: ThemePresetId = .solarizedLight {
         didSet {
             // Auto-set color scheme to match preset's light/dark nature
             if let isDark = selectedPreset.isDark {

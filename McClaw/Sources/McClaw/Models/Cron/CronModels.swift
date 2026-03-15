@@ -213,6 +213,8 @@ struct CronJobState: Codable, Equatable, Sendable {
     var lastStatus: String?
     var lastError: String?
     var lastDurationMs: Int?
+    /// Claude CLI internal task ID (e.g. "8772934d"), used for cancellation via `/loop cancel`.
+    var claudeTaskId: String?
 }
 
 // MARK: - Job

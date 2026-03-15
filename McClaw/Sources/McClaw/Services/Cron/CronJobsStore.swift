@@ -1,5 +1,6 @@
 import Foundation
 import Logging
+import McClawKit
 import McClawProtocol
 
 /// Manages cron jobs with hybrid backend:
@@ -27,6 +28,8 @@ final class CronJobsStore {
     var isLoadingRuns = false
     var lastError: String?
     var statusMessage: String?
+    /// Last confirmation text received from Claude CLI when a /loop was accepted.
+    var lastLoopConfirmation: String?
 
     private let logger = Logger(label: "ai.mcclaw.cron")
     private var pollTask: Task<Void, Never>?
@@ -34,6 +37,11 @@ final class CronJobsStore {
     private var runsTask: Task<Void, Never>?
     private var sessionEventTask: Task<Void, Never>?
     private var renewalTask: Task<Void, Never>?
+
+    /// FIFO queue of McClaw job IDs whose `/loop` commands have been sent but whose
+    /// Claude CLI confirmation (loopConfirmed) hasn't arrived yet.
+    /// Used to correlate confirmations with job IDs so we can store the Claude task ID.
+    private var pendingLoopJobIds: [String] = []
 
     private let pollInterval: TimeInterval = 30
     /// Renew /loop tasks every 2 days (they expire after 3 days).
@@ -159,17 +167,53 @@ final class CronJobsStore {
             }
             guard !message.isEmpty else { continue }
 
-            let sent = await BackgroundCLISession.shared.scheduleTask(
-                interval: interval, message: message
-            )
+            pendingLoopJobIds.append(job.id)
+            let sent = await BackgroundCLISession.shared.scheduleTask(interval: interval, message: message)
             if sent {
                 logger.info("Renewed task '\(job.displayName)'")
+            } else {
+                pendingLoopJobIds.removeLast()
+            }
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+    }
+
+    /// Schedule /loop for all enabled Claude jobs. Called after the PTY session becomes ready.
+    /// This is the restore path — CronJobsStore owns the ordering so it can track IDs via pendingLoopJobIds.
+    private func scheduleAllClaudeJobs() async {
+        let claudeJobs = jobs.filter { job in
+            let agent = job.agentId ?? ""
+            return job.enabled && (agent.isEmpty || agent == "claude")
+        }
+        guard !claudeJobs.isEmpty else {
+            logger.info("No enabled Claude jobs to restore")
+            return
+        }
+        logger.info("Restoring \(claudeJobs.count) Claude /loop tasks via CronJobsStore")
+        for job in claudeJobs {
+            guard let interval = scheduleToLoopInterval(job.schedule) else { continue }
+            let message: String
+            switch job.payload {
+            case .agentTurn(let msg, _, _, _, _, _, _, _): message = msg
+            case .systemEvent(let text): message = text
+            }
+            guard !message.isEmpty else { continue }
+
+            pendingLoopJobIds.append(job.id)
+            let sent = await BackgroundCLISession.shared.scheduleTask(interval: interval, message: message)
+            if sent {
+                logger.info("Restored task '\(job.displayName)' (\(interval))")
+            } else {
+                pendingLoopJobIds.removeLast()
+                logger.warning("Failed to restore task '\(job.displayName)'")
             }
             try? await Task.sleep(nanoseconds: 500_000_000)
         }
     }
 
     /// Handle events from the BackgroundCLISession.
+    /// Note: the PTY output is not parsed, so there's no `.taskFired` event.
+    /// Task results from `/loop` are managed by Claude CLI internally.
     private func handleSessionEvent(_ event: BackgroundCLISession.SessionEvent) {
         switch event {
         case .stateChanged(let newState):
@@ -178,48 +222,16 @@ final class CronJobsStore {
                 Task {
                     claudeSessionPID = await BackgroundCLISession.shared.processId
                 }
+                // PTY is launching — wait until it's ready, then restore all /loop tasks.
+                Task { [weak self] in
+                    guard let self else { return }
+                    await BackgroundCLISession.shared.waitUntilReady(timeout: 60)
+                    await self.scheduleAllClaudeJobs()
+                }
             } else {
                 claudeSessionPID = nil
             }
             logger.info("Claude background session state: \(newState)")
-
-        case .taskFired(let taskId, let output):
-            logger.info("Claude task fired: \(taskId), output: \(output.prefix(200))")
-            let nowMs = Int(Date().timeIntervalSince1970 * 1000)
-            if let index = jobs.firstIndex(where: { $0.id == taskId }) {
-                var state = jobs[index].state
-                state.lastRunAtMs = nowMs
-                state.lastStatus = "ok"
-                state.lastError = nil
-                let job = jobs[index]
-                jobs[index] = CronJob(
-                    id: job.id, agentId: job.agentId, model: job.model,
-                    name: job.name, description: job.description,
-                    enabled: job.enabled, deleteAfterRun: job.deleteAfterRun,
-                    createdAtMs: job.createdAtMs, updatedAtMs: nowMs,
-                    schedule: job.schedule, sessionTarget: job.sessionTarget,
-                    wakeMode: job.wakeMode, payload: job.payload,
-                    delivery: job.delivery, state: state
-                )
-                persistLocalJobs()
-
-                appendRunLog(
-                    jobId: taskId,
-                    status: "ok",
-                    summary: String(output.prefix(500)),
-                    startMs: nowMs
-                )
-
-                if let delivery = job.delivery {
-                    let summary = String(output.prefix(500))
-                    Task {
-                        await LocalScheduler.shared.deliverCronResults(
-                            delivery: delivery, job: job,
-                            summary: summary, status: .success
-                        )
-                    }
-                }
-            }
 
         case .error(let msg):
             logger.error("Claude background session error: \(msg)")
@@ -230,8 +242,221 @@ final class CronJobsStore {
             claudeSessionActive = false
             claudeSessionPID = nil
 
-        case .text:
-            break
+        case .loopConfirmed(let confirmation):
+            logger.info("Claude /loop confirmed: \(confirmation.prefix(200))")
+            lastLoopConfirmation = confirmation
+            // Pop the next pending job ID from the FIFO queue to correlate this confirmation.
+            let pendingJobId = pendingLoopJobIds.isEmpty ? nil : pendingLoopJobIds.removeFirst()
+            let claudeTaskId = parseClaudeTaskId(from: confirmation)
+            if let claudeTaskId, let pendingJobId {
+                logger.info("Stored Claude task ID: \(claudeTaskId) for job \(pendingJobId)")
+            }
+            if let intervalMs = parseLoopConfirmationInterval(confirmation) {
+                updateClaudeJobsNextRun(intervalMs: intervalMs, specificJobId: pendingJobId, claudeTaskId: claudeTaskId)
+            }
+
+        case .taskCompleted(let result):
+            // A /loop iteration completed. Update job state and send notifications.
+            logger.info("Claude scheduled task completed — updating job state")
+            updateClaudeJobsAfterRun(result: result)
+        }
+    }
+
+    /// Extract the Claude CLI internal task ID from a /loop confirmation string.
+    /// Claude CLI outputs: "Scheduled 8772934d (Every 5 minutes)" → returns "8772934d".
+    /// Works on both normal text and compact text (spaces removed after ANSI strip).
+    private func parseClaudeTaskId(from text: String) -> String? {
+        let compact = text.lowercased().replacingOccurrences(of: " ", with: "")
+        // Pattern: "scheduled" followed immediately by a hex ID (6-12 chars), then "("
+        guard let range = compact.range(of: "scheduled([a-f0-9]{6,12})\\(", options: .regularExpression),
+              let idRange = compact[range].range(of: "[a-f0-9]{6,12}", options: .regularExpression) else {
+            return nil
+        }
+        return String(compact[range][idRange])
+    }
+
+    /// Parse the interval in milliseconds from a /loop confirmation string.
+    /// Handles compact (no-space) or normal text, e.g. "Every5minutes" or "Every 5 minutes".
+    private func parseLoopConfirmationInterval(_ text: String) -> Int? {
+        let compact = text.lowercased().replacingOccurrences(of: " ", with: "")
+        // Match patterns like "every5minutes", "every1hour", "every30seconds"
+        let patterns: [(String, Int)] = [
+            ("every(\\d+)minutes", 60_000),
+            ("every(\\d+)hours", 3_600_000),
+            ("every(\\d+)seconds", 1_000),
+            ("every(\\d+)days", 86_400_000),
+        ]
+        for (pattern, multiplier) in patterns {
+            if let range = compact.range(of: pattern, options: .regularExpression),
+               let numRange = compact[range].range(of: "\\d+", options: .regularExpression),
+               let n = Int(compact[range][numRange]) {
+                return n * multiplier
+            }
+        }
+        return nil
+    }
+
+    /// Set nextRunAtMs (and optionally claudeTaskId) on Claude jobs after /loop confirmation.
+    /// - Parameters:
+    ///   - intervalMs: Schedule interval in milliseconds, used to compute nextRunAtMs.
+    ///   - specificJobId: If set, update only this McClaw job ID; otherwise update all Claude jobs.
+    ///   - claudeTaskId: If set, store the Claude CLI internal task ID for later cancellation.
+    private func updateClaudeJobsNextRun(
+        intervalMs: Int,
+        specificJobId: String? = nil,
+        claudeTaskId: String? = nil
+    ) {
+        let nowMs = Int(Date().timeIntervalSince1970 * 1000)
+        var changed = false
+        for i in jobs.indices {
+            guard localJobIds.contains(jobs[i].id) else { continue }
+            // If a specific job was targeted, skip all others
+            if let specificJobId, jobs[i].id != specificJobId { continue }
+            let agent = jobs[i].agentId ?? ""
+            guard jobs[i].enabled && (agent.isEmpty || agent == "claude") else { continue }
+            let job = jobs[i]
+            let newState = CronJobState(
+                nextRunAtMs: nowMs + intervalMs,
+                runningAtMs: nil,
+                lastRunAtMs: job.state.lastRunAtMs,
+                lastStatus: job.state.lastStatus,
+                lastError: nil,
+                lastDurationMs: job.state.lastDurationMs,
+                claudeTaskId: claudeTaskId ?? job.state.claudeTaskId
+            )
+            jobs[i] = CronJob(
+                id: job.id, agentId: job.agentId, model: job.model, name: job.name,
+                description: job.description, enabled: job.enabled,
+                deleteAfterRun: job.deleteAfterRun, createdAtMs: job.createdAtMs,
+                updatedAtMs: job.updatedAtMs, schedule: job.schedule,
+                sessionTarget: job.sessionTarget, wakeMode: job.wakeMode,
+                payload: job.payload, delivery: job.delivery, state: newState
+            )
+            changed = true
+        }
+        if changed { persistLocalJobs() }
+    }
+
+    /// Update lastRunAtMs = now and recalculate nextRunAtMs for all enabled local Claude jobs.
+    /// Also posts a notification for jobs with delivery channel = "notifications".
+    private func updateClaudeJobsAfterRun(result: String) {
+        let nowMs = Int(Date().timeIntervalSince1970 * 1000)
+        var changed = false
+        for i in jobs.indices {
+            guard localJobIds.contains(jobs[i].id) else { continue }
+            let agent = jobs[i].agentId ?? ""
+            guard jobs[i].enabled && (agent.isEmpty || agent == "claude") else { continue }
+            let job = jobs[i]
+            let intervalMs = scheduleIntervalMs(job.schedule)
+            let newState = CronJobState(
+                nextRunAtMs: intervalMs > 0 ? nowMs + intervalMs : job.state.nextRunAtMs,
+                runningAtMs: nil,
+                lastRunAtMs: nowMs,
+                lastStatus: "ok",
+                lastError: nil,
+                lastDurationMs: nil
+            )
+            jobs[i] = CronJob(
+                id: job.id, agentId: job.agentId, model: job.model, name: job.name,
+                description: job.description, enabled: job.enabled,
+                deleteAfterRun: job.deleteAfterRun, createdAtMs: job.createdAtMs,
+                updatedAtMs: job.updatedAtMs, schedule: job.schedule,
+                sessionTarget: job.sessionTarget, wakeMode: job.wakeMode,
+                payload: job.payload, delivery: job.delivery, state: newState
+            )
+            appendRunLog(jobId: job.id, status: "ok", startMs: nowMs)
+
+            // Send notification if delivery channel is "notifications"
+            if job.delivery?.channel == "notifications" {
+                let summary = extractResultSummary(from: result)
+                ScheduleNotificationStore.shared.add(
+                    scheduleName: job.displayName,
+                    scheduleId: job.id,
+                    provider: job.agentId ?? "claude",
+                    summary: summary.isEmpty ? "Task completed" : summary,
+                    status: .success
+                )
+            }
+
+            changed = true
+        }
+        if changed { persistLocalJobs() }
+    }
+
+    /// Extract the useful response text from buffered PTY output.
+    ///
+    /// PTY output for a task like "tell me the time" looks like:
+    /// ```
+    /// ⏺ Bash(date)               ← tool invocation — skip
+    ///   Sun Mar 15 14:05:32 ...   ← tool result (indented, no bullet)
+    /// ⏺ Sun Mar 15 14:05:32 ...  ← tool result (with bullet, no CamelCase pattern)
+    /// The current time is...      ← Claude's text response — prefer this
+    /// ✻ Calculating…              ← spinner — stop here
+    /// ```
+    ///
+    /// Priority: Claude's text response > tool result lines > raw fallback.
+    private func extractResultSummary(from text: String) -> String {
+        let bullet = "\u{23FA}" // ⏺
+        // Prefixes for structural/spinner lines — skip them but keep processing further lines
+        let skipPrefixes = ["✻", "✽", "✶", "✳", "✢", "·", "⎿", "❯", "────", "Tip:",
+                            "Wait", "Running", "Ionizing", "Spelunking", "Calculating",
+                            "Thinking", "Working", "? for"]
+        // Tool invocation pattern: ⏺ CamelCaseName( — e.g. "Bash(", "Write(", "Read("
+        // Also catches PTY-garbled variants like "B (date)" where ANSI cursor splitting
+        // leaves a single uppercase letter followed by optional space before "(".
+        let toolCallRegex = try? NSRegularExpression(pattern: "^[A-Z][a-zA-Z]* ?\\(")
+
+        // claudeResponse: ⏺ lines that are NOT tool calls (Claude's formatted reply)
+        var claudeResponse: [String] = []
+        // toolOutput: plain-text lines without bullet (raw command stdout)
+        var toolOutput: [String] = []
+
+        // Re-apply ANSI strip on the full buffer (some sequences arrive split across chunks)
+        // and collapse multiple spaces left by cursor-forward replacements.
+        let cleanText = CLIParser.stripANSI(text)
+            .replacingOccurrences(of: " {2,}", with: " ", options: .regularExpression)
+
+        for raw in cleanText.components(separatedBy: "\n") {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { continue }
+            // Skip structural/spinner lines but keep processing subsequent lines
+            if skipPrefixes.contains(where: { line.hasPrefix($0) }) { continue }
+
+            if line.hasPrefix(bullet) {
+                let content = String(line.dropFirst(bullet.unicodeScalars.count))
+                    .trimmingCharacters(in: .whitespaces)
+                let isToolCall = toolCallRegex?.firstMatch(
+                    in: content, range: NSRange(content.startIndex..., in: content)
+                ) != nil
+                if !isToolCall && !content.isEmpty {
+                    claudeResponse.append(content) // Claude's bulleted text reply
+                }
+                // Tool invocations (Bash(date), Write(...)) are discarded
+            } else {
+                toolOutput.append(line) // Raw tool stdout
+            }
+        }
+
+        // Priority: Claude's formatted bulleted response > raw tool stdout > raw fallback
+        let best = claudeResponse.isEmpty ? toolOutput : claudeResponse
+        let joined = best.joined(separator: " ")
+        return joined.isEmpty ? String(cleanText.prefix(200)) : String(joined.prefix(300))
+    }
+
+    /// Return the schedule interval in milliseconds for a CronSchedule.
+    private func scheduleIntervalMs(_ schedule: CronSchedule) -> Int {
+        switch schedule {
+        case .every(let ms, _): return ms
+        case .cron(let expr, _):
+            let parts = expr.trimmingCharacters(in: .whitespaces)
+                .components(separatedBy: .whitespaces)
+                .filter { !$0.isEmpty }
+            guard parts.count >= 5 else { return 0 }
+            if parts[0].hasPrefix("*/"), let n = Int(parts[0].dropFirst(2)) { return n * 60_000 }
+            if parts[0] != "*" && parts[1] == "*" { return 3_600_000 }
+            if parts[0] != "*" && parts[1] != "*" { return 86_400_000 }
+            return 3_600_000
+        case .at: return 0
         }
     }
 
@@ -297,6 +522,13 @@ final class CronJobsStore {
     }
 
     func removeJob(id: String) async {
+        // Cancel the corresponding Claude CLI /loop task if we have its ID
+        if let job = jobs.first(where: { $0.id == id }),
+           let claudeTaskId = job.state.claudeTaskId {
+            Task {
+                await BackgroundCLISession.shared.cancelTask(claudeTaskId: claudeTaskId)
+            }
+        }
         // Remove from local storage
         jobs.removeAll { $0.id == id }
         localJobIds.remove(id)
@@ -308,6 +540,14 @@ final class CronJobsStore {
     }
 
     func setJobEnabled(id: String, enabled: Bool) async {
+        // Cancel the Claude /loop task when disabling
+        if !enabled,
+           let job = jobs.first(where: { $0.id == id }),
+           let claudeTaskId = job.state.claudeTaskId {
+            Task {
+                await BackgroundCLISession.shared.cancelTask(claudeTaskId: claudeTaskId)
+            }
+        }
         if let index = jobs.firstIndex(where: { $0.id == id }) {
             let job = jobs[index]
             let updated = CronJob(
@@ -351,10 +591,12 @@ final class CronJobsStore {
                 case .systemEvent(let text): message = text
                 }
                 if !message.isEmpty {
+                    pendingLoopJobIds.append(job.id)
                     let sent = await BackgroundCLISession.shared.scheduleTask(
                         interval: interval, message: message
                     )
                     if !sent {
+                        pendingLoopJobIds.removeLast()
                         logger.warning("Failed to register Claude task '\(job.displayName)' in background session")
                     }
                 }

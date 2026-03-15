@@ -286,7 +286,7 @@
 // MARK: - ChatViewModel (system messages / slash commands)
 // =============================================================================
 
-"No AI CLI detected. Please install Claude, ChatGPT, Gemini, Copilot or Ollama CLI." = "No AI CLI detected. Please install Claude, ChatGPT, Gemini, Copilot or Ollama CLI.";
+"No AI CLI detected. Please install Claude, ChatGPT, Gemini, Copilot or Ollama CLI." = "No AI CLI detected. Please install Claude, ChatGPT, Gemini, Copilot, Codex, Amazon Q or Ollama CLI.";
 "[Error: %@]" = "[Error: %@]";
 "[Aborted]" = "[Aborted]";
 
@@ -901,7 +901,7 @@
 
 "Uses whichever AI is active when the schedule runs" = "Uses whichever AI is active when the schedule runs";
 "Ready" = "Ready";
-"No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, or Ollama)." = "No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, or Ollama).";
+"No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, or Ollama)." = "No AI providers detected. Install at least one CLI (Claude, Gemini, ChatGPT, Codex, Amazon Q, or Ollama).";
 
 // =============================================================================
 // MARK: - CronJobEditor — When Step
@@ -1688,3 +1688,30 @@
 // MARK: - Cron / BackgroundCLISession
 "cron.description" = "Manage scheduled jobs. Claude uses a persistent background session; other providers use the local scheduler.";
 "cron.claude.session.active" = "Claude background session active";
+
+// =============================================================================
+// MARK: - Adaptive Learning
+// =============================================================================
+"Learning" = "Learning";
+"settings.learning.title" = "Adaptive Learning";
+"settings.learning.enable" = "Enable adaptive learning";
+"settings.learning.enable.description" = "McClaw learns from your interactions to personalize future responses.";
+"settings.learning.indicators" = "Show learning indicators";
+"settings.learning.indicators.description" = "Display subtle indicators in chat when preferences are applied.";
+"settings.learning.statistics" = "Statistics";
+"settings.learning.preferences" = "Preferences";
+"settings.learning.interactions" = "Interactions";
+"settings.learning.satisfaction" = "Satisfaction";
+"settings.learning.provider.performance" = "Provider Performance";
+"settings.learning.best.for %@" = "Best for: %@";
+"settings.learning.learned.preferences" = "Learned Preferences";
+"settings.learning.data" = "Data Management";
+"settings.learning.data.description" = "All learning data is stored locally in ~/.mcclaw/learning/. Nothing is sent to any server.";
+"settings.learning.export" = "Export Preferences";
+"settings.learning.reset" = "Reset All Data";
+"settings.learning.reset.title" = "Reset Learning Data?";
+"settings.learning.reset.message" = "This will delete all learned preferences and feedback history. This action cannot be undone.";
+"settings.learning.reset.confirm" = "Reset";
+"settings.learning.reset.cancel" = "Cancel";
+"settings.learning.export.success" = "Preferences exported successfully.";
+"settings.learning.events.count %lld" = "%lld raw feedback events stored.";

@@ -4,12 +4,11 @@ import McClawKit
 
 /// Maintains a persistent Claude CLI process for background scheduling.
 ///
-/// Unlike `CLIBridge` (which uses `--print` and exits after one response),
-/// `BackgroundCLISession` keeps the process alive using a PTY (pseudo-terminal)
-/// so the CLI activates its interactive mode. This enables slash commands like
-/// `/loop` which are only processed in interactive mode with a real TTY.
+/// Uses a PTY (pseudo-terminal) so the CLI activates its interactive mode,
+/// enabling slash commands like `/loop`. The PTY is used **only** to register
+/// `/loop` commands — we do not parse the PTY output (it's interactive UI,
+/// not structured JSON). Task results are handled externally.
 ///
-/// Scheduled tasks are created by sending `/loop` commands to the live process.
 /// If the process dies, it automatically restarts and re-creates all tasks from disk.
 actor BackgroundCLISession {
     static let shared = BackgroundCLISession()
@@ -24,13 +23,17 @@ actor BackgroundCLISession {
         case stopped
     }
 
-    /// Emitted events from the background session.
+    /// Events emitted by the background session.
     enum SessionEvent: Sendable {
-        case text(String)
-        case taskFired(taskId: String, output: String)
         case error(String)
         case processExited(status: Int32)
         case stateChanged(SessionState)
+        /// Fired when Claude CLI confirms a `/loop` schedule was accepted.
+        /// The associated string contains the raw confirmation text from the PTY.
+        case loopConfirmed(String)
+        /// Fired when Claude CLI delivers a scheduled task result (⏺ bullet detected).
+        /// The associated string is the cleaned PTY output containing the response.
+        case taskCompleted(String)
     }
 
     private let logger = Logger(label: "ai.mcclaw.background-session")
@@ -46,8 +49,6 @@ actor BackgroundCLISession {
     private static let maxRestarts = 5
     /// Delay between restarts (seconds).
     private static let restartDelay: TimeInterval = 3
-    /// Watchdog: kill if no output for 10 minutes (generous for background).
-    private static let watchdogTimeout: TimeInterval = 600
 
     private init() {}
 
@@ -93,23 +94,38 @@ actor BackgroundCLISession {
         logger.info("BackgroundCLISession stopped")
     }
 
-    /// Send a user message to the running Claude process via PTY.
-    /// The text is sent as plain text with a newline, as if typed on a keyboard.
-    /// Returns false if the process is not running.
+    /// Send text to the running Claude process by simulating keyboard input.
+    ///
+    /// Characters are delivered one at a time with a 30ms delay between each.
+    /// This is required because Claude CLI's Ink TUI only activates the `/loop`
+    /// slash command handler when the leading `/` arrives as an individual keystroke
+    /// on an empty input field. Bulk delivery (bracketed paste, raw stream) bypasses
+    /// the slash command handler and the text is routed to the LLM instead.
     @discardableResult
-    func sendMessage(_ text: String) -> Bool {
+    func sendMessage(_ text: String) async -> Bool {
         guard state == .running, let pty = ptyProcess, pty.isRunning else {
             logger.warning("Cannot send message — session not running")
             return false
         }
 
-        let success = pty.write(text + "\n")
-        if success {
-            logger.info("Sent to PTY: \(text.prefix(200))")
-        } else {
-            logger.error("Failed to write to PTY")
+        logger.info("Typing to PTY (char-by-char): \(text.prefix(200))")
+
+        // Clear any stale input with Ctrl+U before starting
+        pty.write("\u{15}")
+        try? await Task.sleep(nanoseconds: 150_000_000) // 150ms
+
+        // Deliver characters one at a time so Ink's key handler sees each keystroke.
+        // 30ms per char: fast enough to be snappy, slow enough for Ink to process.
+        for char in text {
+            pty.write(String(char))
+            try? await Task.sleep(nanoseconds: 30_000_000) // 30ms
         }
-        return success
+
+        // Brief pause before Enter so the input is fully rendered before submission
+        try? await Task.sleep(nanoseconds: 200_000_000) // 200ms
+        pty.write("\r")
+
+        return true
     }
 
     /// Send an interrupt (Ctrl+C) to the running process.
@@ -124,10 +140,28 @@ actor BackgroundCLISession {
     ///   - message: The task message to execute on each iteration
     /// - Returns: true if the message was sent successfully
     @discardableResult
-    func scheduleTask(interval: String, message: String) -> Bool {
+    func scheduleTask(interval: String, message: String) async -> Bool {
         // /loop is a Claude CLI slash command: /loop <interval> <prompt>
         let loopCommand = "/loop \(interval) \(message)"
-        return sendMessage(loopCommand)
+        return await sendMessage(loopCommand)
+    }
+
+    /// Cancel a previously scheduled `/loop` task by its Claude CLI internal ID.
+    /// The ID is extracted from the confirmation text when the task was first scheduled
+    /// (e.g. "Scheduled 8772934d (Every 5 minutes)" → ID = "8772934d").
+    /// - Parameter claudeTaskId: The hex ID assigned by Claude CLI.
+    /// - Returns: true if the cancel command was sent successfully.
+    @discardableResult
+    func cancelTask(claudeTaskId: String) async -> Bool {
+        logger.info("Cancelling Claude task \(claudeTaskId)")
+        return await sendMessage("/loop cancel \(claudeTaskId)")
+    }
+
+    /// Wait until the PTY output has been silent for the silence threshold, indicating
+    /// Claude CLI has finished initializing and is ready for input.
+    /// Called by CronJobsStore before sending `/loop` commands after a session restart.
+    func waitUntilReady(timeout: TimeInterval = 60) async {
+        await ptyProcess?.waitUntilReady(timeout: timeout)
     }
 
     /// Re-register all persisted scheduled tasks after a restart.
@@ -158,15 +192,22 @@ actor BackgroundCLISession {
 
             logger.info("Restoring \(claudeJobs.count) Claude scheduled tasks")
 
-            // Small delay to let the session initialize
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            // Wait until the PTY output has been silent for 3 seconds.
+            // This means Claude CLI has finished rendering its UI (trust prompt,
+            // welcome screen, etc.) and is waiting for user input.
+            // Timeout of 45s covers slow startups (auth, network, trust prompts).
+            if let pty = ptyProcess {
+                logger.info("Waiting for Claude CLI to become ready (silence detection)...")
+                await pty.waitUntilReady(timeout: 60)
+                logger.info("Claude CLI ready — sending /loop commands")
+            }
 
             for job in claudeJobs {
                 guard let interval = formatScheduleInterval(job.schedule) else { continue }
                 let message = extractMessage(from: job.payload)
                 guard !message.isEmpty else { continue }
 
-                let sent = scheduleTask(interval: interval, message: message)
+                let sent = await scheduleTask(interval: interval, message: message)
                 if sent {
                     logger.info("Restored task '\(job.name ?? job.id)' (\(interval))")
                 } else {
@@ -184,6 +225,7 @@ actor BackgroundCLISession {
     // MARK: - Process Lifecycle
 
     /// Launch the Claude CLI process inside a PTY (pseudo-terminal).
+    /// No `--output-format` flags — the PTY needs pure interactive mode.
     private func launchProcess() async {
         state = .starting
         eventContinuation?.yield(.stateChanged(.starting))
@@ -219,74 +261,84 @@ actor BackgroundCLISession {
             return
         }
 
-        // Disable echo so input doesn't pollute stdout
+        // Configure terminal for background operation
         pty.configureTerminal()
 
-        // Set up output reading with ANSI stripping and JSON parsing
-        let lineBuffer = LineBuffer()
-        let taskOutputState = TaskOutputState()
-        let continuation = eventContinuation
+        // Set up output reading — diagnostics + auto-respond to interactive prompts.
+        // The PTY output is interactive UI (prompts, colors, animations),
+        // not structured JSON. We don't attempt to parse it for task results.
+        // However, we DO detect blocking prompts (trust dialog, permission prompts)
+        // and auto-respond so the session can reach the interactive state.
         let sessionLogger = logger
+        let ptyRef = pty
+        let continuation = eventContinuation
+        // Box for task-run deduplication — shared across onData invocations.
+        // Uses a class (not actor-isolated) because onData runs on the pty dispatch queue.
+        let taskBox = TaskDetectionBox()
 
         pty.startReading(
             onData: { data in
-                guard let rawText = String(data: data, encoding: .utf8) else { return }
-
-                // Strip ANSI escape sequences from PTY output
-                let text = CLIParser.stripANSI(rawText)
-
-                let lines = lineBuffer.feed(text)
-                for line in lines {
-                    let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        sessionLogger.info("stdout: \(String(trimmed.prefix(500)))")
+                if let text = String(data: data, encoding: .utf8) {
+                    // Strip ANSI escape codes for readable logging and prompt detection.
+                    // The raw PTY output contains colors, cursor movement, etc.
+                    let stripped = CLIParser.stripANSI(text)
+                    let cleaned = stripped
+                        .replacingOccurrences(of: "\r\n", with: "\n")
+                        .replacingOccurrences(of: "\r", with: "\n")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !cleaned.isEmpty {
+                        sessionLogger.info("PTY output: \(String(cleaned.prefix(500)))")
                     }
 
-                    let event = CLIParser.parseLine(line, provider: "claude")
-                    switch event {
-                    case .text(let text):
-                        taskOutputState.buffer += text
-                        continuation?.yield(.text(text))
-                    case .done:
-                        // If we were accumulating a task output, emit it
-                        if let taskId = taskOutputState.currentTaskId, !taskOutputState.buffer.isEmpty {
-                            continuation?.yield(.taskFired(taskId: taskId, output: taskOutputState.buffer))
-                            taskOutputState.buffer = ""
-                            taskOutputState.currentTaskId = nil
-                        } else if !taskOutputState.buffer.isEmpty {
-                            // No explicit taskId — use "auto" for unsolicited /loop output
-                            continuation?.yield(.taskFired(taskId: "auto-\(UUID().uuidString.prefix(8))", output: taskOutputState.buffer))
-                            taskOutputState.buffer = ""
-                        }
-                    case .passthrough:
-                        // Check if this is a cron/loop related event
-                        if let data = line.data(using: .utf8),
-                           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                            let type = json["type"] as? String ?? "unknown"
-                            sessionLogger.info("JSON event type=\(type)")
+                    // Auto-respond to Claude CLI interactive prompts that block startup.
+                    // After ANSI stripping, words may be concatenated (no spaces) because
+                    // cursor positioning codes that created visual spacing are removed.
+                    // Match without spaces to handle both cases.
+                    let lower = stripped.lowercased()
+                    let compact = lower.replacingOccurrences(of: " ", with: "")
+                    if compact.contains("trustthisfolder") || compact.contains("entertoconfirm")
+                        || compact.contains("yes,itrust") || lower.contains("trust this folder") {
+                        sessionLogger.info("Detected trust/confirm prompt — auto-confirming with Enter")
+                        ptyRef.write("\r")
+                        // Reset startup clock: the real boot starts AFTER trust confirmation.
+                        // Claude still needs ~15-20s to fully initialize after this point.
+                        ptyRef.resetStartupClock()
+                    }
 
-                            // Detect cron task start (from /loop scheduler)
-                            if type == "cron_task_start" || type == "tool_use",
-                               let taskId = json["task_id"] as? String ?? json["id"] as? String {
-                                taskOutputState.currentTaskId = taskId
-                                taskOutputState.buffer = ""
-                                sessionLogger.info("Task started: \(taskId)")
-                            }
-                        }
-                    default:
-                        break
+                    // Detect /loop confirmation from Claude CLI.
+                    // Real output: "CronCreate(*/5 * * * *: ...)" then "Scheduled <id> (Every N ...)"
+                    if compact.contains("croncreate") || (compact.contains("scheduled") && compact.contains("every")) {
+                        sessionLogger.info("Loop confirmation detected: \(String(cleaned.prefix(300)))")
+                        continuation?.yield(.loopConfirmed(cleaned))
+                    }
+
+                    // Detect scheduled task execution.
+                    // Claude CLI renders results with the ⏺ bullet (U+23FA).
+                    // The full result arrives in multiple PTY chunks: first the tool call
+                    // (⏺ Bash(date)), then the tool output, then Claude's text response.
+                    // We buffer all chunks for 2.5s after the first ⏺ is seen, then fire
+                    // taskCompleted with the accumulated text so the summary has useful content.
+                    let hasResultBullet = stripped.contains("\u{23FA}") // ⏺
+                    let isRegistration = compact.contains("scheduled") || compact.contains("croncreate")
+
+                    if taskBox.hasPendingResult {
+                        // Accumulate additional output and restart the debounce timer
+                        taskBox.resultBuffer += "\n" + cleaned
+                        taskBox.resultTimer?.cancel()
+                        taskBox.resultTimer = self.makeResultDebounceTimer(
+                            box: taskBox, continuation: continuation, logger: sessionLogger)
+                    } else if hasResultBullet && !isRegistration {
+                        // First ⏺ of a task result — start buffering
+                        sessionLogger.info("Claude CLI scheduled task result detected (⏺) — buffering")
+                        taskBox.hasPendingResult = true
+                        taskBox.resultBuffer = cleaned
+                        taskBox.resultTimer = self.makeResultDebounceTimer(
+                            box: taskBox, continuation: continuation, logger: sessionLogger)
                     }
                 }
             },
             onEOF: {
-                // Flush remaining buffer
-                let remaining = lineBuffer.flush()
-                if !remaining.isEmpty {
-                    let event = CLIParser.parseLine(remaining, provider: "claude")
-                    if case .text(let text) = event {
-                        continuation?.yield(.text(text))
-                    }
-                }
+                sessionLogger.info("PTY process closed stdout (EOF)")
             }
         )
 
@@ -299,8 +351,8 @@ actor BackgroundCLISession {
         // Start process monitor
         startProcessMonitor(pty)
 
-        // Restore scheduled tasks
-        await restoreScheduledTasks()
+        // NOTE: Scheduled task restoration is handled by CronJobsStore after receiving
+        // .stateChanged(.running). It calls waitUntilReady() then scheduleAllClaudeJobs().
     }
 
     /// Monitor the process and restart if it dies unexpectedly.
@@ -351,6 +403,32 @@ actor BackgroundCLISession {
     private func terminateProcess() {
         ptyProcess?.terminate()
         ptyProcess = nil
+    }
+
+    /// Create a 2.5s debounce timer that fires `taskCompleted` with the buffered result.
+    /// Called each time a PTY chunk arrives while a result is being buffered.
+    /// The caller must cancel any previous timer before calling this.
+    private nonisolated func makeResultDebounceTimer(
+        box: TaskDetectionBox,
+        continuation: AsyncStream<SessionEvent>.Continuation?,
+        logger: Logger
+    ) -> DispatchSourceTimer {
+        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        timer.schedule(deadline: .now() + 2.5)
+        timer.setEventHandler {
+            let fullResult = box.resultBuffer
+            box.hasPendingResult = false
+            box.resultBuffer = ""
+            box.resultTimer = nil
+            let now = Date()
+            if box.lastTaskStartedAt == nil || now.timeIntervalSince(box.lastTaskStartedAt!) > 60 {
+                box.lastTaskStartedAt = now
+                logger.info("Claude CLI task result ready (2.5s debounce)")
+                continuation?.yield(.taskCompleted(fullResult))
+            }
+        }
+        timer.resume()
+        return timer
     }
 
     /// Find the Claude CLI binary path from AppState.
@@ -477,36 +555,22 @@ private struct PayloadDefinition: Codable {
     }
 }
 
-// MARK: - Task output state for PTY readabilityHandler
+// MARK: - Task Detection Box
 
-/// Tracks current task output accumulation in the PTY read callback.
-/// Uses `nonisolated(unsafe)` to allow mutation in the Sendable closure context,
-/// matching the pattern used by CLIBridge's LineBuffer and WatchdogTimer.
-private final class TaskOutputState: Sendable {
-    nonisolated(unsafe) var buffer = ""
-    nonisolated(unsafe) var currentTaskId: String?
-}
-
-// MARK: - Line buffer (reused from CLIBridge)
-
-/// Accumulates partial line data and splits on newlines.
-private final class LineBuffer: Sendable {
-    nonisolated(unsafe) var buffer = ""
-
-    func feed(_ text: String) -> [String] {
-        buffer += text
-        var lines: [String] = []
-        while let range = buffer.range(of: "\n") {
-            let line = String(buffer[buffer.startIndex..<range.lowerBound])
-            lines.append(line)
-            buffer = String(buffer[range.upperBound...])
-        }
-        return lines
-    }
-
-    func flush() -> String {
-        let result = buffer
-        buffer = ""
-        return result
-    }
+/// Mutable reference box for tracking task detection and result buffering across PTY onData callbacks.
+/// Uses a class (reference semantics) so it can be mutated from within a Sendable closure
+/// that captures it as a `let` constant, without requiring actor isolation.
+///
+/// Thread safety: all fields are accessed from the PTY dispatch queue (onData callbacks)
+/// and the debounce timer. The 60s deduplication on `lastTaskStartedAt` guards against
+/// double-fires if a race occurs between the timer and a concurrent onData call.
+private final class TaskDetectionBox: @unchecked Sendable {
+    /// Timestamp of the last taskCompleted event — prevents double-firing within 60s.
+    var lastTaskStartedAt: Date?
+    /// Accumulated PTY output while buffering a task result.
+    var resultBuffer: String = ""
+    /// Active debounce timer waiting to fire taskCompleted.
+    var resultTimer: DispatchSourceTimer?
+    /// Whether we're currently accumulating a task result buffer.
+    var hasPendingResult: Bool = false
 }

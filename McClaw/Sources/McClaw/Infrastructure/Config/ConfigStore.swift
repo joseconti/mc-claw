@@ -154,6 +154,10 @@ actor ConfigStore {
         // Git Integration
         state.gitSectionEnabled = config.gitSectionEnabled
 
+        // Adaptive Learning
+        state.adaptiveLearningEnabled = config.adaptiveLearningEnabled
+        state.showLearningIndicators = config.showLearningIndicators
+
         // Project Memory
         state.memoryProviderId = config.memoryProviderId
         state.projectMemoryAutoUpdate = config.projectMemoryAutoUpdate
@@ -218,6 +222,8 @@ actor ConfigStore {
             dashscopeAPIKeyStored: state.dashscopeAPIKeyStored,
             hiddenProviders: state.hiddenProviders,
             gitSectionEnabled: state.gitSectionEnabled,
+            adaptiveLearningEnabled: state.adaptiveLearningEnabled,
+            showLearningIndicators: state.showLearningIndicators,
             memoryProviderId: state.memoryProviderId,
             projectMemoryAutoUpdate: state.projectMemoryAutoUpdate,
             defaultModels: state.defaultModels.isEmpty ? nil : state.defaultModels,
@@ -304,6 +310,10 @@ struct McClawConfig: Codable, Sendable {
     // Git Integration
     var gitSectionEnabled: Bool
 
+    // Adaptive Learning
+    var adaptiveLearningEnabled: Bool
+    var showLearningIndicators: Bool
+
     // Project Memory
     var memoryProviderId: String?
     var projectMemoryAutoUpdate: Bool
@@ -359,6 +369,8 @@ struct McClawConfig: Codable, Sendable {
         dashscopeAPIKeyStored: Bool = false,
         hiddenProviders: Set<String> = ["dashscope"],
         gitSectionEnabled: Bool = false,
+        adaptiveLearningEnabled: Bool = true,
+        showLearningIndicators: Bool = true,
         memoryProviderId: String? = nil,
         projectMemoryAutoUpdate: Bool = true,
         defaultModels: [String: String]? = nil,
@@ -410,6 +422,8 @@ struct McClawConfig: Codable, Sendable {
         self.dashscopeAPIKeyStored = dashscopeAPIKeyStored
         self.hiddenProviders = hiddenProviders
         self.gitSectionEnabled = gitSectionEnabled
+        self.adaptiveLearningEnabled = adaptiveLearningEnabled
+        self.showLearningIndicators = showLearningIndicators
         self.memoryProviderId = memoryProviderId
         self.projectMemoryAutoUpdate = projectMemoryAutoUpdate
         self.defaultModels = defaultModels
@@ -464,6 +478,8 @@ struct McClawConfig: Codable, Sendable {
         dashscopeAPIKeyStored = try container.decodeIfPresent(Bool.self, forKey: .dashscopeAPIKeyStored) ?? false
         hiddenProviders = try container.decodeIfPresent(Set<String>.self, forKey: .hiddenProviders) ?? ["dashscope"]
         gitSectionEnabled = try container.decodeIfPresent(Bool.self, forKey: .gitSectionEnabled) ?? false
+        adaptiveLearningEnabled = try container.decodeIfPresent(Bool.self, forKey: .adaptiveLearningEnabled) ?? true
+        showLearningIndicators = try container.decodeIfPresent(Bool.self, forKey: .showLearningIndicators) ?? true
         memoryProviderId = try container.decodeIfPresent(String.self, forKey: .memoryProviderId)
         projectMemoryAutoUpdate = try container.decodeIfPresent(Bool.self, forKey: .projectMemoryAutoUpdate) ?? true
         defaultModels = try container.decodeIfPresent([String: String].self, forKey: .defaultModels)

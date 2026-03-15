@@ -220,15 +220,15 @@ struct CLIParserTests {
 
     // MARK: - Background Session Arguments
 
-    @Test("Background session args use PTY mode (no --print, no --input-format)")
+    @Test("Background session args use pure interactive PTY mode")
     func buildBackgroundSessionArgs() {
         let args = CLIParser.buildBackgroundSessionArguments(sessionId: "bg-123")
+        // PTY mode: pure interactive — no output format, no input format, no verbose
         #expect(!args.contains("--print"))
-        // PTY mode: no --input-format (text input via terminal, not JSON)
         #expect(!args.contains("--input-format"))
-        #expect(args.contains("stream-json"))
-        #expect(args.contains("--output-format"))
-        #expect(args.contains("--verbose"))
+        #expect(!args.contains("--output-format"))
+        #expect(!args.contains("--verbose"))
+        // Must include session ID
         #expect(args.contains("--session-id"))
         #expect(args.contains("bg-123"))
     }
@@ -243,19 +243,82 @@ struct CLIParserTests {
         #expect(!args.contains("--print"))
     }
 
-    @Test("Background session args with system prompt")
-    func buildBackgroundSessionArgsWithSystemPrompt() {
-        let args = CLIParser.buildBackgroundSessionArguments(
-            sessionId: "bg-789", systemPrompt: "You are a scheduler"
-        )
-        #expect(args.contains("--system-prompt"))
-        #expect(args.contains("You are a scheduler"))
-    }
-
-    @Test("Background session args without system prompt omit flag")
+    @Test("Background session args in PTY mode have no system prompt support")
     func buildBackgroundSessionArgsNoSystemPrompt() {
+        // PTY interactive mode doesn't support --system-prompt (not applicable)
         let args = CLIParser.buildBackgroundSessionArguments(sessionId: "bg-000")
         #expect(!args.contains("--system-prompt"))
+    }
+
+    // MARK: - Codex parseLine
+
+    @Test("Codex parse text line returns text")
+    func parseCodexText() {
+        let event = CLIParser.parseLine("Refactored the function.", provider: "codex")
+        #expect(event == .text("Refactored the function."))
+    }
+
+    @Test("Codex parse empty line returns passthrough")
+    func parseCodexEmpty() {
+        let event = CLIParser.parseLine("", provider: "codex")
+        #expect(event == .passthrough(""))
+    }
+
+    // MARK: - Codex buildArguments
+
+    @Test("Codex args default mode uses full-auto approval")
+    func buildArgsCodex() {
+        let args = CLIParser.buildArguments(for: "codex", message: "refactor this")
+        #expect(args.contains("--approval-mode"))
+        #expect(args.contains("full-auto"))
+        #expect(args.contains("--quiet"))
+        #expect(args.last?.contains("refactor this") == true)
+    }
+
+    @Test("Codex args with model")
+    func buildArgsCodexWithModel() {
+        let args = CLIParser.buildArguments(for: "codex", message: "test", model: "o4-mini")
+        #expect(args.contains("--model"))
+        #expect(args.contains("o4-mini"))
+    }
+
+    @Test("Codex args in plan mode uses suggest approval")
+    func buildArgsCodexPlanMode() {
+        let args = CLIParser.buildArguments(for: "codex", message: "analyze", planMode: true)
+        #expect(args.contains("--approval-mode"))
+        #expect(args.contains("suggest"))
+        #expect(!args.contains("full-auto"))
+    }
+
+    // MARK: - Amazon Q parseLine
+
+    @Test("Amazon Q parse text line returns text")
+    func parseAmazonQText() {
+        let event = CLIParser.parseLine("Here is the answer.", provider: "amazonq")
+        #expect(event == .text("Here is the answer."))
+    }
+
+    @Test("Amazon Q parse empty line returns passthrough")
+    func parseAmazonQEmpty() {
+        let event = CLIParser.parseLine("", provider: "amazonq")
+        #expect(event == .passthrough(""))
+    }
+
+    // MARK: - Amazon Q buildArguments
+
+    @Test("Amazon Q args use chat --no-interactive")
+    func buildArgsAmazonQ() {
+        let args = CLIParser.buildArguments(for: "amazonq", message: "hello")
+        #expect(args.first == "chat")
+        #expect(args.contains("--no-interactive"))
+        #expect(args.last?.contains("hello") == true)
+    }
+
+    @Test("Amazon Q plan mode injects system prompt")
+    func buildArgsAmazonQPlanMode() {
+        let args = CLIParser.buildArguments(for: "amazonq", message: "analyze", planMode: true)
+        let joined = args.joined(separator: " ")
+        #expect(joined.contains("PLAN MODE"))
     }
 
     // MARK: - Stdin JSON encoding

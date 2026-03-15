@@ -32,6 +32,23 @@ final class PTYProcess: Sendable {
     nonisolated(unsafe) var childPID: pid_t = -1
     nonisolated(unsafe) var isRunning: Bool = false
     nonisolated(unsafe) private var readSource: DispatchSourceRead?
+    /// Fired when the process output has stabilized (silence = ready for input).
+    nonisolated(unsafe) private var readyContinuation: CheckedContinuation<Void, Never>?
+    nonisolated(unsafe) private var hasSignaledReady = false
+    /// When the process was launched — used to enforce minimum startup time.
+    nonisolated(unsafe) private var launchTime: DispatchTime = .now()
+    /// Timer that fires when output has been silent long enough.
+    nonisolated(unsafe) private var silenceTimer: DispatchSourceTimer?
+    /// How long the output must be silent before we consider the process ready.
+    /// Claude CLI renders its UI in bursts; 2 seconds of silence after the
+    /// minimum startup time means it's done.
+    private static let silenceThresholdSeconds: Double = 2.0
+    /// Minimum seconds after launch (or last startup clock reset) before
+    /// silence detection can trigger. Claude CLI's Node.js process needs time
+    /// to boot — early silences during loading are false positives.
+    /// After trust prompt confirmation, the real boot takes ~20-40s
+    /// (auth check, migration notices, VS Code integration, etc.).
+    private static let minimumStartupSeconds: Double = 20.0
 
     // MARK: - Launch
 
@@ -89,16 +106,31 @@ final class PTYProcess: Sendable {
         self.masterFD = master
         self.childPID = pid
         self.isRunning = true
+        self.launchTime = .now()
 
         logger.info("PTY process launched: PID=\(pid), masterFD=\(master)")
     }
 
+    // MARK: - Startup Clock
+
+    /// Reset the startup clock. Call this after auto-confirming a blocking prompt
+    /// (like the trust dialog) so the minimum startup timer restarts from now.
+    /// This prevents premature readiness detection while Claude is still booting
+    /// after the prompt was dismissed.
+    func resetStartupClock() {
+        launchTime = .now()
+        hasSignaledReady = false
+        silenceTimer?.cancel()
+        silenceTimer = nil
+        logger.info("PTY startup clock reset — minimum startup timer restarted")
+    }
+
     // MARK: - Terminal Configuration
 
-    /// Disable terminal echo and canonical mode.
+    /// Configure terminal flags for background operation.
     ///
-    /// Without this, every command written to the PTY would be echoed back
-    /// on the read side, mixing with the child's actual output.
+    /// Disables echo, canonical mode, signal processing, and flow control
+    /// to prevent interference with programmatic I/O.
     func configureTerminal() {
         guard masterFD >= 0 else { return }
 
@@ -112,13 +144,17 @@ final class PTYProcess: Sendable {
         termios.c_lflag &= ~UInt(ECHO)
         // Disable canonical mode (ICANON) for raw byte-by-byte delivery
         termios.c_lflag &= ~UInt(ICANON)
+        // Disable signal processing (ISIG) so \x03 doesn't generate SIGINT
+        termios.c_lflag &= ~UInt(ISIG)
+        // Disable software flow control (XON/XOFF)
+        termios.c_iflag &= ~UInt(IXON)
 
         guard tcsetattr(masterFD, TCSANOW, &termios) == 0 else {
             logger.warning("tcsetattr failed: \(Darwin.errno)")
             return
         }
 
-        logger.info("PTY terminal configured: echo=off, canonical=off")
+        logger.info("PTY terminal configured: echo=off, canonical=off, isig=off")
     }
 
     // MARK: - Reading
@@ -134,20 +170,29 @@ final class PTYProcess: Sendable {
         let fd = masterFD
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: ptyQueue)
 
-        source.setEventHandler {
+        source.setEventHandler { [self] in
             var buffer = [UInt8](repeating: 0, count: 8192)
             let bytesRead = read(fd, &buffer, buffer.count)
 
             if bytesRead > 0 {
                 let data = Data(buffer.prefix(bytesRead))
                 onData(data)
+
+                // Silence-based readiness: each time output arrives, reset the silence timer.
+                // When the CLI stops producing output for N seconds, it means it's done
+                // initializing and is waiting for user input → ready.
+                if !self.hasSignaledReady {
+                    self.resetSilenceTimer()
+                }
             } else if bytesRead == 0 {
                 // EOF
+                self.signalReadyIfNeeded()
                 onEOF()
             } else {
                 // Error — likely fd closed or process died
                 let err = Darwin.errno
                 if err != EAGAIN && err != EINTR {
+                    self.signalReadyIfNeeded()
                     onEOF()
                 }
             }
@@ -160,6 +205,78 @@ final class PTYProcess: Sendable {
 
         source.resume()
         self.readSource = source
+    }
+
+    /// Wait until the process output has been silent for `silenceThresholdSeconds`,
+    /// indicating the CLI has finished initializing and is ready for input.
+    /// Times out after the specified duration to avoid blocking forever.
+    func waitUntilReady(timeout: TimeInterval = 30) async {
+        if hasSignaledReady { return }
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            if self.hasSignaledReady {
+                continuation.resume()
+                return
+            }
+            self.readyContinuation = continuation
+
+            // Timeout fallback — if silence detection doesn't fire, proceed anyway
+            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { [self] in
+                self.signalReadyIfNeeded()
+            }
+        }
+    }
+
+    /// Reset the silence timer. Called each time output arrives.
+    /// When the timer fires (no output for N seconds AND minimum startup elapsed),
+    /// the process is considered ready.
+    private func resetSilenceTimer() {
+        silenceTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: ptyQueue)
+        timer.schedule(deadline: .now() + Self.silenceThresholdSeconds)
+        timer.setEventHandler { [self] in
+            // Check if minimum startup time has elapsed
+            let elapsed = DispatchTime.now().uptimeNanoseconds - self.launchTime.uptimeNanoseconds
+            let elapsedSeconds = Double(elapsed) / 1_000_000_000
+
+            if elapsedSeconds >= Self.minimumStartupSeconds {
+                self.logger.info("PTY output silent for \(Self.silenceThresholdSeconds)s after \(String(format: "%.1f", elapsedSeconds))s uptime — process ready")
+                self.signalReadyIfNeeded()
+            } else {
+                // Too early — Claude is still booting. Don't signal yet.
+                // Schedule a deferred check at the minimum startup time.
+                let remainingSeconds = Self.minimumStartupSeconds - elapsedSeconds + Self.silenceThresholdSeconds
+                self.logger.debug("PTY silence too early (\(String(format: "%.1f", elapsedSeconds))s) — deferring check by \(String(format: "%.1f", remainingSeconds))s")
+                self.scheduleDeferredReadyCheck(afterSeconds: remainingSeconds)
+            }
+        }
+        timer.resume()
+        silenceTimer = timer
+    }
+
+    /// Schedule a deferred ready check. Used when silence was detected too early
+    /// (before minimum startup time). If no new output arrives by then, signal ready.
+    private func scheduleDeferredReadyCheck(afterSeconds: Double) {
+        silenceTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: ptyQueue)
+        timer.schedule(deadline: .now() + afterSeconds)
+        timer.setEventHandler { [self] in
+            self.logger.info("Deferred ready check fired — signaling ready")
+            self.signalReadyIfNeeded()
+        }
+        timer.resume()
+        silenceTimer = timer
+    }
+
+    /// Signal readiness if not already done (prevents double-resume).
+    private func signalReadyIfNeeded() {
+        if !hasSignaledReady {
+            hasSignaledReady = true
+            silenceTimer?.cancel()
+            silenceTimer = nil
+            readyContinuation?.resume()
+            readyContinuation = nil
+        }
     }
 
     // MARK: - Writing
@@ -201,7 +318,9 @@ final class PTYProcess: Sendable {
 
         logger.info("Terminating PTY process PID=\(childPID)")
 
-        // Cancel the read source first
+        // Cancel timers and read source
+        silenceTimer?.cancel()
+        silenceTimer = nil
         readSource?.cancel()
         readSource = nil
 
