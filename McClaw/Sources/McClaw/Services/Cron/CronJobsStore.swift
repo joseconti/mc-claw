@@ -33,8 +33,11 @@ final class CronJobsStore {
     private var refreshTask: Task<Void, Never>?
     private var runsTask: Task<Void, Never>?
     private var sessionEventTask: Task<Void, Never>?
+    private var renewalTask: Task<Void, Never>?
 
     private let pollInterval: TimeInterval = 30
+    /// Renew /loop tasks every 2 days (they expire after 3 days).
+    private static let loopRenewalInterval: TimeInterval = 2 * 24 * 3600
 
     private static let localJobsURL: URL = {
         let dir = FileManager.default.homeDirectoryForCurrentUser
@@ -93,6 +96,8 @@ final class CronJobsStore {
         runsTask = nil
         sessionEventTask?.cancel()
         sessionEventTask = nil
+        renewalTask?.cancel()
+        renewalTask = nil
         LocalScheduler.shared.stop()
         Task {
             await BackgroundCLISession.shared.stop()
@@ -117,6 +122,50 @@ final class CronJobsStore {
                 guard let self, !Task.isCancelled else { break }
                 await self.handleSessionEvent(event)
             }
+        }
+
+        // Start renewal timer to prevent /loop task expiry (3-day limit)
+        startLoopRenewalTimer()
+    }
+
+    /// Periodically re-send /loop commands to prevent 3-day expiry.
+    private func startLoopRenewalTimer() {
+        renewalTask?.cancel()
+        renewalTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(Self.loopRenewalInterval * 1_000_000_000))
+                guard let self, !Task.isCancelled else { break }
+                await self.renewAllClaudeTasks()
+            }
+        }
+    }
+
+    /// Re-send /loop for all active Claude jobs to prevent expiry.
+    private func renewAllClaudeTasks() async {
+        let claudeJobs = jobs.filter { job in
+            let agent = job.agentId ?? ""
+            return job.enabled && (agent.isEmpty || agent == "claude")
+        }
+        guard !claudeJobs.isEmpty else { return }
+
+        logger.info("Renewing \(claudeJobs.count) Claude /loop tasks (3-day expiry prevention)")
+
+        for job in claudeJobs {
+            guard let interval = scheduleToLoopInterval(job.schedule) else { continue }
+            let message: String
+            switch job.payload {
+            case .agentTurn(let msg, _, _, _, _, _, _, _): message = msg
+            case .systemEvent(let text): message = text
+            }
+            guard !message.isEmpty else { continue }
+
+            let sent = await BackgroundCLISession.shared.scheduleTask(
+                interval: interval, message: message
+            )
+            if sent {
+                logger.info("Renewed task '\(job.displayName)'")
+            }
+            try? await Task.sleep(nanoseconds: 500_000_000)
         }
     }
 

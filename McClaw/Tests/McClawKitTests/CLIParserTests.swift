@@ -220,11 +220,12 @@ struct CLIParserTests {
 
     // MARK: - Background Session Arguments
 
-    @Test("Background session args omit --print and include --input-format")
+    @Test("Background session args use PTY mode (no --print, no --input-format)")
     func buildBackgroundSessionArgs() {
         let args = CLIParser.buildBackgroundSessionArguments(sessionId: "bg-123")
         #expect(!args.contains("--print"))
-        #expect(args.contains("--input-format"))
+        // PTY mode: no --input-format (text input via terminal, not JSON)
+        #expect(!args.contains("--input-format"))
         #expect(args.contains("stream-json"))
         #expect(args.contains("--output-format"))
         #expect(args.contains("--verbose"))

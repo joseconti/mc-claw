@@ -5,8 +5,9 @@ import McClawKit
 /// Maintains a persistent Claude CLI process for background scheduling.
 ///
 /// Unlike `CLIBridge` (which uses `--print` and exits after one response),
-/// `BackgroundCLISession` keeps the process alive by using `--input-format stream-json`
-/// and writing messages to stdin — the same approach VS Code uses.
+/// `BackgroundCLISession` keeps the process alive using a PTY (pseudo-terminal)
+/// so the CLI activates its interactive mode. This enables slash commands like
+/// `/loop` which are only processed in interactive mode with a real TTY.
 ///
 /// Scheduled tasks are created by sending `/loop` commands to the live process.
 /// If the process dies, it automatically restarts and re-creates all tasks from disk.
@@ -34,8 +35,7 @@ actor BackgroundCLISession {
 
     private let logger = Logger(label: "ai.mcclaw.background-session")
 
-    private var process: Process?
-    private var stdinHandle: FileHandle?
+    private var ptyProcess: PTYProcess?
     private var state: SessionState = .idle
     private var sessionId: String = UUID().uuidString
     private var restartCount = 0
@@ -60,7 +60,7 @@ actor BackgroundCLISession {
     var isRunning: Bool { state == .running }
 
     /// PID of the current process (for diagnostics).
-    var processId: Int32? { process?.processIdentifier }
+    var processId: Int32? { ptyProcess?.childPID }
 
     /// Start the background session. Returns a stream of events.
     /// Safe to call multiple times — only starts if not already running.
@@ -93,38 +93,29 @@ actor BackgroundCLISession {
         logger.info("BackgroundCLISession stopped")
     }
 
-    /// Send a user message to the running Claude process.
+    /// Send a user message to the running Claude process via PTY.
+    /// The text is sent as plain text with a newline, as if typed on a keyboard.
     /// Returns false if the process is not running.
     @discardableResult
     func sendMessage(_ text: String) -> Bool {
-        guard state == .running, let handle = stdinHandle else {
+        guard state == .running, let pty = ptyProcess, pty.isRunning else {
             logger.warning("Cannot send message — session not running")
             return false
         }
 
-        let encoded = CLIParser.encodeStdinMessage(text)
-        guard !encoded.isEmpty, let data = encoded.data(using: .utf8) else {
-            logger.error("Failed to encode stdin message")
-            return false
+        let success = pty.write(text + "\n")
+        if success {
+            logger.info("Sent to PTY: \(text.prefix(200))")
+        } else {
+            logger.error("Failed to write to PTY")
         }
-        logger.info("Encoded JSON: \(encoded.trimmingCharacters(in: .whitespacesAndNewlines).prefix(300))")
-
-        do {
-            try handle.write(contentsOf: data)
-            logger.info("Sent to stdin: \(text.prefix(200))")
-            return true
-        } catch {
-            logger.error("Failed to write to stdin: \(error.localizedDescription)")
-            return false
-        }
+        return success
     }
 
-    /// Send an interrupt control request to the running process.
+    /// Send an interrupt (Ctrl+C) to the running process.
     func interrupt() {
-        guard state == .running, let handle = stdinHandle else { return }
-        let encoded = CLIParser.encodeControlRequest(subtype: "interrupt")
-        guard let data = encoded.data(using: .utf8) else { return }
-        try? handle.write(contentsOf: data)
+        guard let pty = ptyProcess, pty.isRunning else { return }
+        pty.write("\u{03}") // ETX = Ctrl+C
     }
 
     /// Schedule a task by sending a `/loop` command to the live Claude process.
@@ -192,7 +183,7 @@ actor BackgroundCLISession {
 
     // MARK: - Process Lifecycle
 
-    /// Launch the Claude CLI process in persistent mode.
+    /// Launch the Claude CLI process inside a PTY (pseudo-terminal).
     private func launchProcess() async {
         state = .starting
         eventContinuation?.yield(.stateChanged(.starting))
@@ -207,17 +198,6 @@ actor BackgroundCLISession {
 
         let args = CLIParser.buildBackgroundSessionArguments(sessionId: sessionId)
 
-        let proc = Process()
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        let stdinPipe = Pipe()
-
-        proc.executableURL = URL(fileURLWithPath: binaryPath)
-        proc.arguments = args
-        proc.standardOutput = stdoutPipe
-        proc.standardError = stderrPipe
-        proc.standardInput = stdinPipe
-
         // Sanitize environment
         let binaryDir = URL(fileURLWithPath: binaryPath).deletingLastPathComponent().path
         var env = HostEnvSanitizer.sanitize(isShellWrapper: false)
@@ -225,18 +205,81 @@ actor BackgroundCLISession {
         if !currentPath.contains(binaryDir) {
             env["PATH"] = "\(binaryDir):\(currentPath)"
         }
-        proc.environment = env
 
-        // Set up stdout reading
+        // Create and launch PTY process
+        let pty = PTYProcess()
+
+        do {
+            try pty.launch(executablePath: binaryPath, arguments: args, environment: env)
+        } catch {
+            state = .idle
+            eventContinuation?.yield(.error("Failed to launch Claude: \(error.localizedDescription)"))
+            eventContinuation?.yield(.stateChanged(.idle))
+            logger.error("Failed to launch Claude background session: \(error)")
+            return
+        }
+
+        // Disable echo so input doesn't pollute stdout
+        pty.configureTerminal()
+
+        // Set up output reading with ANSI stripping and JSON parsing
         let lineBuffer = LineBuffer()
         let taskOutputState = TaskOutputState()
         let continuation = eventContinuation
         let sessionLogger = logger
 
-        stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
-            let data = handle.availableData
-            if data.isEmpty {
-                // EOF — process ended
+        pty.startReading(
+            onData: { data in
+                guard let rawText = String(data: data, encoding: .utf8) else { return }
+
+                // Strip ANSI escape sequences from PTY output
+                let text = CLIParser.stripANSI(rawText)
+
+                let lines = lineBuffer.feed(text)
+                for line in lines {
+                    let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        sessionLogger.info("stdout: \(String(trimmed.prefix(500)))")
+                    }
+
+                    let event = CLIParser.parseLine(line, provider: "claude")
+                    switch event {
+                    case .text(let text):
+                        taskOutputState.buffer += text
+                        continuation?.yield(.text(text))
+                    case .done:
+                        // If we were accumulating a task output, emit it
+                        if let taskId = taskOutputState.currentTaskId, !taskOutputState.buffer.isEmpty {
+                            continuation?.yield(.taskFired(taskId: taskId, output: taskOutputState.buffer))
+                            taskOutputState.buffer = ""
+                            taskOutputState.currentTaskId = nil
+                        } else if !taskOutputState.buffer.isEmpty {
+                            // No explicit taskId — use "auto" for unsolicited /loop output
+                            continuation?.yield(.taskFired(taskId: "auto-\(UUID().uuidString.prefix(8))", output: taskOutputState.buffer))
+                            taskOutputState.buffer = ""
+                        }
+                    case .passthrough:
+                        // Check if this is a cron/loop related event
+                        if let data = line.data(using: .utf8),
+                           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            let type = json["type"] as? String ?? "unknown"
+                            sessionLogger.info("JSON event type=\(type)")
+
+                            // Detect cron task start (from /loop scheduler)
+                            if type == "cron_task_start" || type == "tool_use",
+                               let taskId = json["task_id"] as? String ?? json["id"] as? String {
+                                taskOutputState.currentTaskId = taskId
+                                taskOutputState.buffer = ""
+                                sessionLogger.info("Task started: \(taskId)")
+                            }
+                        }
+                    default:
+                        break
+                    }
+                }
+            },
+            onEOF: {
+                // Flush remaining buffer
                 let remaining = lineBuffer.flush()
                 if !remaining.isEmpty {
                     let event = CLIParser.parseLine(remaining, provider: "claude")
@@ -244,95 +287,28 @@ actor BackgroundCLISession {
                         continuation?.yield(.text(text))
                     }
                 }
-                stdoutPipe.fileHandleForReading.readabilityHandler = nil
-                return
             }
+        )
 
-            guard let text = String(data: data, encoding: .utf8) else { return }
-            let lines = lineBuffer.feed(text)
-            for line in lines {
-                // Log all stdout lines for debugging
-                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    sessionLogger.info("stdout: \(String(trimmed.prefix(500)))")
-                }
+        self.ptyProcess = pty
+        state = .running
+        restartCount = 0
+        eventContinuation?.yield(.stateChanged(.running))
+        logger.info("BackgroundCLISession started with PTY, PID=\(pty.childPID), sessionId=\(sessionId)")
 
-                let event = CLIParser.parseLine(line, provider: "claude")
-                switch event {
-                case .text(let text):
-                    taskOutputState.buffer += text
-                    continuation?.yield(.text(text))
-                case .done:
-                    // If we were accumulating a task output, emit it
-                    if let taskId = taskOutputState.currentTaskId, !taskOutputState.buffer.isEmpty {
-                        continuation?.yield(.taskFired(taskId: taskId, output: taskOutputState.buffer))
-                        taskOutputState.buffer = ""
-                        taskOutputState.currentTaskId = nil
-                    }
-                case .passthrough:
-                    // Check if this is a cron/loop related event
-                    if let data = line.data(using: .utf8),
-                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        let type = json["type"] as? String ?? "unknown"
-                        sessionLogger.info("JSON event type=\(type)")
+        // Start process monitor
+        startProcessMonitor(pty)
 
-                        // Detect cron task start (from /loop scheduler)
-                        if type == "cron_task_start" || type == "tool_use",
-                           let taskId = json["task_id"] as? String ?? json["id"] as? String {
-                            taskOutputState.currentTaskId = taskId
-                            taskOutputState.buffer = ""
-                            sessionLogger.info("Task started: \(taskId)")
-                        }
-                    }
-                default:
-                    break
-                }
-            }
-        }
-
-        // Collect stderr
-        stderrPipe.fileHandleForReading.readabilityHandler = { handle in
-            let data = handle.availableData
-            if data.isEmpty {
-                stderrPipe.fileHandleForReading.readabilityHandler = nil
-                return
-            }
-            if let text = String(data: data, encoding: .utf8), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                sessionLogger.warning("Claude stderr: \(text.prefix(500))")
-            }
-        }
-
-        do {
-            try proc.run()
-            self.process = proc
-            self.stdinHandle = stdinPipe.fileHandleForWriting
-            state = .running
-            restartCount = 0
-            eventContinuation?.yield(.stateChanged(.running))
-            logger.info("BackgroundCLISession started, PID=\(proc.processIdentifier), sessionId=\(sessionId)")
-
-            // Start process monitor
-            startProcessMonitor(proc)
-
-            // Restore scheduled tasks
-            await restoreScheduledTasks()
-
-        } catch {
-            state = .idle
-            eventContinuation?.yield(.error("Failed to launch Claude: \(error.localizedDescription)"))
-            eventContinuation?.yield(.stateChanged(.idle))
-            logger.error("Failed to launch Claude background session: \(error)")
-        }
+        // Restore scheduled tasks
+        await restoreScheduledTasks()
     }
 
     /// Monitor the process and restart if it dies unexpectedly.
-    private func startProcessMonitor(_ proc: Process) {
+    private func startProcessMonitor(_ pty: PTYProcess) {
         monitorTask?.cancel()
         monitorTask = Task.detached { [weak self] in
-            proc.waitUntilExit()
+            let status = pty.waitForExit()
             guard let self, !Task.isCancelled else { return }
-
-            let status = proc.terminationStatus
             await self.handleProcessExit(status: status)
         }
     }
@@ -342,8 +318,7 @@ actor BackgroundCLISession {
         eventContinuation?.yield(.processExited(status: status))
         logger.warning("Claude background process exited with status \(status)")
 
-        self.process = nil
-        self.stdinHandle = nil
+        self.ptyProcess = nil
 
         // Don't restart if we explicitly stopped
         guard state != .stopped else { return }
@@ -374,10 +349,8 @@ actor BackgroundCLISession {
 
     /// Terminate the current process.
     private func terminateProcess() {
-        stdinHandle?.closeFile()
-        stdinHandle = nil
-        process?.terminate()
-        process = nil
+        ptyProcess?.terminate()
+        ptyProcess = nil
     }
 
     /// Find the Claude CLI binary path from AppState.
@@ -504,9 +477,9 @@ private struct PayloadDefinition: Codable {
     }
 }
 
-// MARK: - Task output state for readabilityHandler
+// MARK: - Task output state for PTY readabilityHandler
 
-/// Tracks current task output accumulation in the readabilityHandler closure.
+/// Tracks current task output accumulation in the PTY read callback.
 /// Uses `nonisolated(unsafe)` to allow mutation in the Sendable closure context,
 /// matching the pattern used by CLIBridge's LineBuffer and WatchdogTimer.
 private final class TaskOutputState: Sendable {

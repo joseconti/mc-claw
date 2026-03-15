@@ -263,15 +263,18 @@ public enum CLIParser {
     // MARK: - Background Session Arguments (Claude only)
 
     /// Build CLI arguments for a persistent Claude background session.
-    /// Unlike `buildArguments`, this does NOT use `--print` (so the process stays alive)
-    /// and adds `--input-format stream-json` so messages can be sent via stdin.
-    /// This mirrors the VS Code extension's approach to Claude CLI communication.
+    /// Unlike `buildArguments`, this does NOT use `--print` (so the process stays alive).
+    /// The session is launched via PTY (pseudo-terminal) so the CLI activates its
+    /// interactive mode, enabling slash commands like `/loop`.
+    /// Input is sent as plain text (not JSON), so `--input-format stream-json` is NOT used.
     public static func buildBackgroundSessionArguments(
         sessionId: String,
         model: String? = nil,
         systemPrompt: String? = nil
     ) -> [String] {
-        var args = ["--output-format", "stream-json", "--verbose", "--input-format", "stream-json"]
+        // PTY mode: no --input-format stream-json (text input via terminal)
+        // Keep --output-format stream-json for parseable output
+        var args = ["--output-format", "stream-json", "--verbose"]
         if let model { args += ["--model", model] }
         if let systemPrompt, !systemPrompt.isEmpty {
             args += ["--system-prompt", systemPrompt]
@@ -312,5 +315,21 @@ public enum CLIParser {
     private static func systemPromptPrefix(_ systemPrompt: String?, provider: String) -> String {
         guard let prompt = systemPrompt, !prompt.isEmpty else { return "" }
         return "[System Instructions]\n\(prompt)\n[End System Instructions]\n\n"
+    }
+
+    // MARK: - PTY Output Filtering
+
+    /// Strip ANSI escape sequences from text.
+    /// PTY output may contain terminal control codes (colors, cursor movement, etc.)
+    /// that would corrupt JSON parsing. This removes them.
+    public static func stripANSI(_ text: String) -> String {
+        // CSI sequences: ESC [ ... final_byte (e.g. colors, cursor)
+        // OSC sequences: ESC ] ... BEL (e.g. terminal title)
+        // Charset sequences: ESC ( X (e.g. charset selection)
+        text.replacingOccurrences(
+            of: "\\x1B\\[[0-9;]*[A-Za-z]|\\x1B\\].*?\\x07|\\x1B\\([A-Z]",
+            with: "",
+            options: .regularExpression
+        )
     }
 }
