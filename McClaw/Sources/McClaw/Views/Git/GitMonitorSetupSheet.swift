@@ -1,5 +1,5 @@
 import SwiftUI
-import McClawProtocol
+import McClawKit
 
 /// Sheet for setting up a Git repository monitor from pre-defined templates.
 /// Creates a CronJob linked to the repo's connector.

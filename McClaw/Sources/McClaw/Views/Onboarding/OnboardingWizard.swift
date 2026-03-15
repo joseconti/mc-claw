@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import McClawDiscovery
 
 /// First-run wizard that detects CLIs and configures the app.
 struct OnboardingWizard: View {
@@ -28,8 +27,6 @@ struct OnboardingWizard: View {
                     cliSelectionPage
                 case .permissions:
                     permissionsPage
-                case .gateway:
-                    gatewayPage
                 case .done:
                     donePage
                 }
@@ -272,56 +269,6 @@ struct OnboardingWizard: View {
         .onAppear { permissionManager.refreshAll() }
     }
 
-    @State private var gatewayReachable: Bool?
-    @State private var gatewayChecking = false
-
-    @ViewBuilder
-    private var gatewayPage: some View {
-        VStack(spacing: 16) {
-            Text("Gateway Connection")
-                .font(.title2.weight(.semibold))
-
-            Text("McClaw can connect to a Gateway for channels, plugins, and automation. This is optional.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 400)
-
-            GroupBox {
-                VStack(spacing: 12) {
-                    HStack {
-                        Image(systemName: "server.rack")
-                            .font(.title3)
-                            .foregroundStyle(.blue)
-                        Text("Local Gateway (port \(appState.gatewayPort))")
-                            .font(.body.weight(.medium))
-                        Spacer()
-                        if gatewayChecking {
-                            ProgressView().controlSize(.small)
-                        } else if let reachable = gatewayReachable {
-                            Image(systemName: reachable ? "checkmark.circle.fill" : "xmark.circle")
-                                .foregroundStyle(reachable ? .green : .secondary)
-                        }
-                    }
-
-                    Button("Check Connection") {
-                        checkGateway()
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(gatewayChecking)
-
-                    if gatewayReachable == false {
-                        Text("No Gateway detected. You can set one up later or use McClaw without it.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: 380)
-        }
-        .padding()
-        .onAppear { checkGateway() }
-    }
 
     @ViewBuilder
     private var donePage: some View {
@@ -352,29 +299,14 @@ struct OnboardingWizard: View {
         }
     }
 
-    private func checkGateway() {
-        gatewayChecking = true
-        Task {
-            let discovery = GatewayDiscovery()
-            gatewayReachable = await discovery.discoverLocal() != nil
-            gatewayChecking = false
-        }
-    }
-
     private func completeOnboarding() {
         appState.hasCompletedOnboarding = true
         appState.showOnboarding = false
-        appState.connectionMode = .local
         dismiss()
 
         Task {
             // Save config to persist onboarding completion
             await ConfigStore.shared.saveFromState()
-            // Start Gateway connection only if reachable
-            let discovery = GatewayDiscovery()
-            if await discovery.discoverLocal() != nil {
-                await GatewayConnectionService.shared.connect()
-            }
         }
     }
 }
@@ -448,7 +380,6 @@ enum OnboardingPage: Int, CaseIterable {
     case cliDetection
     case cliSelection
     case permissions
-    case gateway
     case done
 
     var next: OnboardingPage {

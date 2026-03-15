@@ -1,7 +1,6 @@
 import Foundation
 import Logging
 import McClawKit
-import McClawProtocol
 
 /// Manages cron jobs with hybrid backend:
 /// - Claude CLI: delegates to BackgroundCLISession (persistent process with /loop)
@@ -70,13 +69,6 @@ final class CronJobsStore {
 
     func start() {
         guard pollTask == nil else { return }
-
-        // Subscribe to cron events from Gateway
-        Task {
-            await GatewayConnectionService.shared.setOnCronEvent { [weak self] cronEvent in
-                self?.handleCronEvent(cronEvent)
-            }
-        }
 
         // Start LocalScheduler for non-Claude providers
         LocalScheduler.shared.start()
@@ -484,19 +476,8 @@ final class CronJobsStore {
         isLoadingRuns = true
         defer { isLoadingRuns = false }
 
-        if isLocalJob(jobId) {
-            // Local jobs: load from local run log file
-            runEntries = loadLocalRunLogs(jobId: jobId, limit: limit)
-            return
-        }
-
-        // Gateway jobs: fetch from WebSocket
-        do {
-            runEntries = try await GatewayConnectionService.shared.cronRuns(jobId: jobId, limit: limit)
-        } catch {
-            logger.error("cron.runs failed: \(error.localizedDescription)")
-            runEntries = []
-        }
+        // All jobs are local — load from local run log file
+        runEntries = loadLocalRunLogs(jobId: jobId, limit: limit)
     }
 
     // MARK: - CRUD
@@ -504,20 +485,10 @@ final class CronJobsStore {
     func runJob(id: String, force: Bool = true) async {
         guard let job = jobs.first(where: { $0.id == id }) else { return }
 
-        // Local jobs: execute via LocalScheduler (CLIBridge one-shot).
-        if isLocalJob(id) {
-            logger.info("Manual run of job '\(job.displayName)'")
-            Task {
-                await LocalScheduler.shared.manualRun(job: job)
-            }
-            return
-        }
-
-        // Gateway fallback
-        do {
-            try await GatewayConnectionService.shared.cronRun(jobId: id, force: force)
-        } catch {
-            lastError = error.localizedDescription
+        // All jobs are local — execute via LocalScheduler (CLIBridge one-shot).
+        logger.info("Manual run of job '\(job.displayName)'")
+        Task {
+            await LocalScheduler.shared.manualRun(job: job)
         }
     }
 
@@ -879,7 +850,7 @@ final class CronJobsStore {
         )
     }
 
-    // MARK: - Gateway Events
+    // MARK: - Cron Events
 
     private func handleCronEvent(_ evt: CronEvent) {
         scheduleRefresh(delayMs: 250)

@@ -12,10 +12,16 @@ struct DevicesSettingsTab: View {
     @State private var deviceToRevoke: PairedDevice?
     @State private var connectedDeviceIds: Set<String> = []
     @State private var serverRunning = false
+    @State private var relayConnected = false
+    @State private var relayMode: RelayConfig.RelayMode = .disabled
+    @State private var relayURL: String = ""
+    @State private var relayToken: String = ""
+    @State private var relayLicenseKey: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             serverStatusSection
+            remoteAccessSection
             pairingSection
             if pairingService.pendingRequest != nil { pendingRequestSection }
             pairedDevicesSection
@@ -24,6 +30,11 @@ struct DevicesSettingsTab: View {
             }
         }
         .task { await startServer() }
+        .onReceive(NotificationCenter.default.publisher(for: .relayStateChanged)) { notification in
+            if let state = notification.object as? RelayState {
+                relayConnected = state.isConnected
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .deviceConnectionChanged)) { notification in
             if let event = notification.object as? DeviceConnectionEvent {
                 if event.connected {
@@ -78,6 +89,93 @@ struct DevicesSettingsTab: View {
                 Text(String(localized: "devices_connected_count \(count) \(pairingService.devices.count)", bundle: .module))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(.ultraThinMaterial))
+    }
+
+    // MARK: - Remote Access
+
+    private var remoteAccessSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(
+                String(localized: "devices_remote_access", bundle: .module),
+                systemImage: "globe"
+            )
+            .font(.headline)
+
+            Text(String(localized: "devices_remote_access_desc", bundle: .module))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Picker(String(localized: "devices_relay_mode", bundle: .module), selection: $relayMode) {
+                Text(String(localized: "devices_relay_disabled", bundle: .module)).tag(RelayConfig.RelayMode.disabled)
+                Text(String(localized: "devices_relay_self_hosted", bundle: .module)).tag(RelayConfig.RelayMode.selfHosted)
+                Text(String(localized: "devices_relay_cloud", bundle: .module)).tag(RelayConfig.RelayMode.mcclawCloud)
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: relayMode) {
+                handleRelayModeChange()
+            }
+
+            if relayMode == .selfHosted {
+                TextField(
+                    String(localized: "devices_relay_url_placeholder", bundle: .module),
+                    text: $relayURL
+                )
+                .textFieldStyle(.roundedBorder)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "devices_relay_self_hosted_info", bundle: .module))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Link(
+                        "github.com/joseconti/mc-claw-relay-server",
+                        destination: URL(string: "https://github.com/joseconti/mc-claw-relay-server")!
+                    )
+                    .font(.caption)
+                }
+            }
+
+            if relayMode == .mcclawCloud {
+                HStack(spacing: 8) {
+                    Image(systemName: "cloud.fill")
+                        .foregroundStyle(.blue)
+                    Text(String(localized: "devices_relay_cloud_url", bundle: .module))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(String(localized: "devices_relay_cloud_cost", bundle: .module))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if relayMode != .disabled {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(relayConnected ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                    Text(relayConnected
+                         ? String(localized: "devices_relay_connected", bundle: .module)
+                         : String(localized: "devices_relay_disconnected", bundle: .module))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if !relayConnected {
+                        Button(String(localized: "devices_relay_connect", bundle: .module)) {
+                            Task { await connectRelay() }
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Button(String(localized: "devices_relay_disconnect", bundle: .module)) {
+                            Task { await disconnectRelay() }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
             }
         }
         .padding()
@@ -332,5 +430,44 @@ struct DevicesSettingsTab: View {
     private func revoke(deviceId: String) {
         pairingService.revokeDevice(deviceId: deviceId)
         if selectedDeviceId == deviceId { selectedDeviceId = nil }
+    }
+
+    // MARK: - Relay Actions
+
+    private func handleRelayModeChange() {
+        if relayMode == .disabled {
+            Task { await disconnectRelay() }
+        } else if relayMode == .mcclawCloud {
+            relayURL = "wss://relay.joseconti.com"
+        }
+    }
+
+    private func connectRelay() async {
+        let url = relayMode == .mcclawCloud ? "wss://relay.joseconti.com" : relayURL
+        guard !url.isEmpty else {
+            errorMessage = "Relay URL is required"
+            return
+        }
+
+        // Generate relay token if empty (persistent per Mac)
+        if relayToken.isEmpty {
+            relayToken = UUID().uuidString
+        }
+
+        let config = RelayConfig(
+            url: url,
+            relayToken: relayToken,
+            licenseKey: relayMode == .mcclawCloud ? relayLicenseKey : nil,
+            mode: relayMode
+        )
+
+        await RelayClient.shared.connect(config: config)
+        let state = await RelayClient.shared.state
+        relayConnected = state.isConnected
+    }
+
+    private func disconnectRelay() async {
+        await RelayClient.shared.disconnect()
+        relayConnected = false
     }
 }

@@ -1,7 +1,7 @@
 # McClaw - Claude Code Instructions
 
 ## Project
-Native macOS app (Swift 6.0, SwiftUI, macOS 15+) that wraps official AI CLIs via CLI Bridge. Connects to Gateway via WebSocket for channels, plugins, and automation.
+Native macOS app (Swift 6.0, SwiftUI, macOS 15+) that wraps official AI CLIs via CLI Bridge. All functionality is native — no external Gateway or server dependencies.
 
 ## Before Working
 1. Read `SPRINTS.md` at the project root for current sprint status
@@ -19,15 +19,16 @@ cd McClaw && swift test    # Tests
 
 ## Structure
 - `McClaw/` - Swift Package (source code)
+- `relay-server/` - Node.js relay for remote mobile access (relay.joseconti.com)
 - `docs/McClaw/` - Architecture and design documents
 - `SPRINTS.md` - Sprint state and progress tracking
 
 ## Conventions
-- Actors for concurrent services (CLIBridge, CLIDetector, ConfigStore, GatewayConnectionService)
+- Actors for concurrent services (CLIBridge, CLIDetector, ConfigStore, RelayClient, MobileServer)
 - @Observable + @MainActor for state (AppState, ChatViewModel)
 - AsyncStream for CLI streaming
 - Config persisted in `~/.mcclaw/mcclaw.json`
-- Singletons: `AppState.shared`, `ConfigStore.shared`, `CLIBridge.shared`, `GatewayConnectionService.shared`
+- Singletons: `AppState.shared`, `ConfigStore.shared`, `CLIBridge.shared`
 
 ## Localization
 - **ALL user-facing text MUST be localizable.** Use `String(localized: "key", bundle: .module)` for every visible string in the UI.
@@ -36,12 +37,12 @@ cd McClaw && swift test    # Tests
 - Never use hardcoded strings for labels, titles, placeholders, error messages, or any text the user sees.
 
 ## Goal
-McClaw is the native macOS AI assistant that unifies multiple AI providers through their official CLI tools. It provides a rich feature set including chat, voice, canvas, automation, connectors, and plugin support — all through a single SwiftUI interface.
+McClaw is the native macOS AI assistant that unifies multiple AI providers through their official CLI tools. It provides a rich feature set including chat, voice, canvas, automation, connectors, native channels, device pairing, and skills — all through a single SwiftUI interface.
 
 ## Scheduling (Architectural Decision)
-- **Claude CLI**: has native `claude task` → McClaw delegates directly
-- **Other providers**: no native scheduling → use Gateway cron via WebSocket
-- The UI is unified (CronJobEditor), the backend varies by provider
+- **Claude CLI**: uses BackgroundCLISession with PTY + `/loop` for scheduled tasks
+- **Other providers**: uses LocalScheduler for background execution via CLIBridge
+- The UI is unified (CronJobEditor), both backends are fully native
 
 ## Important
 - After each completed sprint, update `SPRINTS.md` marking tasks as done

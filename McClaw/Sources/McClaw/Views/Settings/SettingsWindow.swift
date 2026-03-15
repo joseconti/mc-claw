@@ -133,8 +133,19 @@ struct SettingsWindow: View {
     private var settingsDetail: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text(selectedSection.title)
-                    .font(.title.weight(.bold))
+                HStack(spacing: 8) {
+                    Text(selectedSection.title)
+                        .font(.title.weight(.bold))
+
+                    if selectedSection == .devices {
+                        Text(String(localized: "in_development_badge", bundle: .module))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(.orange.opacity(0.15)))
+                    }
+                }
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
                     .padding(.bottom, 16)
@@ -170,14 +181,8 @@ struct SettingsWindow: View {
                 .environment(appState)
         case .connectors:
             ConnectorsSettingsTab()
-        case .channels:
-            ChannelsSettingsTab()
-                .environment(appState)
         case .nativeChannels:
             NativeChannelsSettingsTab()
-        case .plugins:
-            PluginsSettingsTab()
-                .environment(appState)
         case .skills:
             SkillsSettingsTab()
         case .voice:
@@ -185,9 +190,6 @@ struct SettingsWindow: View {
                 .environment(appState)
         case .cron:
             CronSettings()
-        case .remote:
-            RemoteSettingsTab()
-                .environment(appState)
         case .devices:
             DevicesSettingsTab()
         case .logs:
@@ -211,7 +213,7 @@ struct SettingsWindow: View {
 
 enum SettingsSection: String, Hashable, CaseIterable {
     case general, clis, ollama, dashscope, mcp, security
-    case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote, devices
+    case connectors, nativeChannels, skills, voice, cron, devices
     case learning
     case logs, backup, advanced
     case bitnet
@@ -223,13 +225,10 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .mcp: String(localized: "MCP")
         case .security: String(localized: "Security")
         case .connectors: String(localized: "Connectors")
-        case .channels: String(localized: "Channels")
-        case .nativeChannels: String(localized: "Native Channels")
-        case .plugins: String(localized: "Plugins")
+        case .nativeChannels: String(localized: "Channels")
         case .skills: String(localized: "Skills")
         case .voice: String(localized: "Voice")
         case .cron: String(localized: "Cron")
-        case .remote: String(localized: "Remote")
         case .devices: String(localized: "devices_tab_title", bundle: .module)
         case .logs: String(localized: "Logs")
         case .backup: String(localized: "Backup", bundle: .module)
@@ -248,13 +247,10 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .mcp: "server.rack"
         case .security: "lock.shield"
         case .connectors: "cable.connector"
-        case .channels: "message"
         case .nativeChannels: "bubble.left.and.bubble.right"
-        case .plugins: "puzzlepiece"
         case .skills: "sparkles"
         case .voice: "waveform"
         case .cron: "clock.arrow.2.circlepath"
-        case .remote: "network"
         case .devices: "ipad.and.iphone"
         case .logs: "doc.text.magnifyingglass"
         case .backup: "externaldrive.badge.timemachine"
@@ -1201,289 +1197,6 @@ struct CLIsSettingsTab: View {
     }
 }
 
-struct ChannelsSettingsTab: View {
-    @Environment(AppState.self) private var appState
-    @State private var store = ChannelsStore.shared
-    @State private var selectedChannelId: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Native channels (direct connections without Gateway)
-            NativeChannelsSettingsTab()
-
-            Divider()
-                .padding(.vertical, 8)
-
-            // Gateway channels
-            Text("Gateway Channels")
-                .font(.headline)
-
-            let ids = store.orderedChannelIds()
-
-            if ids.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.tertiary)
-                    Text("No Gateway channels available.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
-            } else {
-                // Show channels as a simple list
-                ForEach(ids, id: \.self) { id in
-                    channelRow(id)
-                }
-            }
-        }
-        .onAppear {
-            store.start()
-            ensureSelection()
-        }
-        .onDisappear { store.stop() }
-    }
-
-    private func channelRow(_ id: String) -> some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(channelTint(id))
-                .frame(width: 8, height: 8)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(store.resolveChannelLabel(id))
-                    .font(.body.weight(.medium))
-                Text(channelSummary(id))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if let error = channelError(id) {
-                Text(error)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.vertical, 6)
-    }
-
-    private func detailHeader(for id: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Label(store.resolveChannelDetailLabel(id),
-                      systemImage: store.resolveChannelSystemImage(id))
-                    .font(.title3.weight(.semibold))
-                statusBadge(channelSummary(id), color: channelTint(id))
-                Spacer()
-                channelHeaderActions(id)
-            }
-
-            if let error = channelError(id) {
-                Text(error)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-            }
-        }
-    }
-
-    private func channelHeaderActions(_ id: String) -> some View {
-        HStack(spacing: 8) {
-            if id == "whatsapp" {
-                Button("Logout") {
-                    Task { await store.logoutWhatsApp() }
-                }
-                .buttonStyle(.bordered)
-                .disabled(store.whatsappBusy)
-            }
-            if id == "telegram" {
-                Button("Logout") {
-                    Task { await store.logoutTelegram() }
-                }
-                .buttonStyle(.bordered)
-                .disabled(store.telegramBusy)
-            }
-            Button {
-                Task { await store.refresh(probe: true) }
-            } label: {
-                if store.isRefreshing {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Text("Refresh")
-                }
-            }
-            .buttonStyle(.bordered)
-            .disabled(store.isRefreshing)
-        }
-        .controlSize(.small)
-    }
-
-    // MARK: - WhatsApp Section
-
-    @ViewBuilder
-    private var whatsAppSection: some View {
-        GroupBox("Linking") {
-            VStack(alignment: .leading, spacing: 10) {
-                if let message = store.whatsappLoginMessage {
-                    Text(message)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if let qr = store.whatsappLoginQrDataUrl, let image = qrImage(from: qr) {
-                    Image(nsImage: image)
-                        .resizable()
-                        .interpolation(.none)
-                        .frame(width: 180, height: 180)
-                        .cornerRadius(8)
-                }
-
-                HStack(spacing: 12) {
-                    Button {
-                        Task { await store.startWhatsAppLogin(force: false) }
-                    } label: {
-                        if store.whatsappBusy {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Text("Show QR")
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(store.whatsappBusy)
-
-                    Button("Relink") {
-                        Task { await store.startWhatsAppLogin(force: true) }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(store.whatsappBusy)
-                }
-                .font(.subheadline)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-
-        configEditorSection(channelId: "whatsapp")
-    }
-
-    // MARK: - Generic Channel Section
-
-    private func genericChannelSection(_ id: String) -> some View {
-        configEditorSection(channelId: id)
-    }
-
-    @ViewBuilder
-    private func configEditorSection(channelId: String) -> some View {
-        GroupBox("Configuration") {
-            ChannelConfigFormView(store: store, channelId: channelId)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-
-        if let status = store.configStatus {
-            Text(status)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-
-        HStack(spacing: 12) {
-            Button {
-                Task { await store.saveConfigDraft() }
-            } label: {
-                if store.isSavingConfig {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Text("Save")
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(store.isSavingConfig || !store.configDirty)
-
-            Button("Reload") {
-                Task { await store.reloadConfigDraft() }
-            }
-            .buttonStyle(.bordered)
-            .disabled(store.isSavingConfig)
-
-            Spacer()
-        }
-        .font(.subheadline)
-    }
-
-    // MARK: - Helpers
-
-    private func statusBadge(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(color.opacity(0.16))
-            .foregroundStyle(color)
-            .clipShape(Capsule())
-            .liquidGlassCapsule(interactive: false)
-    }
-
-    private func isChannelConfigured(_ id: String) -> Bool {
-        guard let snap = store.snapshot else { return false }
-        guard let channelData = snap.channels[id] else { return false }
-        let data = try? JSONEncoder().encode(channelData)
-        if let data, let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            return dict["configured"] as? Bool ?? false
-        }
-        return false
-    }
-
-    private func channelTint(_ id: String) -> Color {
-        guard let snap = store.snapshot, let channelData = snap.channels[id] else { return .gray }
-        let data = try? JSONEncoder().encode(channelData)
-        if let data, let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            let running = dict["running"] as? Bool ?? false
-            let connected = dict["connected"] as? Bool ?? running
-            if connected { return .green }
-            let configured = dict["configured"] as? Bool ?? false
-            if configured { return .orange }
-        }
-        return .gray
-    }
-
-    private func channelSummary(_ id: String) -> String {
-        guard let snap = store.snapshot, let channelData = snap.channels[id] else { return "Unknown" }
-        let data = try? JSONEncoder().encode(channelData)
-        if let data, let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            let running = dict["running"] as? Bool ?? false
-            let connected = dict["connected"] as? Bool ?? running
-            let configured = dict["configured"] as? Bool ?? false
-            if connected { return "Connected" }
-            if running { return "Running" }
-            if configured { return "Configured" }
-        }
-        return "Not configured"
-    }
-
-    private func channelError(_ id: String) -> String? {
-        guard let snap = store.snapshot, let channelData = snap.channels[id] else { return nil }
-        let data = try? JSONEncoder().encode(channelData)
-        if let data, let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            return dict["lastError"] as? String
-        }
-        return nil
-    }
-
-    private func ensureSelection() {
-        let ids = store.orderedChannelIds()
-        if selectedChannelId == nil || !ids.contains(selectedChannelId ?? "") {
-            selectedChannelId = ids.first
-        }
-    }
-
-    private func qrImage(from dataUrl: String) -> NSImage? {
-        guard let commaIndex = dataUrl.firstIndex(of: ",") else { return nil }
-        let base64 = String(dataUrl[dataUrl.index(after: commaIndex)...])
-        guard let data = Data(base64Encoded: base64) else { return nil }
-        return NSImage(data: data)
-    }
-}
-
 struct PluginsSettingsTab: View {
     @Environment(AppState.self) private var appState
     @State private var runtime = PluginRuntime.shared
@@ -2140,8 +1853,7 @@ struct AdvancedSettingsTab: View {
                 }
             }
 
-            Section("Gateway") {
-                LabeledContent("Status", value: appState.gatewayStatus.rawValue.capitalized)
+            Section("Node Mode") {
                 if nodeMode.isActive {
                     LabeledContent("Node ID", value: nodeMode.nodeId)
                         .font(.subheadline)

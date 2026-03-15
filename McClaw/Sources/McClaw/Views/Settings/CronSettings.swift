@@ -1,4 +1,5 @@
 import SwiftUI
+import McClawKit
 
 /// Cron jobs management tab in Settings.
 struct CronSettings: View {

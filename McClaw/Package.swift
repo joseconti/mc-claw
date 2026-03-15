@@ -13,8 +13,6 @@ let package = Package(
         .executable(name: "McClaw", targets: ["McClaw"]),
         .library(name: "McClawKit", targets: ["McClawKit"]),
         .library(name: "McClawIPC", targets: ["McClawIPC"]),
-        .library(name: "McClawDiscovery", targets: ["McClawDiscovery"]),
-        .library(name: "McClawProtocol", targets: ["McClawProtocol"]),
     ],
     dependencies: [
         // Menu bar control
@@ -31,8 +29,6 @@ let package = Package(
             dependencies: [
                 "McClawKit",
                 "McClawIPC",
-                "McClawDiscovery",
-                "McClawProtocol",
                 "MenuBarExtraAccess",
                 .product(name: "Logging", package: "swift-log"),
                 "Sparkle",
@@ -47,7 +43,6 @@ let package = Package(
         .target(
             name: "McClawKit",
             dependencies: [
-                "McClawProtocol",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/McClawKit"
@@ -62,22 +57,6 @@ let package = Package(
             path: "Sources/McClawIPC"
         ),
 
-        // MARK: - Gateway Discovery Library
-        .target(
-            name: "McClawDiscovery",
-            dependencies: [
-                .product(name: "Logging", package: "swift-log"),
-            ],
-            path: "Sources/McClawDiscovery"
-        ),
-
-        // MARK: - Protocol Models
-        .target(
-            name: "McClawProtocol",
-            dependencies: [],
-            path: "Sources/McClawProtocol"
-        ),
-
         // MARK: - Tests
         .testTarget(
             name: "McClawTests",
@@ -88,11 +67,6 @@ let package = Package(
             name: "McClawKitTests",
             dependencies: ["McClawKit"],
             path: "Tests/McClawKitTests"
-        ),
-        .testTarget(
-            name: "McClawProtocolTests",
-            dependencies: ["McClawProtocol"],
-            path: "Tests/McClawProtocolTests"
         ),
     ]
 )

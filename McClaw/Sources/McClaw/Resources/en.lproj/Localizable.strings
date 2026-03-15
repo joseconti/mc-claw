@@ -464,7 +464,6 @@
 "Camera" = "Camera";
 "Allow" = "Allow";
 "Denied" = "Denied";
-"Gateway Connection" = "Gateway Connection";
 "Check Connection" = "Check Connection";
 "All Set!" = "All Set!";
 "McClaw is ready to use." = "McClaw is ready to use.";
@@ -487,7 +486,6 @@
 "Skills" = "Skills";
 "Voice" = "Voice";
 "Cron" = "Cron";
-"Remote" = "Remote";
 "Logs" = "Logs";
 "Advanced" = "Advanced";
 "Integrations" = "Integrations";
@@ -546,7 +544,6 @@
 "Chat" = "Chat";
 "Font size" = "Font size";
 "%lld pt" = "%lld pt";
-"Gateway" = "Gateway";
 "Connection" = "Connection";
 "Status" = "Status";
 "Updates" = "Updates";
@@ -680,25 +677,6 @@
 "KEY" = "KEY";
 "Add Variable" = "Add Variable";
 "Add Server" = "Add Server";
-
-// =============================================================================
-// MARK: - RemoteSettingsTab
-// =============================================================================
-
-"Connection Mode" = "Connection Mode";
-"Unconfigured" = "Unconfigured";
-"Local" = "Local";
-"Port" = "Port";
-"Remote Configuration" = "Remote Configuration";
-"SSH Tunnel" = "SSH Tunnel";
-"Direct" = "Direct";
-"Target" = "Target";
-"SSH Key" = "SSH Key";
-"Browse" = "Browse";
-"Connection Test" = "Connection Test";
-"Test Connection" = "Test Connection";
-"Apply" = "Apply";
-"Select SSH Key" = "Select SSH Key";
 
 // =============================================================================
 // MARK: - SkillsSettingsTab
@@ -1741,3 +1719,53 @@
 "devices_server_stopped" = "Mobile server is not running.";
 "devices_server_start" = "Start Server";
 "devices_connected_count %lld %lld" = "%lld of %lld connected";
+"devices_remote_access" = "Remote Access";
+"devices_remote_access_desc" = "Connect to your Mac from anywhere via a relay server. Use McClaw Cloud or host your own relay.";
+"devices_relay_mode" = "Mode";
+"devices_relay_disabled" = "Local Only";
+"devices_relay_self_hosted" = "Self-Hosted";
+"devices_relay_cloud" = "McClaw Cloud";
+"devices_relay_url_placeholder" = "wss://your-relay-server.com";
+"devices_relay_cloud_url" = "relay.joseconti.com";
+"devices_relay_connected" = "Relay connected";
+"devices_relay_disconnected" = "Relay not connected";
+"devices_relay_connect" = "Connect";
+"devices_relay_disconnect" = "Disconnect";
+"devices_relay_cloud_cost" = "McClaw Cloud costs 20€/year. Includes relay access for all your paired devices.";
+"devices_relay_self_hosted_info" = "You can deploy your own relay server on any Node.js host. Source code and instructions:";
+"in_development_badge" = "In development";
+
+// =============================================================================
+// MARK: - MCP Presets
+// =============================================================================
+
+// Preset Browser
+"preset.browser.title" = "MCP Server Presets";
+"preset.browser.back" = "Back";
+"preset.browser.install" = "Install";
+"preset.browser.reinstall" = "Reinstall";
+
+// Preset Menu
+"preset.menu.manual" = "Add Manually…";
+"preset.menu.browse" = "Browse Presets…";
+
+// Preset Detail
+"preset.detail.command" = "Command";
+"preset.detail.options" = "Options";
+
+// Preset Options (shared)
+"preset.option.default" = "Default";
+"preset.option.headless" = "Headless";
+"preset.option.headless.help" = "Run Chrome without a visible window.";
+"preset.option.isolated" = "Isolated Profile";
+"preset.option.isolated.help" = "Use a temporary profile that is cleaned up after the browser closes.";
+"preset.option.channel" = "Chrome Channel";
+"preset.option.channel.help" = "Which Chrome channel to use (stable, canary, beta, dev).";
+"preset.option.viewport" = "Viewport";
+"preset.option.viewport.help" = "Initial viewport size, e.g. 1280x720.";
+"preset.option.browser_url" = "Browser URL";
+"preset.option.browser_url.help" = "Connect to a running Chrome instance (e.g. http://127.0.0.1:9222).";
+
+// Chrome DevTools Preset
+"preset.chrome_devtools.description" = "Control and inspect a live Chrome browser: automation, debugging, performance, network, and screenshots. 29 tools.";
+"preset.chrome_devtools_slim.description" = "Lightweight Chrome control with only 3 tools: navigate, evaluate JavaScript, and screenshot.";

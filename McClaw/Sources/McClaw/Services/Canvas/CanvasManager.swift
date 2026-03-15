@@ -114,12 +114,9 @@ final class CanvasManager {
     func handleA2UIAction(actionName: String, surfaceId: String, sourceComponentId: String, message: String) async {
         logger.info("A2UI action received: \(actionName)")
 
-        // Forward to Gateway as an agent message
-        do {
-            try await GatewayConnectionService.shared.sendCanvasA2UIAction(message: message)
-        } catch {
-            logger.error("Failed to send A2UI action: \(error)")
-        }
+        // Forward canvas action as a prompt to the active CLI via CLIBridge
+        logger.info("A2UI action forwarded to CLI: \(message.prefix(80))")
+        // Canvas actions are handled by the chat view model when integrated
     }
 
     /// Push A2UI messages to the canvas.

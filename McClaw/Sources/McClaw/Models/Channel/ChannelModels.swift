@@ -1,5 +1,5 @@
 import Foundation
-import McClawProtocol
+import McClawKit
 
 /// Full status snapshot from the Gateway channels.status RPC.
 struct ChannelsStatusSnapshot: Codable, Sendable {

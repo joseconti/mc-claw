@@ -1,4 +1,5 @@
 import Foundation
+import McClawKit
 
 /// Information about an installed plugin (from plugin ecosystem).
 struct PluginInfo: Identifiable, Codable, Sendable {

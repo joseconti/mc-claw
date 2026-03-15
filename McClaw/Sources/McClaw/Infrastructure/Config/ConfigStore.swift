@@ -65,12 +65,6 @@ actor ConfigStore {
     func applyToState(_ config: McClawConfig) {
         let state = AppState.shared
         state.currentCLIIdentifier = config.defaultCLI
-        state.connectionMode = config.connectionMode
-        state.gatewayPort = config.gatewayPort
-        state.remoteTransport = config.remoteTransport
-        state.remoteTarget = config.remoteTarget
-        state.remoteUrl = config.remoteUrl
-        state.remoteIdentity = config.remoteIdentity
         state.voiceWakeEnabled = config.voiceEnabled
         state.canvasEnabled = config.canvasEnabled
         state.cameraEnabled = config.cameraEnabled
@@ -183,12 +177,6 @@ actor ConfigStore {
         let state = AppState.shared
         let config = McClawConfig(
             defaultCLI: state.currentCLIIdentifier,
-            gatewayPort: state.gatewayPort,
-            connectionMode: state.connectionMode,
-            remoteTransport: state.remoteTransport,
-            remoteTarget: state.remoteTarget,
-            remoteUrl: state.remoteUrl,
-            remoteIdentity: state.remoteIdentity,
             voiceEnabled: state.voiceWakeEnabled,
             canvasEnabled: state.canvasEnabled,
             cameraEnabled: state.cameraEnabled,
@@ -246,20 +234,12 @@ actor ConfigStore {
 /// Main configuration structure.
 struct McClawConfig: Codable, Sendable {
     var defaultCLI: String?
-    var gatewayPort: Int
-    var connectionMode: ConnectionMode
     var voiceEnabled: Bool
     var canvasEnabled: Bool
     var cameraEnabled: Bool
     var screenEnabled: Bool
     var execMode: ExecSecurityMode
     var hasCompletedOnboarding: Bool
-
-    // Remote settings
-    var remoteTransport: RemoteTransport
-    var remoteTarget: String?
-    var remoteUrl: String?
-    var remoteIdentity: String?
 
     // Voice settings
     var pushToTalkEnabled: Bool
@@ -330,12 +310,6 @@ struct McClawConfig: Codable, Sendable {
 
     init(
         defaultCLI: String? = nil,
-        gatewayPort: Int = 3577,
-        connectionMode: ConnectionMode = .local,
-        remoteTransport: RemoteTransport = .ssh,
-        remoteTarget: String? = nil,
-        remoteUrl: String? = nil,
-        remoteIdentity: String? = nil,
         voiceEnabled: Bool = false,
         canvasEnabled: Bool = false,
         cameraEnabled: Bool = false,
@@ -383,12 +357,6 @@ struct McClawConfig: Codable, Sendable {
         customThemeColors: ThemeColors? = nil
     ) {
         self.defaultCLI = defaultCLI
-        self.gatewayPort = gatewayPort
-        self.connectionMode = connectionMode
-        self.remoteTransport = remoteTransport
-        self.remoteTarget = remoteTarget
-        self.remoteUrl = remoteUrl
-        self.remoteIdentity = remoteIdentity
         self.voiceEnabled = voiceEnabled
         self.canvasEnabled = canvasEnabled
         self.cameraEnabled = cameraEnabled
@@ -439,18 +407,12 @@ struct McClawConfig: Codable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         defaultCLI = try container.decodeIfPresent(String.self, forKey: .defaultCLI)
-        gatewayPort = try container.decode(Int.self, forKey: .gatewayPort)
-        connectionMode = try container.decode(ConnectionMode.self, forKey: .connectionMode)
-        voiceEnabled = try container.decode(Bool.self, forKey: .voiceEnabled)
-        canvasEnabled = try container.decode(Bool.self, forKey: .canvasEnabled)
-        cameraEnabled = try container.decode(Bool.self, forKey: .cameraEnabled)
-        screenEnabled = try container.decode(Bool.self, forKey: .screenEnabled)
-        execMode = try container.decode(ExecSecurityMode.self, forKey: .execMode)
-        hasCompletedOnboarding = try container.decode(Bool.self, forKey: .hasCompletedOnboarding)
-        remoteTransport = try container.decode(RemoteTransport.self, forKey: .remoteTransport)
-        remoteTarget = try container.decodeIfPresent(String.self, forKey: .remoteTarget)
-        remoteUrl = try container.decodeIfPresent(String.self, forKey: .remoteUrl)
-        remoteIdentity = try container.decodeIfPresent(String.self, forKey: .remoteIdentity)
+        voiceEnabled = try container.decodeIfPresent(Bool.self, forKey: .voiceEnabled) ?? false
+        canvasEnabled = try container.decodeIfPresent(Bool.self, forKey: .canvasEnabled) ?? false
+        cameraEnabled = try container.decodeIfPresent(Bool.self, forKey: .cameraEnabled) ?? false
+        screenEnabled = try container.decodeIfPresent(Bool.self, forKey: .screenEnabled) ?? true
+        execMode = try container.decodeIfPresent(ExecSecurityMode.self, forKey: .execMode) ?? .ask
+        hasCompletedOnboarding = try container.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding) ?? false
         pushToTalkEnabled = try container.decode(Bool.self, forKey: .pushToTalkEnabled)
         selectedVoice = try container.decodeIfPresent(String.self, forKey: .selectedVoice)
         speechRate = try container.decode(Float.self, forKey: .speechRate)

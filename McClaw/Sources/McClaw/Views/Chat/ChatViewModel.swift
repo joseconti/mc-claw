@@ -35,31 +35,6 @@ final class ChatViewModel {
     /// Maximum allowed chain depth before stopping multi-step operations.
     private static let maxChainDepth = 10
 
-    /// Register this view model to receive chat messages from Gateway.
-    func subscribeToGateway() {
-        Task {
-            await GatewayConnectionService.shared.setOnChatMessage { [weak self] text, sessionId in
-                self?.handleGatewayMessage(text: text, sessionId: sessionId)
-            }
-        }
-    }
-
-    /// Handle an incoming chat message pushed by the Gateway.
-    func handleGatewayMessage(text: String, sessionId: String) {
-        let message = ChatMessage(
-            role: .assistant,
-            content: text,
-            sessionId: sessionId
-        )
-        messages.append(message)
-        logger.info("Received Gateway chat message for session \(sessionId)")
-
-        // Speak gateway messages if voice mode is active
-        if VoiceModeService.shared.isActive {
-            VoiceModeService.shared.speakResponse(text)
-        }
-    }
-
     /// Send a pre-filled prompt to the chat (e.g., from contextual actions).
     /// If `autoSend` is true, the prompt is sent immediately. Otherwise it would need
     /// UI support for pre-filling the input bar (handled by the caller).
@@ -1099,7 +1074,6 @@ final class ChatViewModel {
         case "/status":
             let cliName = appState.currentCLI?.displayName ?? "None"
             let cliVersion = appState.currentCLI?.version ?? "?"
-            let gateway = appState.gatewayStatus.rawValue.capitalized
             let session = sessionId
             let msgCount = messages.count
             let voice = VoiceModeService.shared.isActive ? "Active" : "Off"
@@ -1109,11 +1083,8 @@ final class ChatViewModel {
             **McClaw Status**
             - Version: \(version)
             - CLI: \(cliName) v\(cliVersion)
-            - Gateway: \(gateway)
             - Session: `\(session)` (\(msgCount) messages)
             - Voice: \(voice)
-            - Channels: \(appState.activeChannels.count) active
-            - Plugins: \(appState.loadedPlugins.count) loaded
             """, sessionId: sessionId)
             return true
 

@@ -110,7 +110,6 @@ struct ChatWindow: View {
             sessionStore.refreshIndex()
             imageIndexStore.loadCachedIndex()
             setupVoiceMode()
-            setupNodeMode()
             processPendingMessage()
         }
         .onChange(of: appState.currentSessionId) { _, newId in
@@ -376,11 +375,8 @@ struct ChatWindow: View {
 
             Spacer()
 
-            // Status indicator
-            Circle()
-                .fill(appState.gatewayStatus == .connected ? Color.green : Color.gray.opacity(0.4))
-                .frame(width: 7, height: 7)
-                .padding(.trailing, 16)
+            Spacer()
+                .frame(width: 16)
         }
         .padding(.vertical, 8)
     }
@@ -596,14 +592,4 @@ struct ChatWindow: View {
         Task { await viewModel.send(message) }
     }
 
-    private func setupNodeMode() {
-        Task {
-            await GatewayConnectionService.shared.setOnNodeInvoke { request in
-                Task { @MainActor in
-                    let response = await NodeMode.shared.handleInvoke(request)
-                    try? await GatewayConnectionService.shared.sendNodeInvokeResponse(response)
-                }
-            }
-        }
-    }
 }

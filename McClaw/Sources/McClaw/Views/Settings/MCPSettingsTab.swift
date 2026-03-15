@@ -26,6 +26,7 @@ struct MCPSettingsTab: View {
     @State private var confirmDelete: MCPServerConfig?
     @State private var selectedServerId: String?
     @State private var selectedProvider: String = "claude"
+    @State private var showPresetBrowser = false
     @Namespace private var mcpProviderNamespace
 
     private var currentProvider: String {
@@ -78,6 +79,17 @@ struct MCPSettingsTab: View {
                     }
                     try await manager.addServer(form, provider: selectedProvider)
                     editorMode = nil
+                }
+            )
+        }
+        .sheet(isPresented: $showPresetBrowser) {
+            MCPPresetBrowser(
+                provider: selectedProvider,
+                installedServerNames: Set(serversForSelectedProvider.map(\.name)),
+                onCancel: { showPresetBrowser = false },
+                onInstall: { form in
+                    try await manager.addServer(form, provider: selectedProvider)
+                    showPresetBrowser = false
                 }
             )
         }
@@ -163,8 +175,24 @@ struct MCPSettingsTab: View {
             }
             .disabled(manager.isLoading)
 
-            Button {
-                editorMode = .add
+            Menu {
+                Button {
+                    editorMode = .add
+                } label: {
+                    Label(
+                        String(localized: "preset.menu.manual", bundle: .module),
+                        systemImage: "plus"
+                    )
+                }
+
+                Button {
+                    showPresetBrowser = true
+                } label: {
+                    Label(
+                        String(localized: "preset.menu.browse", bundle: .module),
+                        systemImage: "square.grid.2x2"
+                    )
+                }
             } label: {
                 Image(systemName: "plus")
             }

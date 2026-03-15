@@ -7,19 +7,6 @@ import SwiftUI
 final class AppState {
     static let shared = AppState()
 
-    // MARK: - Connection
-
-    /// Current connection mode to Gateway
-    var connectionMode: ConnectionMode = .unconfigured
-
-    /// Remote transport type (when using remote Gateway)
-    var remoteTransport: RemoteTransport = .ssh
-
-    /// Remote connection target
-    var remoteTarget: String?
-    var remoteUrl: String?
-    var remoteIdentity: String?
-
     // MARK: - CLI Bridge
 
     /// All detected CLI providers on the system
@@ -237,22 +224,6 @@ final class AppState {
     /// Screen recording enabled for Node mode
     var screenEnabled: Bool = true
 
-    // MARK: - Gateway
-
-    /// Gateway port
-    var gatewayPort: Int = 3577
-
-    /// Current Gateway health status
-    var gatewayStatus: GatewayStatus = .disconnected
-
-    /// Active channels
-    var activeChannels: [ChannelStatus] = []
-
-    // MARK: - Plugins
-
-    /// Loaded plugins from Gateway
-    var loadedPlugins: [PluginInfo] = []
-
     // MARK: - Sessions
 
     /// Current active session ID
@@ -286,19 +257,6 @@ final class AppState {
     // MARK: - Init
 
     private init() {}
-}
-
-// MARK: - Connection Types
-
-enum ConnectionMode: String, Codable, Sendable {
-    case unconfigured
-    case local
-    case remote
-}
-
-enum RemoteTransport: String, Codable, Sendable {
-    case ssh
-    case direct
 }
 
 /// App color scheme preference.

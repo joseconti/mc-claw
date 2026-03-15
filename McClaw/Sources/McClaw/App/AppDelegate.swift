@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 import Logging
-import McClawDiscovery
 import McClawKit
 import Observation
 
@@ -113,18 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
                 }
             }
 
-            // 5. Start Gateway connection only if Gateway is reachable
-            if appState.hasCompletedOnboarding {
-                let discovery = GatewayDiscovery()
-                if let endpoint = await discovery.discoverLocal() {
-                    logger.info("Gateway found at \(endpoint.host):\(endpoint.port)")
-                    await GatewayConnectionService.shared.connect()
-                } else {
-                    logger.info("No local Gateway detected, skipping connection")
-                }
-            }
-
-            // 6. Load cached avatar and check for Gravatar updates
+            // 5. Load cached avatar and check for Gravatar updates
             if let email = appState.userEmail, !email.isEmpty {
                 // Load cached avatar immediately
                 appState.userAvatarImage = GravatarService.shared.cachedImage

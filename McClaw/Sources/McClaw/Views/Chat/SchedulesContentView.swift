@@ -1,4 +1,5 @@
 import SwiftUI
+import McClawKit
 
 /// Main content view for the Schedules sidebar section.
 /// Provides a clean list+detail layout for managing scheduled actions.

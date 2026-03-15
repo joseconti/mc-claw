@@ -1,4 +1,5 @@
 import SwiftUI
+import McClawKit
 
 /// Wizard-style editor for creating/editing scheduled actions.
 /// 4 steps: What → Which AI → When → Where (delivery).

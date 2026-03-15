@@ -246,6 +246,80 @@ enum MCPProviderSupport {
     }
 }
 
+// MARK: - Preset Option
+
+/// A configurable option for an MCP preset.
+struct MCPPresetOption: Identifiable, Sendable {
+    let id: String
+    let label: String
+    let help: String
+    let kind: Kind
+    var value: String
+
+    enum Kind: Sendable {
+        case toggle
+        case text
+        case picker([String])
+    }
+
+    /// Convert this option to a CLI argument if it has a non-default value.
+    var cliArgument: String? {
+        switch kind {
+        case .toggle:
+            return value == "true" ? "--\(id)" : nil
+        case .text:
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : "--\(id)=\(trimmed)"
+        case .picker:
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : "--\(id)=\(trimmed)"
+        }
+    }
+}
+
+/// An MCP server preset with pre-configured command and options.
+struct MCPPreset: Identifiable, Sendable {
+    let id: String
+    let name: String
+    let description: String
+    let icon: String
+    let category: Category
+    let command: String
+    let baseArgs: [String]
+    var options: [MCPPresetOption]
+    let requiresNode: Bool
+    let requiresChrome: Bool
+
+    enum Category: String, CaseIterable, Sendable {
+        case browser = "Browser"
+        case database = "Database"
+        case devtools = "DevTools"
+        case productivity = "Productivity"
+    }
+
+    /// Build the full args array from baseArgs + enabled options.
+    var resolvedArgs: [String] {
+        var args = baseArgs
+        for option in options {
+            if let arg = option.cliArgument {
+                args.append(arg)
+            }
+        }
+        return args
+    }
+
+    /// Convert this preset to an MCPServerFormData ready for MCPConfigManager.
+    func toFormData(scope: MCPScope = .user) -> MCPServerFormData {
+        var form = MCPServerFormData()
+        form.name = id
+        form.transport = .stdio
+        form.command = command
+        form.argsText = resolvedArgs.joined(separator: "\n")
+        form.scope = scope
+        return form
+    }
+}
+
 // MARK: - Errors
 
 enum MCPError: Error, LocalizedError {
