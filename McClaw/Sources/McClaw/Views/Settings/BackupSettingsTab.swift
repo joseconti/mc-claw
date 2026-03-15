@@ -42,7 +42,7 @@ struct BackupSettingsTab: View {
                 performImport()
             }
         } message: {
-            Text("This will replace all current settings, credentials, sessions, and projects. This action cannot be undone.", bundle: .module)
+            Text("This will replace all current settings, credentials, sessions, projects, schedules, paired devices, and learning data. This action cannot be undone.", bundle: .module)
         }
     }
 
@@ -53,7 +53,7 @@ struct BackupSettingsTab: View {
             Label(String(localized: "Export Backup", bundle: .module), systemImage: "square.and.arrow.up")
                 .font(.headline)
 
-            Text("Export everything: settings, connectors, credentials, sessions, projects, skills, and all app data to a single encrypted file.", bundle: .module)
+            Text("Export everything: settings, connectors, credentials, sessions, projects, skills, schedules, paired devices, learning data, and all app data to a single encrypted file.", bundle: .module)
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
@@ -270,8 +270,16 @@ struct BackupSettingsTab: View {
                 importResult = result
                 importPassword = ""
 
-                // Reload stores after import
+                // Reload all stores after import
                 ConnectorStore.shared.start()
+                SessionStore.shared.refreshIndex()
+                ProjectStore.shared.refreshIndex()
+                ImageIndexStore.shared.refreshIndex()
+                DevicePairingService.shared.reloadFromDisk()
+                await CronJobsStore.shared.refreshJobs()
+                if let config = await ConfigStore.shared.loadConfig() {
+                    await ConfigStore.shared.applyToState(config)
+                }
             } catch {
                 isImporting = false
                 errorMessage = error.localizedDescription

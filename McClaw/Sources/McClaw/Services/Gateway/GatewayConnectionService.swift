@@ -77,6 +77,10 @@ actor GatewayConnectionService {
 
     /// Make an RPC call to the Gateway.
     func call(method: String, params: [String: AnyCodableValue]? = nil) async throws -> WSResponse {
+        guard let ws = webSocketTask, ws.state == .running else {
+            throw GatewayError.notConnected
+        }
+
         sequence += 1
         let seq = sequence
 
@@ -88,7 +92,7 @@ actor GatewayConnectionService {
         }
 
         let message = URLSessionWebSocketTask.Message.string(text)
-        try await webSocketTask?.send(message)
+        try await ws.send(message)
 
         return try await withCheckedThrowingContinuation { continuation in
             pendingRequests[seq] = continuation

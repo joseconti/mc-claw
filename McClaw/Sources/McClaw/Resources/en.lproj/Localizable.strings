@@ -1546,7 +1546,7 @@
 "Export Backup" = "Export Backup";
 "Restore from Backup" = "Restore from Backup";
 "Restore Backup" = "Restore Backup";
-"Export everything: settings, connectors, credentials, sessions, projects, skills, and all app data to a single encrypted file." = "Export everything: settings, connectors, credentials, sessions, projects, skills, and all app data to a single encrypted file.";
+"Export everything: settings, connectors, credentials, sessions, projects, skills, schedules, paired devices, learning data, and all app data to a single encrypted file." = "Export everything: settings, connectors, credentials, sessions, projects, skills, schedules, paired devices, learning data, and all app data to a single encrypted file.";
 "Restore everything from a previously exported .mcb backup file." = "Restore everything from a previously exported .mcb backup file.";
 "Authenticate to Export" = "Authenticate to Export";
 "Authenticate to export your McClaw configuration" = "Authenticate to export your McClaw configuration";
@@ -1562,7 +1562,7 @@
 "Select McClaw Backup" = "Select McClaw Backup";
 "Passwords do not match" = "Passwords do not match";
 "Backup exported successfully" = "Backup exported successfully";
-"This will replace all current settings, credentials, sessions, and projects. This action cannot be undone." = "This will replace all current settings, credentials, sessions, and projects. This action cannot be undone.";
+"This will replace all current settings, credentials, sessions, projects, schedules, paired devices, and learning data. This action cannot be undone." = "This will replace all current settings, credentials, sessions, projects, schedules, paired devices, and learning data. This action cannot be undone.";
 "Cancel" = "Cancel";
 "Restore" = "Restore";
 "Warnings:" = "Warnings:";
@@ -1715,3 +1715,29 @@
 "settings.learning.reset.cancel" = "Cancel";
 "settings.learning.export.success" = "Preferences exported successfully.";
 "settings.learning.events.count %lld" = "%lld raw feedback events stored.";
+
+// MARK: - Devices Settings Tab
+
+"devices_tab_title" = "Devices";
+"pair_new_device" = "Pair New Device";
+"pair_device_header" = "Pair a Mobile Device";
+"pair_device_scan_hint" = "Scan this QR code from the McClaw Mobile app to pair this device.";
+"pair_device_dismiss_qr" = "Dismiss";
+"approve" = "Approve";
+"reject" = "Reject";
+"cancel" = "Cancel";
+"pending_request_header" = "Pending Pairing Request";
+"no_devices_paired" = "No devices paired yet. Tap \"Pair New Device\" and scan the QR code from the McClaw Mobile app.";
+"paired_devices_header" = "Paired Devices";
+"device_last_seen %@" = "Last seen: %@";
+"device_platform_ios" = "iOS";
+"device_platform_android" = "Android";
+"device_online" = "Online";
+"device_offline" = "Offline";
+"revoke_device" = "Revoke Access";
+"revoke_device_confirm %@" = "Are you sure you want to revoke access for %@? The device will need to pair again.";
+"device_permissions_header %@" = "Permissions for %@";
+"devices_server_running %@" = "Mobile server running on %@";
+"devices_server_stopped" = "Mobile server is not running.";
+"devices_server_start" = "Start Server";
+"devices_connected_count %lld %lld" = "%lld of %lld connected";

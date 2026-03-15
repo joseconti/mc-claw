@@ -188,6 +188,8 @@ struct SettingsWindow: View {
         case .remote:
             RemoteSettingsTab()
                 .environment(appState)
+        case .devices:
+            DevicesSettingsTab()
         case .logs:
             DiagnosticsSettingsTab()
         case .backup:
@@ -209,7 +211,7 @@ struct SettingsWindow: View {
 
 enum SettingsSection: String, Hashable, CaseIterable {
     case general, clis, ollama, dashscope, mcp, security
-    case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote
+    case connectors, channels, nativeChannels, plugins, skills, voice, cron, remote, devices
     case learning
     case logs, backup, advanced
     case bitnet
@@ -228,6 +230,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .voice: String(localized: "Voice")
         case .cron: String(localized: "Cron")
         case .remote: String(localized: "Remote")
+        case .devices: String(localized: "devices_tab_title", bundle: .module)
         case .logs: String(localized: "Logs")
         case .backup: String(localized: "Backup", bundle: .module)
         case .advanced: String(localized: "Advanced")
@@ -252,6 +255,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .voice: "waveform"
         case .cron: "clock.arrow.2.circlepath"
         case .remote: "network"
+        case .devices: "ipad.and.iphone"
         case .logs: "doc.text.magnifyingglass"
         case .backup: "externaldrive.badge.timemachine"
         case .advanced: "wrench.and.screwdriver"
@@ -263,7 +267,7 @@ enum SettingsSection: String, Hashable, CaseIterable {
     }
 
     static let mainSections: [SettingsSection] = [.general, .clis, .ollama, .dashscope, .mcp, .security]
-    static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice, .learning]
+    static let integrationSections: [SettingsSection] = [.connectors, .nativeChannels, .skills, .voice, .devices, .learning]
     static let advancedSections: [SettingsSection] = [.logs, .backup]
     static let experimentalSections: [SettingsSection] = [.bitnet]
 

@@ -49,6 +49,10 @@ actor ConfigStore {
             configDirectory.appendingPathComponent("connectors"),
             configDirectory.appendingPathComponent("skills"),
             configDirectory.appendingPathComponent("git"),
+            configDirectory.appendingPathComponent("projects"),
+            configDirectory.appendingPathComponent("learning"),
+            configDirectory.appendingPathComponent("learning/feedback"),
+            configDirectory.appendingPathComponent("images"),
         ]
 
         for dir in dirs {
