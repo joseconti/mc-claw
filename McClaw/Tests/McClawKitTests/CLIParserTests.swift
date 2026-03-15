@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import McClawKit
 
@@ -215,5 +216,80 @@ struct CLIParserTests {
         let args = CLIParser.buildArguments(for: "bitnet", message: "analyze this", planMode: true)
         let joined = args.joined(separator: " ")
         #expect(joined.contains("PLAN MODE"))
+    }
+
+    // MARK: - Background Session Arguments
+
+    @Test("Background session args omit --print and include --input-format")
+    func buildBackgroundSessionArgs() {
+        let args = CLIParser.buildBackgroundSessionArguments(sessionId: "bg-123")
+        #expect(!args.contains("--print"))
+        #expect(args.contains("--input-format"))
+        #expect(args.contains("stream-json"))
+        #expect(args.contains("--output-format"))
+        #expect(args.contains("--verbose"))
+        #expect(args.contains("--session-id"))
+        #expect(args.contains("bg-123"))
+    }
+
+    @Test("Background session args with model")
+    func buildBackgroundSessionArgsWithModel() {
+        let args = CLIParser.buildBackgroundSessionArguments(
+            sessionId: "bg-456", model: "claude-sonnet-4-20250514"
+        )
+        #expect(args.contains("--model"))
+        #expect(args.contains("claude-sonnet-4-20250514"))
+        #expect(!args.contains("--print"))
+    }
+
+    @Test("Background session args with system prompt")
+    func buildBackgroundSessionArgsWithSystemPrompt() {
+        let args = CLIParser.buildBackgroundSessionArguments(
+            sessionId: "bg-789", systemPrompt: "You are a scheduler"
+        )
+        #expect(args.contains("--system-prompt"))
+        #expect(args.contains("You are a scheduler"))
+    }
+
+    @Test("Background session args without system prompt omit flag")
+    func buildBackgroundSessionArgsNoSystemPrompt() {
+        let args = CLIParser.buildBackgroundSessionArguments(sessionId: "bg-000")
+        #expect(!args.contains("--system-prompt"))
+    }
+
+    // MARK: - Stdin JSON encoding
+
+    @Test("encodeStdinMessage produces valid JSON with newline")
+    func encodeStdinMessage() {
+        let encoded = CLIParser.encodeStdinMessage("Hello world")
+        #expect(encoded.hasSuffix("\n"))
+        let trimmed = encoded.trimmingCharacters(in: .whitespacesAndNewlines)
+        let data = trimmed.data(using: .utf8)!
+        let json = try! JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(json["type"] as? String == "user_message")
+        #expect(json["message"] as? String == "Hello world")
+    }
+
+    @Test("encodeStdinMessage handles special characters")
+    func encodeStdinMessageSpecialChars() {
+        let encoded = CLIParser.encodeStdinMessage("Hello \"world\" with\nnewlines")
+        #expect(!encoded.isEmpty)
+        let trimmed = encoded.trimmingCharacters(in: .whitespacesAndNewlines)
+        let data = trimmed.data(using: .utf8)!
+        let json = try! JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(json["message"] as? String == "Hello \"world\" with\nnewlines")
+    }
+
+    @Test("encodeControlRequest produces valid JSON")
+    func encodeControlRequest() {
+        let encoded = CLIParser.encodeControlRequest(subtype: "interrupt", requestId: "req-42")
+        #expect(encoded.hasSuffix("\n"))
+        let trimmed = encoded.trimmingCharacters(in: .whitespacesAndNewlines)
+        let data = trimmed.data(using: .utf8)!
+        let json = try! JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(json["type"] as? String == "control_request")
+        #expect(json["request_id"] as? String == "req-42")
+        let request = json["request"] as! [String: Any]
+        #expect(request["subtype"] as? String == "interrupt")
     }
 }

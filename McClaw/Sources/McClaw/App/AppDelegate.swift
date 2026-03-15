@@ -140,8 +140,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
             // 7. Start Sparkle auto-updater
             UpdaterService.shared.start()
 
-            // 7b. Start local scheduler for background schedule execution
-            LocalScheduler.shared.start()
+            // 7b. Start cron system (LocalScheduler + BackgroundCLISession for Claude)
+            CronJobsStore.shared.start()
 
             // 7c. Start native channels (Telegram, etc.)
             NativeChannelsManager.shared.start()
@@ -256,6 +256,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
         openItem.target = self
         menu.addItem(openItem)
 
+        let sleepItem = NSMenuItem(title: String(localized: "Prevent sleep", bundle: .module), action: #selector(togglePreventSleep), keyEquivalent: "")
+        sleepItem.target = self
+        sleepItem.state = MainActor.assumeIsolated { AppState.shared.preventSleepEnabled } ? .on : .off
+        menu.addItem(sleepItem)
+
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(title: String(localized: "Quit McClaw", bundle: .module), action: #selector(forceQuitApp), keyEquivalent: "q")
@@ -277,6 +282,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
         NSApp.activate(ignoringOtherApps: true)
         Task { @MainActor in
             AppState.shared.openChatWindowAction?()
+        }
+    }
+
+    @objc private func togglePreventSleep() {
+        Task { @MainActor in
+            let state = AppState.shared
+            state.preventSleepEnabled.toggle()
+            SleepPreventionService.shared.update(enabled: state.preventSleepEnabled)
+            try? await ConfigStore.shared.saveFromState()
         }
     }
 
@@ -377,6 +391,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
 
     func applicationWillTerminate(_ notification: Notification) {
         logger.info("McClaw shutting down...")
+        CronJobsStore.shared.stop()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

@@ -6,7 +6,7 @@ import McClawKit
 /// Works independently of Gateway — runs as long as McClaw is alive
 /// (even when minimized to the menu bar).
 ///
-/// - Claude provider: delegates to `claude task` (native scheduling).
+/// - Claude provider: skipped here — runs via BackgroundCLISession (/loop).
 /// - Other providers: this scheduler handles execution directly via CLIBridge.
 @MainActor
 final class LocalScheduler {
@@ -56,7 +56,7 @@ final class LocalScheduler {
         let nowMs = Int(Date().timeIntervalSince1970 * 1000)
 
         for job in store.jobs where job.enabled {
-            // Skip Claude-native jobs (agentId nil or "claude") — they use `claude task`
+            // Skip Claude jobs — they run via BackgroundCLISession (/loop)
             let agent = job.agentId ?? ""
             if agent.isEmpty || agent == "claude" { continue }
 
@@ -240,7 +240,8 @@ final class LocalScheduler {
             startMs: startMs,
             status: status,
             error: hadError ? errorMessage : nil,
-            durationMs: durationMs
+            durationMs: durationMs,
+            summary: summary
         )
 
         // Deliver results
@@ -463,6 +464,17 @@ final class LocalScheduler {
     ]
 
     /// Deliver job results to configured targets (notifications, native channels, etc.).
+    /// Also callable by CronJobsStore for BackgroundCLISession task results.
+    func deliverCronResults(
+        delivery: CronDelivery,
+        job: CronJob,
+        summary: String,
+        status: ScheduleNotification.Status
+    ) async {
+        await deliverResults(delivery: delivery, job: job, summary: summary, status: status)
+    }
+
+    /// Internal delivery implementation.
     private func deliverResults(
         delivery: CronDelivery,
         job: CronJob,
@@ -532,7 +544,8 @@ final class LocalScheduler {
         startMs: Int,
         status: String,
         error: String? = nil,
-        durationMs: Int? = nil
+        durationMs: Int? = nil,
+        summary: String? = nil
     ) {
         let store = CronJobsStore.shared
         guard let index = store.jobs.firstIndex(where: { $0.id == jobId }) else { return }
@@ -578,6 +591,16 @@ final class LocalScheduler {
         )
         store.jobs[index] = updated
         store.persistLocalJobs()
+
+        // Append to local run log so Run History shows entries
+        store.appendRunLog(
+            jobId: jobId,
+            status: status,
+            summary: summary,
+            error: error,
+            startMs: startMs,
+            durationMs: durationMs
+        )
     }
 
     /// Post a notification to the ScheduleNotificationStore.

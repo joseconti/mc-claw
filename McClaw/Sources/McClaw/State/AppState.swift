@@ -134,6 +134,9 @@ final class AppState {
     /// Enable menu bar icon animations
     var iconAnimationsEnabled: Bool = true
 
+    /// Prevent Mac from sleeping while McClaw is running
+    var preventSleepEnabled: Bool = false
+
     /// Show debug pane in settings
     var debugPaneEnabled: Bool = false
 

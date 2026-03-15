@@ -344,8 +344,9 @@ final class ChatViewModel {
             skills: LocalSkillsStore.shared.activeSkills()
         )
 
-        // Combine prompts
-        let interactiveInstruction = appState.planModeActive ? nil : interactivePromptInstruction()
+        // Combine prompts (skip interactive prompts for local/small models that misuse them)
+        let supportsInteractivePrompts = !["ollama", "bitnet"].contains(provider.id)
+        let interactiveInstruction = appState.planModeActive || !supportsInteractivePrompts ? nil : interactivePromptInstruction()
         let combinedPrompt: String? = [projectSystemPrompt, skillsPrompt, interactiveInstruction]
             .compactMap { $0 }
             .joined(separator: "\n\n")
@@ -462,8 +463,10 @@ final class ChatViewModel {
                 }
             }
 
-            // Check for @fetch commands in the AI response (skip in plan mode — no side effects)
-            if !hasError && !planMode && ConnectorsKit.containsFetchCommand(assistantMessage.content) &&
+            // Check for @fetch commands in the AI response (skip in plan mode and local models)
+            let providerSupportsEnrichment = !["ollama", "bitnet"].contains(provider.id)
+            if !hasError && !planMode && providerSupportsEnrichment &&
+               ConnectorsKit.containsFetchCommand(assistantMessage.content) &&
                fetchRound < ConnectorsKit.maxFetchRoundsPerTurn {
                 let (cleanResponse, fetchResults) = await self.enrichmentService.parseAndExecuteFetch(
                     response: assistantMessage.content,
@@ -489,8 +492,8 @@ final class ChatViewModel {
                 }
             }
 
-            // Check for @git() commands in the AI response
-            if !hasError && !planMode && gitContext != nil &&
+            // Check for @git() commands in the AI response (skip for local models)
+            if !hasError && !planMode && providerSupportsEnrichment && gitContext != nil &&
                assistantMessage.content.contains("@git(") &&
                fetchRound < ConnectorsKit.maxFetchRoundsPerTurn {
                 let (cleanResponse, gitResults) = await self.enrichmentService.parseAndExecuteGit(
@@ -517,8 +520,8 @@ final class ChatViewModel {
                 }
             }
 
-            // Check for @git-confirm() and @fetch-confirm() in the AI response
-            if !hasError && !planMode {
+            // Check for @git-confirm() and @fetch-confirm() in the AI response (skip for local models)
+            if !hasError && !planMode && providerSupportsEnrichment {
                 let gitConfirmations = self.enrichmentService.detectGitConfirmations(in: assistantMessage.content)
                 let fetchConfirmations = self.enrichmentService.detectFetchConfirmations(in: assistantMessage.content)
                 let allConfirmations = gitConfirmations + fetchConfirmations

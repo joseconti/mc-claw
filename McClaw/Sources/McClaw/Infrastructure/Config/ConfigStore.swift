@@ -105,6 +105,8 @@ actor ConfigStore {
 
         // UI preferences
         state.keepInMenuBar = config.keepInMenuBar
+        state.preventSleepEnabled = config.preventSleepEnabled
+        SleepPreventionService.shared.update(enabled: config.preventSleepEnabled)
         if let fontSize = config.chatFontSize {
             state.chatFontSize = fontSize
         }
@@ -196,6 +198,7 @@ actor ConfigStore {
             userEmail: state.userEmail,
             userDescription: state.userDescription,
             keepInMenuBar: state.keepInMenuBar,
+            preventSleepEnabled: state.preventSleepEnabled,
             chatFontSize: state.chatFontSize,
             appColorScheme: state.appColorScheme,
             chatFontFamily: state.chatFontFamily,
@@ -264,6 +267,7 @@ struct McClawConfig: Codable, Sendable {
 
     // UI preferences
     var keepInMenuBar: Bool
+    var preventSleepEnabled: Bool
     var chatFontSize: CGFloat?
     var appColorScheme: AppColorScheme?
     var chatFontFamily: ChatFontFamily?
@@ -335,6 +339,7 @@ struct McClawConfig: Codable, Sendable {
         userEmail: String? = nil,
         userDescription: String? = nil,
         keepInMenuBar: Bool = false,
+        preventSleepEnabled: Bool = false,
         chatFontSize: CGFloat? = nil,
         appColorScheme: AppColorScheme? = nil,
         chatFontFamily: ChatFontFamily? = nil,
@@ -385,6 +390,7 @@ struct McClawConfig: Codable, Sendable {
         self.userEmail = userEmail
         self.userDescription = userDescription
         self.keepInMenuBar = keepInMenuBar
+        self.preventSleepEnabled = preventSleepEnabled
         self.chatFontSize = chatFontSize
         self.appColorScheme = appColorScheme
         self.chatFontFamily = chatFontFamily
@@ -438,6 +444,7 @@ struct McClawConfig: Codable, Sendable {
         userEmail = try container.decodeIfPresent(String.self, forKey: .userEmail)
         userDescription = try container.decodeIfPresent(String.self, forKey: .userDescription)
         keepInMenuBar = try container.decodeIfPresent(Bool.self, forKey: .keepInMenuBar) ?? false
+        preventSleepEnabled = try container.decodeIfPresent(Bool.self, forKey: .preventSleepEnabled) ?? false
         chatFontSize = try container.decodeIfPresent(CGFloat.self, forKey: .chatFontSize)
         appColorScheme = try container.decodeIfPresent(AppColorScheme.self, forKey: .appColorScheme)
         chatFontFamily = try container.decodeIfPresent(ChatFontFamily.self, forKey: .chatFontFamily)

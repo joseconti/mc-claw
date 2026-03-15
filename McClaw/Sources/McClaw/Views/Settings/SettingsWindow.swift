@@ -490,6 +490,17 @@ struct GeneralSettingsTab: View {
                 description: "Animate the menu bar icon when the AI is working.",
                 isOn: $state.iconAnimationsEnabled
             )
+            settingsToggleRow(
+                title: String(localized: "Prevent sleep", bundle: .module),
+                description: String(localized: "Keep the Mac awake while McClaw is running.", bundle: .module),
+                isOn: Binding(
+                    get: { state.preventSleepEnabled },
+                    set: { newValue in
+                        state.preventSleepEnabled = newValue
+                        SleepPreventionService.shared.update(enabled: newValue)
+                    }
+                )
+            )
 
             sectionDivider()
 

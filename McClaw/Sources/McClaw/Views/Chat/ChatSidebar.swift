@@ -372,9 +372,7 @@ private struct SidebarNavItem: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(.quaternary)
-                        .clipShape(Capsule())
-                        .liquidGlassCapsule(interactive: false)
+                        .background(Color.gray.opacity(0.15), in: Capsule())
                 }
             }
             .padding(.horizontal, 14)

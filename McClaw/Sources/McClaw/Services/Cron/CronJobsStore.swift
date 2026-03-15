@@ -3,8 +3,8 @@ import Logging
 import McClawProtocol
 
 /// Manages cron jobs with hybrid backend:
-/// - Claude CLI: delegates to `claude task` (native scheduling)
-/// - Other providers: uses LocalScheduler for background execution
+/// - Claude CLI: delegates to BackgroundCLISession (persistent process with /loop)
+/// - Other providers: uses LocalScheduler for background execution via CLIBridge
 @MainActor
 @Observable
 final class CronJobsStore {
@@ -18,6 +18,11 @@ final class CronJobsStore {
     var schedulerStorePath: String?
     var schedulerNextWakeAtMs: Int?
 
+    /// Whether the Claude background session is active.
+    var claudeSessionActive = false
+    /// PID of the Claude background process (for diagnostics).
+    var claudeSessionPID: Int32?
+
     var isLoadingJobs = false
     var isLoadingRuns = false
     var lastError: String?
@@ -27,6 +32,7 @@ final class CronJobsStore {
     private var pollTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private var runsTask: Task<Void, Never>?
+    private var sessionEventTask: Task<Void, Never>?
 
     private let pollInterval: TimeInterval = 30
 
@@ -35,6 +41,15 @@ final class CronJobsStore {
             .appendingPathComponent(".mcclaw", isDirectory: true)
         return dir.appendingPathComponent("schedules.json")
     }()
+
+    private static let runLogsURL: URL = {
+        let dir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".mcclaw", isDirectory: true)
+        return dir.appendingPathComponent("run-logs.json")
+    }()
+
+    /// Maximum number of run log entries to keep per job.
+    private static let maxRunLogsPerJob = 50
 
     private init() {
         loadLocalJobs()
@@ -55,7 +70,10 @@ final class CronJobsStore {
         // Start LocalScheduler for non-Claude providers
         LocalScheduler.shared.start()
 
-        // Start polling (for Claude task sync + local job state refresh)
+        // Start BackgroundCLISession for Claude scheduled tasks
+        startClaudeBackgroundSession()
+
+        // Start polling (for local job state refresh)
         pollTask = Task.detached { [weak self] in
             guard let self else { return }
             await self.refreshJobs()
@@ -73,7 +91,99 @@ final class CronJobsStore {
         refreshTask = nil
         runsTask?.cancel()
         runsTask = nil
+        sessionEventTask?.cancel()
+        sessionEventTask = nil
         LocalScheduler.shared.stop()
+        Task {
+            await BackgroundCLISession.shared.stop()
+        }
+    }
+
+    /// Start the Claude background session and monitor its events.
+    private func startClaudeBackgroundSession() {
+        // Only start if there are enabled Claude jobs
+        let hasClaudeJobs = jobs.contains { job in
+            let agent = job.agentId ?? ""
+            return job.enabled && (agent.isEmpty || agent == "claude")
+        }
+        guard hasClaudeJobs else {
+            logger.info("No enabled Claude jobs, skipping background session")
+            return
+        }
+
+        sessionEventTask = Task { [weak self] in
+            let stream = await BackgroundCLISession.shared.start()
+            for await event in stream {
+                guard let self, !Task.isCancelled else { break }
+                await self.handleSessionEvent(event)
+            }
+        }
+    }
+
+    /// Handle events from the BackgroundCLISession.
+    private func handleSessionEvent(_ event: BackgroundCLISession.SessionEvent) {
+        switch event {
+        case .stateChanged(let newState):
+            claudeSessionActive = (newState == .running)
+            if newState == .running {
+                Task {
+                    claudeSessionPID = await BackgroundCLISession.shared.processId
+                }
+            } else {
+                claudeSessionPID = nil
+            }
+            logger.info("Claude background session state: \(newState)")
+
+        case .taskFired(let taskId, let output):
+            logger.info("Claude task fired: \(taskId), output: \(output.prefix(200))")
+            let nowMs = Int(Date().timeIntervalSince1970 * 1000)
+            if let index = jobs.firstIndex(where: { $0.id == taskId }) {
+                var state = jobs[index].state
+                state.lastRunAtMs = nowMs
+                state.lastStatus = "ok"
+                state.lastError = nil
+                let job = jobs[index]
+                jobs[index] = CronJob(
+                    id: job.id, agentId: job.agentId, model: job.model,
+                    name: job.name, description: job.description,
+                    enabled: job.enabled, deleteAfterRun: job.deleteAfterRun,
+                    createdAtMs: job.createdAtMs, updatedAtMs: nowMs,
+                    schedule: job.schedule, sessionTarget: job.sessionTarget,
+                    wakeMode: job.wakeMode, payload: job.payload,
+                    delivery: job.delivery, state: state
+                )
+                persistLocalJobs()
+
+                appendRunLog(
+                    jobId: taskId,
+                    status: "ok",
+                    summary: String(output.prefix(500)),
+                    startMs: nowMs
+                )
+
+                if let delivery = job.delivery {
+                    let summary = String(output.prefix(500))
+                    Task {
+                        await LocalScheduler.shared.deliverCronResults(
+                            delivery: delivery, job: job,
+                            summary: summary, status: .success
+                        )
+                    }
+                }
+            }
+
+        case .error(let msg):
+            logger.error("Claude background session error: \(msg)")
+            lastError = msg
+
+        case .processExited(let status):
+            logger.warning("Claude background process exited: \(status)")
+            claudeSessionActive = false
+            claudeSessionPID = nil
+
+        case .text:
+            break
+        }
     }
 
     // MARK: - Refresh
@@ -85,17 +195,11 @@ final class CronJobsStore {
         statusMessage = nil
         defer { isLoadingJobs = false }
 
-        // Check if current provider is Claude (uses native task scheduling)
-        if isClaudeProvider {
-            await refreshClaudeJobs()
-            // Also merge in local jobs (user may have created schedules for other providers)
-            mergeLocalJobs()
-            return
-        }
-
-        // Local scheduler for non-Claude providers
         loadLocalJobs()
         schedulerEnabled = true
+
+        claudeSessionActive = await BackgroundCLISession.shared.isRunning
+
         if jobs.isEmpty {
             statusMessage = "No scheduled tasks yet."
         }
@@ -106,17 +210,18 @@ final class CronJobsStore {
         isLoadingRuns = true
         defer { isLoadingRuns = false }
 
-        if isClaudeProvider {
-            // Claude CLI doesn't have run logs via Gateway
-            runEntries = []
+        if isLocalJob(jobId) {
+            // Local jobs: load from local run log file
+            runEntries = loadLocalRunLogs(jobId: jobId, limit: limit)
             return
         }
 
+        // Gateway jobs: fetch from WebSocket
         do {
             runEntries = try await GatewayConnectionService.shared.cronRuns(jobId: jobId, limit: limit)
         } catch {
             logger.error("cron.runs failed: \(error.localizedDescription)")
-            lastError = error.localizedDescription
+            runEntries = []
         }
     }
 
@@ -125,15 +230,9 @@ final class CronJobsStore {
     func runJob(id: String, force: Bool = true) async {
         guard let job = jobs.first(where: { $0.id == id }) else { return }
 
-        // Claude tasks use native `claude task` — can't force-run
-        if isClaudeProvider && job.agentId == nil {
-            return
-        }
-
-        // For local jobs, execute directly via LocalScheduler logic
+        // Local jobs: execute via LocalScheduler (CLIBridge one-shot).
         if isLocalJob(id) {
-            // Mark as running and let LocalScheduler handle it
-            logger.info("Manual run of local job '\(job.displayName)'")
+            logger.info("Manual run of job '\(job.displayName)'")
             Task {
                 await LocalScheduler.shared.manualRun(job: job)
             }
@@ -149,13 +248,9 @@ final class CronJobsStore {
     }
 
     func removeJob(id: String) async {
-        if isClaudeProvider, let job = jobs.first(where: { $0.id == id }), job.agentId == nil {
-            await removeClaudeTask(id: id)
-            return
-        }
-
         // Remove from local storage
         jobs.removeAll { $0.id == id }
+        localJobIds.remove(id)
         persistLocalJobs()
         if selectedJobId == id {
             selectedJobId = nil
@@ -182,7 +277,7 @@ final class CronJobsStore {
     }
 
     func upsertJob(id: String?, payload: [String: AnyCodableValue]) async throws {
-        // Always save locally so the job is visible in the list
+        // Save locally so the job is visible in the list
         let job = buildCronJob(from: payload, existingId: id)
         if let existingIndex = jobs.firstIndex(where: { $0.id == job.id }) {
             jobs[existingIndex] = job
@@ -191,139 +286,61 @@ final class CronJobsStore {
         }
         persistLocalJobs()
 
-        // Additionally delegate to Claude CLI for native scheduling (best-effort)
-        if isClaudeProvider {
-            let agentId = payload["agentId"]
-            let isForClaude = agentId == nil || agentId == .string("claude") || agentId == .string("")
-            if isForClaude {
-                do {
-                    try await upsertClaudeTask(payload: payload)
-                } catch {
-                    logger.warning("Claude task create failed (job saved locally): \(error.localizedDescription)")
+        // For Claude jobs, register in BackgroundCLISession via /loop
+        let agentId = payload["agentId"]
+        let isForClaude = agentId == nil || agentId == .string("claude") || agentId == .string("")
+        if isForClaude && job.enabled {
+            if await !BackgroundCLISession.shared.isRunning {
+                startClaudeBackgroundSession()
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+
+            if let interval = scheduleToLoopInterval(job.schedule) {
+                let message: String
+                switch job.payload {
+                case .agentTurn(let msg, _, _, _, _, _, _, _): message = msg
+                case .systemEvent(let text): message = text
+                }
+                if !message.isEmpty {
+                    let sent = await BackgroundCLISession.shared.scheduleTask(
+                        interval: interval, message: message
+                    )
+                    if !sent {
+                        logger.warning("Failed to register Claude task '\(job.displayName)' in background session")
+                    }
                 }
             }
         }
     }
 
-    // MARK: - Claude CLI Task Integration
+    /// Convert CronSchedule to a simple interval string for /loop.
+    private func scheduleToLoopInterval(_ schedule: CronSchedule) -> String? {
+        switch schedule {
+        case .every(let everyMs, _):
+            let seconds = everyMs / 1000
+            if seconds < 60 { return "\(seconds)s" }
+            let minutes = seconds / 60
+            if minutes < 60 { return "\(minutes)m" }
+            let hours = minutes / 60
+            return "\(hours)h"
+        case .cron(let expr, _):
+            let parts = expr.trimmingCharacters(in: .whitespaces)
+                .components(separatedBy: .whitespaces)
+                .filter { !$0.isEmpty }
+            guard parts.count >= 5 else { return nil }
+            if parts[0].hasPrefix("*/"), let n = Int(parts[0].dropFirst(2)) { return "\(n)m" }
+            if parts[0] != "*" && parts[1] == "*" { return "1h" }
+            if parts[0] != "*" && parts[1] != "*" { return "24h" }
+            return "1h"
+        case .at:
+            return nil
+        }
+    }
+
+    // MARK: - Claude Provider Check
 
     private var isClaudeProvider: Bool {
         AppState.shared.currentCLIIdentifier == "claude"
-    }
-
-    /// Refresh jobs from `claude task list` output.
-    /// Only replaces Claude-sourced jobs; local jobs are preserved.
-    private func refreshClaudeJobs() async {
-        do {
-            let output = try await runClaudeCommand(["task", "list", "--json"])
-            let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            // Empty output or non-JSON means no tasks from Claude CLI
-            guard !trimmed.isEmpty, trimmed.hasPrefix("[") || trimmed.hasPrefix("{"),
-                  let data = trimmed.data(using: .utf8) else {
-                // Remove only Claude-sourced jobs (non-local), keep local jobs
-                jobs.removeAll { !localJobIds.contains($0.id) }
-                if jobs.isEmpty {
-                    statusMessage = "No scheduled tasks."
-                }
-                return
-            }
-
-            let tasks = try JSONDecoder().decode([ClaudeTask].self, from: data)
-            let claudeJobs = tasks.map { $0.toCronJob() }
-
-            // Remove old Claude-sourced jobs, keep local, add fresh Claude jobs
-            jobs.removeAll { !localJobIds.contains($0.id) }
-            for cj in claudeJobs where !jobs.contains(where: { $0.id == cj.id }) {
-                jobs.append(cj)
-            }
-
-            if jobs.isEmpty {
-                statusMessage = "No scheduled tasks."
-            }
-        } catch {
-            logger.error("claude task list failed: \(error.localizedDescription)")
-            // Keep local jobs intact — only clear Claude-sourced ones
-            jobs.removeAll { !localJobIds.contains($0.id) }
-            if jobs.isEmpty {
-                statusMessage = "No scheduled tasks (or `claude task` not available)."
-            }
-        }
-    }
-
-    private func removeClaudeTask(id: String) async {
-        do {
-            _ = try await runClaudeCommand(["task", "delete", id])
-            await refreshJobs()
-            if selectedJobId == id {
-                selectedJobId = nil
-                runEntries = []
-            }
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
-    private func upsertClaudeTask(payload: [String: AnyCodableValue]) async throws {
-        // Extract fields from payload for claude task create
-        var args = ["task", "create"]
-
-        if case .string(let name) = payload["name"] {
-            args += ["--name", name]
-        }
-        if case .dictionary(let schedule) = payload["schedule"],
-           case .string(let kind) = schedule["kind"] {
-            switch kind {
-            case "every":
-                if case .int(let ms) = schedule["everyMs"] {
-                    args += ["--every", DurationFormatting.concise(ms: ms)]
-                }
-            case "cron":
-                if case .string(let expr) = schedule["expr"] {
-                    args += ["--cron", expr]
-                }
-            case "at":
-                if case .string(let at) = schedule["at"] {
-                    args += ["--at", at]
-                }
-            default:
-                break
-            }
-        }
-        if case .dictionary(let payloadDict) = payload["payload"],
-           case .string(let message) = payloadDict["message"] {
-            args += ["--message", message]
-        } else if case .dictionary(let payloadDict) = payload["payload"],
-                  case .string(let text) = payloadDict["text"] {
-            args += ["--message", text]
-        }
-
-        _ = try await runClaudeCommand(args)
-        await refreshJobs()
-    }
-
-    /// Run a Claude CLI command and return stdout.
-    private func runClaudeCommand(_ args: [String]) async throws -> String {
-        guard let cli = AppState.shared.currentCLI,
-              let binaryPath = cli.binaryPath else {
-            throw CronError.noCLI
-        }
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: binaryPath)
-        process.arguments = args
-        process.environment = ProcessInfo.processInfo.environment
-        process.environment?["NO_COLOR"] = "1"
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-
-        try process.run()
-        process.waitUntilExit()
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8) ?? ""
     }
 
     // MARK: - Local Job Persistence
@@ -360,20 +377,78 @@ final class CronJobsStore {
         }
     }
 
-    /// Merge local jobs into the current jobs list (for Claude provider that also has local jobs).
-    private func mergeLocalJobs() {
-        guard FileManager.default.fileExists(atPath: Self.localJobsURL.path) else { return }
+    // MARK: - Local Run Logs
+
+    /// Append a run log entry for a local job and persist to disk.
+    func appendRunLog(
+        jobId: String,
+        status: String,
+        summary: String? = nil,
+        error: String? = nil,
+        startMs: Int,
+        durationMs: Int? = nil
+    ) {
+        let entry = CronRunLogEntry(
+            ts: startMs,
+            jobId: jobId,
+            action: "run",
+            status: status,
+            error: error,
+            summary: summary,
+            runAtMs: startMs,
+            durationMs: durationMs,
+            nextRunAtMs: nil
+        )
+
+        // If viewing this job, update the UI immediately
+        if selectedJobId == jobId {
+            runEntries.insert(entry, at: 0)
+        }
+
+        // Persist to disk
+        var allLogs = loadAllRunLogs()
+        allLogs.append(entry)
+
+        // Trim: keep only the last N entries per job
+        let grouped = Dictionary(grouping: allLogs, by: \.jobId)
+        var trimmed: [CronRunLogEntry] = []
+        for (_, entries) in grouped {
+            let sorted = entries.sorted { $0.ts > $1.ts }
+            trimmed.append(contentsOf: sorted.prefix(Self.maxRunLogsPerJob))
+        }
+
+        persistRunLogs(trimmed)
+    }
+
+    /// Load run log entries for a specific job from local storage.
+    private func loadLocalRunLogs(jobId: String, limit: Int) -> [CronRunLogEntry] {
+        let allLogs = loadAllRunLogs()
+        return allLogs
+            .filter { $0.jobId == jobId }
+            .sorted { $0.ts > $1.ts }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    private func loadAllRunLogs() -> [CronRunLogEntry] {
+        guard FileManager.default.fileExists(atPath: Self.runLogsURL.path) else { return [] }
         do {
-            let data = try Data(contentsOf: Self.localJobsURL)
-            let loaded = try JSONDecoder().decode([CronJob].self, from: data)
-            for job in loaded {
-                localJobIds.insert(job.id)
-                if !jobs.contains(where: { $0.id == job.id }) {
-                    jobs.append(job)
-                }
-            }
+            let data = try Data(contentsOf: Self.runLogsURL)
+            return try JSONDecoder().decode([CronRunLogEntry].self, from: data)
         } catch {
-            logger.error("Failed to load local jobs for merge: \(error.localizedDescription)")
+            logger.error("Failed to load run logs: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    private func persistRunLogs(_ logs: [CronRunLogEntry]) {
+        do {
+            let dir = Self.runLogsURL.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(logs)
+            try data.write(to: Self.runLogsURL, options: .atomic)
+        } catch {
+            logger.error("Failed to persist run logs: \(error.localizedDescription)")
         }
     }
 
@@ -570,52 +645,3 @@ enum CronError: Error, LocalizedError {
     }
 }
 
-// MARK: - Claude Task DTO
-
-/// Maps `claude task list --json` output to CronJob.
-private struct ClaudeTask: Codable {
-    let id: String
-    let name: String?
-    let schedule: String?
-    let message: String?
-    let createdAt: String?
-    let enabled: Bool?
-
-    func toCronJob() -> CronJob {
-        let now = Int(Date().timeIntervalSince1970 * 1000)
-        let scheduleModel: CronSchedule
-        if let schedule, schedule.contains("*") {
-            scheduleModel = .cron(expr: schedule, tz: nil)
-        } else if let schedule, let ms = DurationFormatting.parseDurationMs(schedule) {
-            scheduleModel = .every(everyMs: ms, anchorMs: nil)
-        } else {
-            scheduleModel = .every(everyMs: 3_600_000, anchorMs: nil)
-        }
-
-        return CronJob(
-            id: id,
-            agentId: nil,
-            model: nil,
-            name: name ?? "Claude Task",
-            description: nil,
-            enabled: enabled ?? true,
-            deleteAfterRun: nil,
-            createdAtMs: now,
-            updatedAtMs: now,
-            schedule: scheduleModel,
-            sessionTarget: .isolated,
-            wakeMode: .now,
-            payload: .agentTurn(
-                message: message ?? "",
-                thinking: nil,
-                timeoutSeconds: nil,
-                deliver: nil,
-                channel: nil,
-                to: nil,
-                bestEffortDeliver: nil,
-                connectorBindings: nil),
-            delivery: nil,
-            state: CronJobState()
-        )
-    }
-}

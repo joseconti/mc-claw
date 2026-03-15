@@ -15,6 +15,8 @@
 // =============================================================================
 
 "Open McClaw" = "Open McClaw";
+"Prevent sleep" = "Prevent sleep";
+"Keep the Mac awake while McClaw is running." = "Keep the Mac awake while McClaw is running.";
 "Quit McClaw" = "Quit McClaw";
 
 // =============================================================================
@@ -1682,3 +1684,7 @@
 
 // MARK: - Git Chain Depth
 "git_chain_depth_exceeded" = "Maximum chain depth reached (10 steps). Please start a new request to continue.";
+
+// MARK: - Cron / BackgroundCLISession
+"cron.description" = "Manage scheduled jobs. Claude uses a persistent background session; other providers use the local scheduler.";
+"cron.claude.session.active" = "Claude background session active";

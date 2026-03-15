@@ -8,11 +8,13 @@ struct CronSettings: View {
     @State var editorError: String?
     @State var isSaving = false
     @State var confirmDelete: CronJob?
+    @State var runningJobId: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
             schedulerBanner
+            claudeSessionBanner
             content
             Spacer(minLength: 0)
         }
@@ -60,7 +62,7 @@ struct CronSettings: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Cron")
                     .font(.headline)
-                Text("Manage scheduled jobs. Claude uses native `claude task`; other providers use Gateway cron.")
+                Text(String(localized: "cron.description", defaultValue: "Manage scheduled jobs. Claude uses a persistent background session; other providers use the local scheduler.", bundle: .module))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -117,6 +119,31 @@ struct CronSettings: View {
                 .padding(10)
                 .background(Color.orange.opacity(0.10))
                 .cornerRadius(8)
+            }
+        }
+    }
+
+    // MARK: - Claude Session Banner
+
+    private var claudeSessionBanner: some View {
+        Group {
+            if store.claudeSessionActive {
+                HStack(spacing: 8) {
+                    Image(systemName: "circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption2)
+                    Text(String(localized: "cron.claude.session.active", defaultValue: "Claude background session active", bundle: .module))
+                        .font(.footnote)
+                    if let pid = store.claudeSessionPID {
+                        Text("PID \(pid)")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .padding(8)
+                .background(Color.green.opacity(0.08))
+                .cornerRadius(6)
             }
         }
     }
@@ -192,7 +219,9 @@ struct CronSettings: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                if !job.enabled {
+                if runningJobId == job.id {
+                    statusPill("running…", tint: .blue)
+                } else if !job.enabled {
                     statusPill("disabled", tint: .secondary)
                 } else if let next = job.nextRunDate {
                     statusPill(nextRunLabel(next), tint: .secondary)
@@ -216,7 +245,7 @@ struct CronSettings: View {
 
     @ViewBuilder
     private func jobContextMenu(_ job: CronJob) -> some View {
-        Button("Run now") { Task { await store.runJob(id: job.id, force: true) } }
+        Button("Run now") { runJob(job) }
         Divider()
         Button(job.enabled ? "Disable" : "Enable") {
             Task { await store.setJobEnabled(id: job.id, enabled: !job.enabled) }
@@ -253,8 +282,19 @@ struct CronSettings: View {
                     set: { enabled in Task { await store.setJobEnabled(id: job.id, enabled: enabled) } }))
                     .toggleStyle(.switch)
                     .labelsHidden()
-                Button("Run") { Task { await store.runJob(id: job.id, force: true) } }
-                    .buttonStyle(.borderedProminent)
+                Button {
+                    runJob(job)
+                } label: {
+                    if runningJobId == job.id {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 40)
+                    } else {
+                        Text("Run")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(runningJobId == job.id)
                 Button("Edit") {
                     editingJob = job
                     editorError = nil
@@ -418,6 +458,33 @@ struct CronSettings: View {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: - Run
+
+    /// Execute a job manually with visual feedback (spinner + state refresh).
+    private func runJob(_ job: CronJob) {
+        guard runningJobId == nil else { return }
+        runningJobId = job.id
+        Task {
+            await store.runJob(id: job.id, force: true)
+            // Wait for execution to complete by polling job state
+            // LocalScheduler.manualRun runs async, so we poll until lastRunAtMs changes
+            let startMs = job.state.lastRunAtMs
+            for _ in 0..<120 { // up to 2 minutes
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                if let updated = store.jobs.first(where: { $0.id == job.id }),
+                   updated.state.lastRunAtMs != startMs {
+                    break
+                }
+            }
+            runningJobId = nil
+            // Refresh to show updated state
+            await store.refreshJobs()
+            if let selectedId = store.selectedJobId {
+                await store.refreshRuns(jobId: selectedId)
             }
         }
     }

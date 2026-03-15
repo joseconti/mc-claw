@@ -17,8 +17,7 @@ struct SchedulesContentView: View {
             schedulerBanner
             content
         }
-        .onAppear { store.start() }
-        .onDisappear { store.stop() }
+        .onAppear { Task { await store.refreshJobs() } }
         .sheet(isPresented: $showEditor) {
             CronJobEditor(
                 job: editingJob,

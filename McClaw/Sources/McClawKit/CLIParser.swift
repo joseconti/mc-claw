@@ -260,6 +260,54 @@ public enum CLIParser {
         }
     }
 
+    // MARK: - Background Session Arguments (Claude only)
+
+    /// Build CLI arguments for a persistent Claude background session.
+    /// Unlike `buildArguments`, this does NOT use `--print` (so the process stays alive)
+    /// and adds `--input-format stream-json` so messages can be sent via stdin.
+    /// This mirrors the VS Code extension's approach to Claude CLI communication.
+    public static func buildBackgroundSessionArguments(
+        sessionId: String,
+        model: String? = nil,
+        systemPrompt: String? = nil
+    ) -> [String] {
+        var args = ["--output-format", "stream-json", "--verbose", "--input-format", "stream-json"]
+        if let model { args += ["--model", model] }
+        if let systemPrompt, !systemPrompt.isEmpty {
+            args += ["--system-prompt", systemPrompt]
+        }
+        args += ["--session-id", sessionId]
+        return args
+    }
+
+    /// Encode a user message as a JSON line for stdin in stream-json input mode.
+    /// Returns the JSON string with a trailing newline.
+    public static func encodeStdinMessage(_ text: String) -> String {
+        let payload: [String: Any] = [
+            "type": "user_message",
+            "message": text,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else {
+            return ""
+        }
+        return json + "\n"
+    }
+
+    /// Encode a control request (e.g. interrupt) as a JSON line for stdin.
+    public static func encodeControlRequest(subtype: String, requestId: String = UUID().uuidString) -> String {
+        let payload: [String: Any] = [
+            "type": "control_request",
+            "request_id": requestId,
+            "request": ["subtype": subtype],
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else {
+            return ""
+        }
+        return json + "\n"
+    }
+
     /// Build a prefix block for providers that don't support --system-prompt natively.
     private static func systemPromptPrefix(_ systemPrompt: String?, provider: String) -> String {
         guard let prompt = systemPrompt, !prompt.isEmpty else { return "" }
