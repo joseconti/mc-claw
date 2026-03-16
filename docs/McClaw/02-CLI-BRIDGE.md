@@ -15,7 +15,7 @@ CLI Bridge Layer
     +---> gemini (Google CLI)
     +---> ollama (local)
     +---> copilot (GitHub CLI)
-    +---> aider (multi-model)
+    +---> codex (multi-model)
     +---> any compatible CLI
 ```
 
@@ -406,7 +406,7 @@ actor CLIDetector {
         ChatGPTCLIProvider(),
         OllamaCLIProvider(),
         GeminiCLIProvider(),
-        AiderCLIProvider(),
+        CodexCLIProvider(),
         CopilotCLIProvider()
     ]
 

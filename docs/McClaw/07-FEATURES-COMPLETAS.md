@@ -10,7 +10,7 @@ McClaw provides all features adapted to a native Mac app, including features spe
 
 ### 2.1 Automatic CLI Detection
 - Scanning of installed CLIs at startup and on demand
-- Support for: Claude CLI, ChatGPT CLI, Gemini CLI, Ollama, Copilot CLI, Aider
+- Support for: Claude CLI, ChatGPT CLI, Gemini CLI, Ollama, Copilot CLI, Codex
 - Extension for user-defined custom CLIs
 - Version and authentication status verification
 
