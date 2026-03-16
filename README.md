@@ -24,8 +24,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%2015+-blue?logo=apple" alt="macOS 15+">
   <img src="https://img.shields.io/badge/swift-6.0-orange?logo=swift" alt="Swift 6.0">
-  <img src="https://img.shields.io/github/license/joseconti/mc-claw" alt="License">
-  <img src="https://img.shields.io/badge/version-0.10--beta-blue" alt="v0.8-beta">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue" alt="License: GPL v3"></a>
+  <img src="https://img.shields.io/badge/version-0.10--beta-blue" alt="v0.10-beta">
   <img src="https://img.shields.io/badge/tests-859%20passing-brightgreen" alt="Tests">
 </p>
 
@@ -254,6 +254,11 @@ Full architecture documentation is available in the [`docs/McClaw/`](docs/McClaw
 ## License
 
 McClaw is released under the [GNU General Public License v3.0](LICENSE).
+
+This means:
+- **Forks must also be GPLv3** — any derivative work must be released under the same license.
+- **Source code must be public** — if you distribute a modified version, you must make the complete source code available to everyone.
+- **No proprietary forks** — you cannot take this code and make it closed-source.
 
 ## Author
 
