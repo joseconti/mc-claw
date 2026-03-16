@@ -638,6 +638,8 @@ struct GeneralSettingsTab: View {
         .onChange(of: appState.chatFontFamily) { _, _ in saveConfig() }
         .onChange(of: appState.appColorScheme) { _, _ in saveConfig() }
         .onChange(of: appState.keepInMenuBar) { _, _ in saveConfig() }
+        .onChange(of: appState.memoryProviderId) { _, _ in saveConfig() }
+        .onChange(of: appState.projectMemoryAutoUpdate) { _, _ in saveConfig() }
         .onChange(of: appState.userName) { _, _ in saveProfileDebounced() }
         .onChange(of: appState.userEmail) { _, newEmail in
             saveProfileDebounced()
