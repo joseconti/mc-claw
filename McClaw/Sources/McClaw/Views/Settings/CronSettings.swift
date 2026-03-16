@@ -63,7 +63,7 @@ struct CronSettings: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Cron")
                     .font(.headline)
-                Text(String(localized: "cron.description", defaultValue: "Manage scheduled jobs. Claude uses a persistent background session; other providers use the local scheduler.", bundle: .module))
+                Text(String(localized: "cron.description", defaultValue: "Manage scheduled jobs. Claude uses a persistent background session; other providers use the local scheduler.", bundle: .appModule))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -133,7 +133,7 @@ struct CronSettings: View {
                     Image(systemName: "circle.fill")
                         .foregroundStyle(.green)
                         .font(.caption2)
-                    Text(String(localized: "cron.claude.session.active", defaultValue: "Claude background session active", bundle: .module))
+                    Text(String(localized: "cron.claude.session.active", defaultValue: "Claude background session active", bundle: .appModule))
                         .font(.footnote)
                     if let pid = store.claudeSessionPID {
                         Text("PID \(pid)")

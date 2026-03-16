@@ -28,14 +28,14 @@ final class PluginRuntime {
     }
 
     func install(packageName: String) async {
-        statusMessage = String(localized: "Plugin installation is not available in standalone mode.", bundle: .module)
+        statusMessage = String(localized: "Plugin installation is not available in standalone mode.", bundle: .appModule)
     }
 
     func uninstall(packageName: String) async {
-        statusMessage = String(localized: "Plugin removal is not available in standalone mode.", bundle: .module)
+        statusMessage = String(localized: "Plugin removal is not available in standalone mode.", bundle: .appModule)
     }
 
     func toggle(packageName: String, enabled: Bool) async {
-        statusMessage = String(localized: "Plugin toggle is not available in standalone mode.", bundle: .module)
+        statusMessage = String(localized: "Plugin toggle is not available in standalone mode.", bundle: .appModule)
     }
 }

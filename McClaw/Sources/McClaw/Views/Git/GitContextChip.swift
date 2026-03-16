@@ -20,7 +20,7 @@ struct GitContextChip: View {
                 Image(systemName: "internaldrive")
                     .font(.caption2)
                     .foregroundStyle(.green)
-                    .help(String(localized: "Cloned locally", bundle: .module))
+                    .help(String(localized: "Cloned locally", bundle: .appModule))
             }
 
             Button {

@@ -155,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
             "OpenDyslexic-BoldItalic.otf",
         ]
         for file in fontFiles {
-            if let url = Bundle.module.url(forResource: file, withExtension: nil) {
+            if let url = Bundle.appModule.url(forResource: file, withExtension: nil) {
                 var errorRef: Unmanaged<CFError>?
                 if !CTFontManagerRegisterFontsForURL(url as CFURL, .process, &errorRef) {
                     let error = errorRef?.takeRetainedValue()
@@ -171,7 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
 
     /// Load the custom menu bar icon from bundle resources with @2x support.
     private func loadMenuBarIcon() -> NSImage? {
-        let bundle = Bundle.module
+        let bundle = Bundle.appModule
 
         // Try @2x first (36x36 px displayed at 18x18 pt)
         let url2x = bundle.bundleURL.appendingPathComponent("macclaw-black@2x.png")
@@ -240,18 +240,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
         let menu = NSMenu()
         menu.delegate = self
 
-        let openItem = NSMenuItem(title: String(localized: "Open McClaw", bundle: .module), action: #selector(openMainWindow), keyEquivalent: "")
+        let openItem = NSMenuItem(title: String(localized: "Open McClaw", bundle: .appModule), action: #selector(openMainWindow), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
 
-        let sleepItem = NSMenuItem(title: String(localized: "Prevent sleep", bundle: .module), action: #selector(togglePreventSleep), keyEquivalent: "")
+        let sleepItem = NSMenuItem(title: String(localized: "Prevent sleep", bundle: .appModule), action: #selector(togglePreventSleep), keyEquivalent: "")
         sleepItem.target = self
         sleepItem.state = MainActor.assumeIsolated { AppState.shared.preventSleepEnabled } ? .on : .off
         menu.addItem(sleepItem)
 
         menu.addItem(.separator())
 
-        let quitItem = NSMenuItem(title: String(localized: "Quit McClaw", bundle: .module), action: #selector(forceQuitApp), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: String(localized: "Quit McClaw", bundle: .appModule), action: #selector(forceQuitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 

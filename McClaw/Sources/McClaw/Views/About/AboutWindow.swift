@@ -43,7 +43,7 @@ private struct AboutContentView: View {
 
             // Logo — large and centered
             Group {
-                if let url = Bundle.module.url(forResource: "mcclaw-logo", withExtension: "png"),
+                if let url = Bundle.appModule.url(forResource: "mcclaw-logo", withExtension: "png"),
                    let nsImage = NSImage(contentsOf: url) {
                     Image(nsImage: nsImage)
                         .resizable()

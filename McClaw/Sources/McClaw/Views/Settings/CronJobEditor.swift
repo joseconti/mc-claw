@@ -430,8 +430,8 @@ struct CronJobEditor: View {
 
             // Model picker for the selected provider
             if !modelsForSelectedProvider.isEmpty {
-                Picker(String(localized: "Model", bundle: .module), selection: $selectedModel) {
-                    Text(String(localized: "Default", bundle: .module)).tag("")
+                Picker(String(localized: "Model", bundle: .appModule), selection: $selectedModel) {
+                    Text(String(localized: "Default", bundle: .appModule)).tag("")
                     ForEach(modelsForSelectedProvider) { model in
                         Text(model.displayName).tag(model.modelId)
                     }

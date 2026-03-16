@@ -7,7 +7,7 @@ struct GitIssueListView: View {
 
     var body: some View {
         if issues.isEmpty {
-            Text("No issues", bundle: .module)
+            Text("No issues", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -75,19 +75,19 @@ struct GitIssueListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.analyzeIssue(issue))
         } label: {
-            Label(String(localized: "git_action_analyze_issue", bundle: .module), systemImage: "magnifyingglass")
+            Label(String(localized: "git_action_analyze_issue", bundle: .appModule), systemImage: "magnifyingglass")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.suggestFixIssue(issue))
         } label: {
-            Label(String(localized: "git_action_suggest_fix", bundle: .module), systemImage: "wrench")
+            Label(String(localized: "git_action_suggest_fix", bundle: .appModule), systemImage: "wrench")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.createBranchForIssue(issue))
         } label: {
-            Label(String(localized: "git_action_create_branch_issue", bundle: .module), systemImage: "arrow.triangle.branch")
+            Label(String(localized: "git_action_create_branch_issue", bundle: .appModule), systemImage: "arrow.triangle.branch")
         }
 
         Divider()
@@ -95,13 +95,13 @@ struct GitIssueListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.closeIssue(issue))
         } label: {
-            Label(String(localized: "git_action_close_issue", bundle: .module), systemImage: "xmark.circle")
+            Label(String(localized: "git_action_close_issue", bundle: .appModule), systemImage: "xmark.circle")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.findRelatedIssues(issue))
         } label: {
-            Label(String(localized: "git_action_find_related", bundle: .module), systemImage: "link")
+            Label(String(localized: "git_action_find_related", bundle: .appModule), systemImage: "link")
         }
     }
 }

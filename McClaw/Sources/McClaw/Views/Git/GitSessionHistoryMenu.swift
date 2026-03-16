@@ -14,7 +14,7 @@ struct GitSessionHistoryMenu: View {
             Button {
                 onNewSession()
             } label: {
-                Label(String(localized: "git_session_new", bundle: .module), systemImage: "plus")
+                Label(String(localized: "git_session_new", bundle: .appModule), systemImage: "plus")
             }
 
             if !sessions.isEmpty {
@@ -25,7 +25,7 @@ struct GitSessionHistoryMenu: View {
                         Button {
                             onSelect(session)
                         } label: {
-                            Label(String(localized: "git_session_open", bundle: .module), systemImage: "arrow.right.circle")
+                            Label(String(localized: "git_session_open", bundle: .appModule), systemImage: "arrow.right.circle")
                         }
 
                         Divider()
@@ -33,7 +33,7 @@ struct GitSessionHistoryMenu: View {
                         Button(role: .destructive) {
                             onDelete(session)
                         } label: {
-                            Label(String(localized: "git_session_delete", bundle: .module), systemImage: "trash")
+                            Label(String(localized: "git_session_delete", bundle: .appModule), systemImage: "trash")
                         }
                     } label: {
                         HStack {
@@ -62,6 +62,6 @@ struct GitSessionHistoryMenu: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
-        .help(String(localized: "git_session_history", bundle: .module))
+        .help(String(localized: "git_session_history", bundle: .appModule))
     }
 }

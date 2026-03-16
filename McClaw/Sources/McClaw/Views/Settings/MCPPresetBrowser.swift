@@ -19,7 +19,7 @@ struct MCPPresetBrowser: View {
         VStack(spacing: 0) {
             // Title bar
             HStack {
-                Text(String(localized: "preset.browser.title", bundle: .module))
+                Text(String(localized: "preset.browser.title", bundle: .appModule))
                     .font(.headline)
                 Spacer()
                 Text(provider.capitalized)
@@ -45,21 +45,21 @@ struct MCPPresetBrowser: View {
             // Footer
             HStack {
                 if selectedPreset != nil {
-                    Button(String(localized: "preset.browser.back", bundle: .module)) {
+                    Button(String(localized: "preset.browser.back", bundle: .appModule)) {
                         withAnimation(.snappy(duration: 0.2)) {
                             selectedPreset = nil
                             errorMessage = nil
                         }
                     }
                 }
-                Button(String(localized: "Cancel", bundle: .module), action: onCancel)
+                Button(String(localized: "Cancel", bundle: .appModule), action: onCancel)
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 if let preset = selectedPreset {
                     let alreadyInstalled = installedServerNames.contains(preset.id)
                     Button(alreadyInstalled
-                           ? String(localized: "preset.browser.reinstall", bundle: .module)
-                           : String(localized: "preset.browser.install", bundle: .module)
+                           ? String(localized: "preset.browser.reinstall", bundle: .appModule)
+                           : String(localized: "preset.browser.install", bundle: .appModule)
                     ) {
                         install(preset)
                     }
@@ -165,7 +165,7 @@ struct MCPPresetBrowser: View {
 
                 // Command preview
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "preset.detail.command", bundle: .module))
+                    Text(String(localized: "preset.detail.command", bundle: .appModule))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(commandPreview(preset))
@@ -181,7 +181,7 @@ struct MCPPresetBrowser: View {
                 if !preset.options.isEmpty {
                     Divider()
 
-                    Text(String(localized: "preset.detail.options", bundle: .module))
+                    Text(String(localized: "preset.detail.options", bundle: .appModule))
                         .font(.subheadline.weight(.medium))
 
                     ForEach(optionBindings(for: preset)) { option in
@@ -231,7 +231,7 @@ struct MCPPresetBrowser: View {
                 TextField(option.label, text: textBinding(for: option.id))
             case .picker(let choices):
                 Picker(option.label, selection: textBinding(for: option.id)) {
-                    Text(String(localized: "preset.option.default", bundle: .module))
+                    Text(String(localized: "preset.option.default", bundle: .appModule))
                         .tag("")
                     ForEach(choices, id: \.self) { choice in
                         Text(choice).tag(choice)

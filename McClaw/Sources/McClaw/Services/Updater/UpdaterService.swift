@@ -130,13 +130,13 @@ private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
 
         DispatchQueue.main.async {
             let alert = NSAlert()
-            alert.messageText = String(localized: "Unable to Check For Updates", bundle: .module)
-            alert.informativeText = String(localized: "The updater failed to start. Please verify you have the latest version of McClaw and contact the app developer if the issue still persists.\n\nCheck the Console logs for more information.", bundle: .module)
+            alert.messageText = String(localized: "Unable to Check For Updates", bundle: .appModule)
+            alert.informativeText = String(localized: "The updater failed to start. Please verify you have the latest version of McClaw and contact the app developer if the issue still persists.\n\nCheck the Console logs for more information.", bundle: .appModule)
             alert.alertStyle = .warning
-            alert.addButton(withTitle: String(localized: "OK", bundle: .module))
+            alert.addButton(withTitle: String(localized: "OK", bundle: .appModule))
 
             // Large McClaw logo as the alert icon
-            if let logoURL = Bundle.module.url(forResource: "mcclaw-logo", withExtension: "png"),
+            if let logoURL = Bundle.appModule.url(forResource: "mcclaw-logo", withExtension: "png"),
                let logoImage = NSImage(contentsOf: logoURL) {
                 logoImage.size = NSSize(width: 128, height: 128)
                 alert.icon = logoImage

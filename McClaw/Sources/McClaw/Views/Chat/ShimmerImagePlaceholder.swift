@@ -37,7 +37,7 @@ struct ShimmerImagePlaceholder: View {
                         .foregroundStyle(.secondary)
                         .symbolEffect(.pulse, options: .repeating)
 
-                    Text(String(localized: "creating_your_image", bundle: .module))
+                    Text(String(localized: "creating_your_image", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

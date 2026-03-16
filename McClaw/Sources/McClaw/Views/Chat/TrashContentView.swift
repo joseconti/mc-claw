@@ -83,14 +83,14 @@ struct TrashContentView: View {
             Text("This will permanently delete \(sessionStore.trashedSessions.count) conversation\(sessionStore.trashedSessions.count == 1 ? "" : "s"). This action cannot be undone.")
         }
         .confirmationDialog(
-            String(localized: "delete_images_too", bundle: .module),
+            String(localized: "delete_images_too", bundle: .appModule),
             isPresented: $showImageDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "delete_conversation_and_images", bundle: .module), role: .destructive) {
+            Button(String(localized: "delete_conversation_and_images", bundle: .appModule), role: .destructive) {
                 performPendingDelete(deleteImages: true)
             }
-            Button(String(localized: "delete_conversation_only", bundle: .module)) {
+            Button(String(localized: "delete_conversation_only", bundle: .appModule)) {
                 performPendingDelete(deleteImages: false)
             }
             Button("Cancel", role: .cancel) {
@@ -98,7 +98,7 @@ struct TrashContentView: View {
                 pendingDeleteBulk = false
             }
         } message: {
-            Text(String(localized: "delete_images_confirm \(pendingImageCount)", bundle: .module))
+            Text(String(localized: "delete_images_confirm \(pendingImageCount)", bundle: .appModule))
         }
     }
 

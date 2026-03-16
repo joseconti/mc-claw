@@ -7,7 +7,7 @@ struct GitCommitListView: View {
 
     var body: some View {
         if commits.isEmpty {
-            Text("No commits loaded", bundle: .module)
+            Text("No commits loaded", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -59,13 +59,13 @@ struct GitCommitListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.explainCommit(commit))
         } label: {
-            Label(String(localized: "git_action_explain_commit", bundle: .module), systemImage: "text.magnifyingglass")
+            Label(String(localized: "git_action_explain_commit", bundle: .appModule), systemImage: "text.magnifyingglass")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.analyzeImpactCommit(commit))
         } label: {
-            Label(String(localized: "git_action_analyze_impact", bundle: .module), systemImage: "waveform.path.ecg")
+            Label(String(localized: "git_action_analyze_impact", bundle: .appModule), systemImage: "waveform.path.ecg")
         }
 
         Divider()
@@ -73,13 +73,13 @@ struct GitCommitListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.revertCommit(commit))
         } label: {
-            Label(String(localized: "git_action_revert_commit", bundle: .module), systemImage: "arrow.uturn.backward")
+            Label(String(localized: "git_action_revert_commit", bundle: .appModule), systemImage: "arrow.uturn.backward")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.cherryPickCommit(commit))
         } label: {
-            Label(String(localized: "git_action_cherry_pick", bundle: .module), systemImage: "arrow.right.doc.on.clipboard")
+            Label(String(localized: "git_action_cherry_pick", bundle: .appModule), systemImage: "arrow.right.doc.on.clipboard")
         }
     }
 }

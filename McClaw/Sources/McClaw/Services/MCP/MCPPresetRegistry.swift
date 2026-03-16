@@ -24,7 +24,7 @@ enum MCPPresetRegistry {
         MCPPreset(
             id: "chrome-devtools",
             name: "Chrome DevTools",
-            description: String(localized: "preset.chrome_devtools.description", bundle: .module),
+            description: String(localized: "preset.chrome_devtools.description", bundle: .appModule),
             icon: "globe.badge.chevron.backward",
             category: .browser,
             command: "npx",
@@ -32,36 +32,36 @@ enum MCPPresetRegistry {
             options: [
                 MCPPresetOption(
                     id: "headless",
-                    label: String(localized: "preset.option.headless", bundle: .module),
-                    help: String(localized: "preset.option.headless.help", bundle: .module),
+                    label: String(localized: "preset.option.headless", bundle: .appModule),
+                    help: String(localized: "preset.option.headless.help", bundle: .appModule),
                     kind: .toggle,
                     value: "false"
                 ),
                 MCPPresetOption(
                     id: "isolated",
-                    label: String(localized: "preset.option.isolated", bundle: .module),
-                    help: String(localized: "preset.option.isolated.help", bundle: .module),
+                    label: String(localized: "preset.option.isolated", bundle: .appModule),
+                    help: String(localized: "preset.option.isolated.help", bundle: .appModule),
                     kind: .toggle,
                     value: "false"
                 ),
                 MCPPresetOption(
                     id: "channel",
-                    label: String(localized: "preset.option.channel", bundle: .module),
-                    help: String(localized: "preset.option.channel.help", bundle: .module),
+                    label: String(localized: "preset.option.channel", bundle: .appModule),
+                    help: String(localized: "preset.option.channel.help", bundle: .appModule),
                     kind: .picker(["stable", "canary", "beta", "dev"]),
                     value: ""
                 ),
                 MCPPresetOption(
                     id: "viewport",
-                    label: String(localized: "preset.option.viewport", bundle: .module),
-                    help: String(localized: "preset.option.viewport.help", bundle: .module),
+                    label: String(localized: "preset.option.viewport", bundle: .appModule),
+                    help: String(localized: "preset.option.viewport.help", bundle: .appModule),
                     kind: .text,
                     value: ""
                 ),
                 MCPPresetOption(
                     id: "browser-url",
-                    label: String(localized: "preset.option.browser_url", bundle: .module),
-                    help: String(localized: "preset.option.browser_url.help", bundle: .module),
+                    label: String(localized: "preset.option.browser_url", bundle: .appModule),
+                    help: String(localized: "preset.option.browser_url.help", bundle: .appModule),
                     kind: .text,
                     value: ""
                 ),
@@ -75,7 +75,7 @@ enum MCPPresetRegistry {
         MCPPreset(
             id: "chrome-devtools-slim",
             name: "Chrome DevTools (Slim)",
-            description: String(localized: "preset.chrome_devtools_slim.description", bundle: .module),
+            description: String(localized: "preset.chrome_devtools_slim.description", bundle: .appModule),
             icon: "globe",
             category: .browser,
             command: "npx",
@@ -83,22 +83,22 @@ enum MCPPresetRegistry {
             options: [
                 MCPPresetOption(
                     id: "headless",
-                    label: String(localized: "preset.option.headless", bundle: .module),
-                    help: String(localized: "preset.option.headless.help", bundle: .module),
+                    label: String(localized: "preset.option.headless", bundle: .appModule),
+                    help: String(localized: "preset.option.headless.help", bundle: .appModule),
                     kind: .toggle,
                     value: "true"
                 ),
                 MCPPresetOption(
                     id: "isolated",
-                    label: String(localized: "preset.option.isolated", bundle: .module),
-                    help: String(localized: "preset.option.isolated.help", bundle: .module),
+                    label: String(localized: "preset.option.isolated", bundle: .appModule),
+                    help: String(localized: "preset.option.isolated.help", bundle: .appModule),
                     kind: .toggle,
                     value: "false"
                 ),
                 MCPPresetOption(
                     id: "viewport",
-                    label: String(localized: "preset.option.viewport", bundle: .module),
-                    help: String(localized: "preset.option.viewport.help", bundle: .module),
+                    label: String(localized: "preset.option.viewport", bundle: .appModule),
+                    help: String(localized: "preset.option.viewport.help", bundle: .appModule),
                     kind: .text,
                     value: ""
                 ),

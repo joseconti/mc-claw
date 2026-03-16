@@ -32,7 +32,7 @@ struct PlanFileCard: View {
                     Text(fileName.replacingOccurrences(of: ".md", with: ""))
                         .font(.callout.weight(.medium))
                         .lineLimit(1)
-                    Text(String(localized: "Plan File · MD", bundle: .module))
+                    Text(String(localized: "Plan File · MD", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -85,7 +85,7 @@ struct PlanDetailPanel: View {
                         .font(.subheadline)
                 }
                 .buttonStyle(.plain)
-                .help(String(localized: "Reveal in Finder", bundle: .module))
+                .help(String(localized: "Reveal in Finder", bundle: .appModule))
 
                 // Copy content
                 Button {
@@ -96,7 +96,7 @@ struct PlanDetailPanel: View {
                         .font(.subheadline)
                 }
                 .buttonStyle(.plain)
-                .help(String(localized: "Copy Plan Content", bundle: .module))
+                .help(String(localized: "Copy Plan Content", bundle: .appModule))
 
                 // Close
                 Button {
@@ -122,7 +122,7 @@ struct PlanDetailPanel: View {
                 Spacer()
             } else if content.isEmpty {
                 Spacer()
-                Text(String(localized: "Plan file is empty", bundle: .module))
+                Text(String(localized: "Plan file is empty", bundle: .appModule))
                     .foregroundStyle(.secondary)
                 Spacer()
             } else {

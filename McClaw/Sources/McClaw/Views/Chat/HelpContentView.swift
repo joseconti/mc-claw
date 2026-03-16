@@ -10,7 +10,7 @@ struct HelpContentView: View {
                 Image(systemName: "questionmark.circle")
                     .font(.title2)
                     .foregroundStyle(Theme.accent)
-                Text(String(localized: "help_title", bundle: .module))
+                Text(String(localized: "help_title", bundle: .appModule))
                     .font(.title2.weight(.bold))
                 Spacer()
             }
@@ -40,7 +40,7 @@ struct HelpContentView: View {
     @ViewBuilder
     private var slashCommandsSection: some View {
         helpSection(
-            title: String(localized: "help_slash_commands", bundle: .module),
+            title: String(localized: "help_slash_commands", bundle: .appModule),
             icon: "terminal"
         ) {
             VStack(alignment: .leading, spacing: 0) {
@@ -52,7 +52,7 @@ struct HelpContentView: View {
                 Divider()
                     .padding(.vertical, 8)
 
-                Text(String(localized: "help_cli_commands_header", bundle: .module))
+                Text(String(localized: "help_cli_commands_header", bundle: .appModule))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 4)
@@ -108,18 +108,18 @@ struct HelpContentView: View {
     @ViewBuilder
     private var keyboardShortcutsSection: some View {
         helpSection(
-            title: String(localized: "help_keyboard_shortcuts", bundle: .module),
+            title: String(localized: "help_keyboard_shortcuts", bundle: .appModule),
             icon: "keyboard"
         ) {
             VStack(alignment: .leading, spacing: 0) {
-                shortcutRow("⌘ N", String(localized: "help_shortcut_new_chat", bundle: .module))
-                shortcutRow("⌘ ,", String(localized: "help_shortcut_settings", bundle: .module))
-                shortcutRow("⌘ ⇧ V", String(localized: "help_shortcut_voice", bundle: .module))
-                shortcutRow("⌘ .", String(localized: "help_shortcut_abort", bundle: .module))
-                shortcutRow("⌘ L", String(localized: "help_shortcut_clear", bundle: .module))
-                shortcutRow("⌘ ⇧ C", String(localized: "help_shortcut_copy_last", bundle: .module))
-                shortcutRow("Enter", String(localized: "help_shortcut_send", bundle: .module))
-                shortcutRow("⇧ Enter", String(localized: "help_shortcut_newline", bundle: .module))
+                shortcutRow("⌘ N", String(localized: "help_shortcut_new_chat", bundle: .appModule))
+                shortcutRow("⌘ ,", String(localized: "help_shortcut_settings", bundle: .appModule))
+                shortcutRow("⌘ ⇧ V", String(localized: "help_shortcut_voice", bundle: .appModule))
+                shortcutRow("⌘ .", String(localized: "help_shortcut_abort", bundle: .appModule))
+                shortcutRow("⌘ L", String(localized: "help_shortcut_clear", bundle: .appModule))
+                shortcutRow("⌘ ⇧ C", String(localized: "help_shortcut_copy_last", bundle: .appModule))
+                shortcutRow("Enter", String(localized: "help_shortcut_send", bundle: .appModule))
+                shortcutRow("⇧ Enter", String(localized: "help_shortcut_newline", bundle: .appModule))
             }
         }
     }
@@ -150,22 +150,22 @@ struct HelpContentView: View {
     @ViewBuilder
     private var chatFeaturesSection: some View {
         helpSection(
-            title: String(localized: "help_chat_features", bundle: .module),
+            title: String(localized: "help_chat_features", bundle: .appModule),
             icon: "bubble.left.and.bubble.right"
         ) {
             featureList([
-                (String(localized: "help_feature_streaming", bundle: .module),
-                 String(localized: "help_feature_streaming_desc", bundle: .module)),
-                (String(localized: "help_feature_model_selection", bundle: .module),
-                 String(localized: "help_feature_model_selection_desc", bundle: .module)),
-                (String(localized: "help_feature_plan_mode", bundle: .module),
-                 String(localized: "help_feature_plan_mode_desc", bundle: .module)),
-                (String(localized: "help_feature_image_gen", bundle: .module),
-                 String(localized: "help_feature_image_gen_desc", bundle: .module)),
-                (String(localized: "help_feature_markdown", bundle: .module),
-                 String(localized: "help_feature_markdown_desc", bundle: .module)),
-                (String(localized: "help_feature_multi_provider", bundle: .module),
-                 String(localized: "help_feature_multi_provider_desc", bundle: .module)),
+                (String(localized: "help_feature_streaming", bundle: .appModule),
+                 String(localized: "help_feature_streaming_desc", bundle: .appModule)),
+                (String(localized: "help_feature_model_selection", bundle: .appModule),
+                 String(localized: "help_feature_model_selection_desc", bundle: .appModule)),
+                (String(localized: "help_feature_plan_mode", bundle: .appModule),
+                 String(localized: "help_feature_plan_mode_desc", bundle: .appModule)),
+                (String(localized: "help_feature_image_gen", bundle: .appModule),
+                 String(localized: "help_feature_image_gen_desc", bundle: .appModule)),
+                (String(localized: "help_feature_markdown", bundle: .appModule),
+                 String(localized: "help_feature_markdown_desc", bundle: .appModule)),
+                (String(localized: "help_feature_multi_provider", bundle: .appModule),
+                 String(localized: "help_feature_multi_provider_desc", bundle: .appModule)),
             ])
         }
     }
@@ -175,16 +175,16 @@ struct HelpContentView: View {
     @ViewBuilder
     private var voiceModeSection: some View {
         helpSection(
-            title: String(localized: "help_voice_mode", bundle: .module),
+            title: String(localized: "help_voice_mode", bundle: .appModule),
             icon: "mic"
         ) {
             featureList([
-                (String(localized: "help_voice_wake_word", bundle: .module),
-                 String(localized: "help_voice_wake_word_desc", bundle: .module)),
-                (String(localized: "help_voice_push_to_talk", bundle: .module),
-                 String(localized: "help_voice_push_to_talk_desc", bundle: .module)),
-                (String(localized: "help_voice_settings", bundle: .module),
-                 String(localized: "help_voice_settings_desc", bundle: .module)),
+                (String(localized: "help_voice_wake_word", bundle: .appModule),
+                 String(localized: "help_voice_wake_word_desc", bundle: .appModule)),
+                (String(localized: "help_voice_push_to_talk", bundle: .appModule),
+                 String(localized: "help_voice_push_to_talk_desc", bundle: .appModule)),
+                (String(localized: "help_voice_settings", bundle: .appModule),
+                 String(localized: "help_voice_settings_desc", bundle: .appModule)),
             ])
         }
     }
@@ -194,16 +194,16 @@ struct HelpContentView: View {
     @ViewBuilder
     private var canvasSection: some View {
         helpSection(
-            title: String(localized: "help_canvas", bundle: .module),
+            title: String(localized: "help_canvas", bundle: .appModule),
             icon: "paintbrush"
         ) {
             featureList([
-                (String(localized: "help_canvas_inline", bundle: .module),
-                 String(localized: "help_canvas_inline_desc", bundle: .module)),
-                (String(localized: "help_canvas_external", bundle: .module),
-                 String(localized: "help_canvas_external_desc", bundle: .module)),
-                (String(localized: "help_canvas_hot_reload", bundle: .module),
-                 String(localized: "help_canvas_hot_reload_desc", bundle: .module)),
+                (String(localized: "help_canvas_inline", bundle: .appModule),
+                 String(localized: "help_canvas_inline_desc", bundle: .appModule)),
+                (String(localized: "help_canvas_external", bundle: .appModule),
+                 String(localized: "help_canvas_external_desc", bundle: .appModule)),
+                (String(localized: "help_canvas_hot_reload", bundle: .appModule),
+                 String(localized: "help_canvas_hot_reload_desc", bundle: .appModule)),
             ])
         }
     }
@@ -213,18 +213,18 @@ struct HelpContentView: View {
     @ViewBuilder
     private var projectsSection: some View {
         helpSection(
-            title: String(localized: "help_projects", bundle: .module),
+            title: String(localized: "help_projects", bundle: .appModule),
             icon: "folder"
         ) {
             featureList([
-                (String(localized: "help_projects_create", bundle: .module),
-                 String(localized: "help_projects_create_desc", bundle: .module)),
-                (String(localized: "help_projects_sessions", bundle: .module),
-                 String(localized: "help_projects_sessions_desc", bundle: .module)),
-                (String(localized: "help_projects_memory", bundle: .module),
-                 String(localized: "help_projects_memory_desc", bundle: .module)),
-                (String(localized: "help_projects_artifacts", bundle: .module),
-                 String(localized: "help_projects_artifacts_desc", bundle: .module)),
+                (String(localized: "help_projects_create", bundle: .appModule),
+                 String(localized: "help_projects_create_desc", bundle: .appModule)),
+                (String(localized: "help_projects_sessions", bundle: .appModule),
+                 String(localized: "help_projects_sessions_desc", bundle: .appModule)),
+                (String(localized: "help_projects_memory", bundle: .appModule),
+                 String(localized: "help_projects_memory_desc", bundle: .appModule)),
+                (String(localized: "help_projects_artifacts", bundle: .appModule),
+                 String(localized: "help_projects_artifacts_desc", bundle: .appModule)),
             ])
         }
     }
@@ -234,16 +234,16 @@ struct HelpContentView: View {
     @ViewBuilder
     private var mcpSection: some View {
         helpSection(
-            title: String(localized: "help_mcp", bundle: .module),
+            title: String(localized: "help_mcp", bundle: .appModule),
             icon: "server.rack"
         ) {
             featureList([
-                (String(localized: "help_mcp_add", bundle: .module),
-                 String(localized: "help_mcp_add_desc", bundle: .module)),
-                (String(localized: "help_mcp_config", bundle: .module),
-                 String(localized: "help_mcp_config_desc", bundle: .module)),
-                (String(localized: "help_mcp_providers", bundle: .module),
-                 String(localized: "help_mcp_providers_desc", bundle: .module)),
+                (String(localized: "help_mcp_add", bundle: .appModule),
+                 String(localized: "help_mcp_add_desc", bundle: .appModule)),
+                (String(localized: "help_mcp_config", bundle: .appModule),
+                 String(localized: "help_mcp_config_desc", bundle: .appModule)),
+                (String(localized: "help_mcp_providers", bundle: .appModule),
+                 String(localized: "help_mcp_providers_desc", bundle: .appModule)),
             ])
         }
     }
@@ -253,16 +253,16 @@ struct HelpContentView: View {
     @ViewBuilder
     private var connectorsSection: some View {
         helpSection(
-            title: String(localized: "help_connectors", bundle: .module),
+            title: String(localized: "help_connectors", bundle: .appModule),
             icon: "link"
         ) {
             featureList([
-                (String(localized: "help_connectors_fetch", bundle: .module),
-                 String(localized: "help_connectors_fetch_desc", bundle: .module)),
-                (String(localized: "help_connectors_types", bundle: .module),
-                 String(localized: "help_connectors_types_desc", bundle: .module)),
-                (String(localized: "help_connectors_oauth", bundle: .module),
-                 String(localized: "help_connectors_oauth_desc", bundle: .module)),
+                (String(localized: "help_connectors_fetch", bundle: .appModule),
+                 String(localized: "help_connectors_fetch_desc", bundle: .appModule)),
+                (String(localized: "help_connectors_types", bundle: .appModule),
+                 String(localized: "help_connectors_types_desc", bundle: .appModule)),
+                (String(localized: "help_connectors_oauth", bundle: .appModule),
+                 String(localized: "help_connectors_oauth_desc", bundle: .appModule)),
             ])
         }
     }

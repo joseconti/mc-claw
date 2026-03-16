@@ -42,11 +42,11 @@ struct OllamaSettingsTab: View {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                Text(String(localized: "ollama_not_installed", bundle: .module))
+                Text(String(localized: "ollama_not_installed", bundle: .appModule))
                     .font(.callout)
             }
 
-            Text(String(localized: "ollama_install_instructions", bundle: .module))
+            Text(String(localized: "ollama_install_instructions", bundle: .appModule))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -55,7 +55,7 @@ struct OllamaSettingsTab: View {
                     NSWorkspace.shared.open(url)
                 }
             } label: {
-                Label(String(localized: "ollama_download_button", bundle: .module), systemImage: "arrow.down.circle")
+                Label(String(localized: "ollama_download_button", bundle: .appModule), systemImage: "arrow.down.circle")
             }
             .buttonStyle(.borderedProminent)
         }
@@ -90,19 +90,19 @@ struct OllamaSettingsTab: View {
 
     private var serverStatusSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionHeader(String(localized: "ollama_server_status_header", bundle: .module))
+            sectionHeader(String(localized: "ollama_server_status_header", bundle: .appModule))
 
             HStack {
                 Image(systemName: serverStatus == .running ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(serverStatus == .running ? .green : .red)
                 Text(serverStatus == .running
-                     ? String(localized: "ollama_server_running", bundle: .module)
-                     : String(localized: "ollama_server_stopped", bundle: .module))
+                     ? String(localized: "ollama_server_running", bundle: .appModule)
+                     : String(localized: "ollama_server_stopped", bundle: .appModule))
                     .font(.callout)
                 Spacer()
 
                 if serverStatus == .running {
-                    Button(String(localized: "ollama_stop_server", bundle: .module)) {
+                    Button(String(localized: "ollama_stop_server", bundle: .appModule)) {
                         stopServer()
                     }
                     .font(.caption)
@@ -115,7 +115,7 @@ struct OllamaSettingsTab: View {
                             ProgressView()
                                 .scaleEffect(0.6)
                         } else {
-                            Text(String(localized: "ollama_start_server", bundle: .module))
+                            Text(String(localized: "ollama_start_server", bundle: .appModule))
                         }
                     }
                     .font(.caption)
@@ -127,7 +127,7 @@ struct OllamaSettingsTab: View {
 
             if !runningModels.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(String(localized: "ollama_loaded_models", bundle: .module))
+                    Text(String(localized: "ollama_loaded_models", bundle: .appModule))
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
@@ -159,26 +159,26 @@ struct OllamaSettingsTab: View {
     private var serverModeSection: some View {
         @Bindable var state = appState
         return VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(String(localized: "ollama_server_mode", bundle: .module))
+            sectionHeader(String(localized: "ollama_server_mode", bundle: .appModule))
 
             HStack {
-                Text(String(localized: "ollama_mode_label", bundle: .module))
+                Text(String(localized: "ollama_mode_label", bundle: .appModule))
                     .frame(width: 120, alignment: .leading)
                 Picker("", selection: $state.ollamaAlwaysOn) {
-                    Text(String(localized: "ollama_always_on", bundle: .module))
+                    Text(String(localized: "ollama_always_on", bundle: .appModule))
                         .tag(true)
-                    Text(String(localized: "ollama_on_demand", bundle: .module))
+                    Text(String(localized: "ollama_on_demand", bundle: .appModule))
                         .tag(false)
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 260)
             }
-            Text(String(localized: "ollama_server_mode_description", bundle: .module))
+            Text(String(localized: "ollama_server_mode_description", bundle: .appModule))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             HStack {
-                Text(String(localized: "ollama_server_port", bundle: .module))
+                Text(String(localized: "ollama_server_port", bundle: .appModule))
                     .frame(width: 120, alignment: .leading)
                 TextField("", value: $state.ollamaServerPort, format: .number)
                     .mcclawTextField()
@@ -195,7 +195,7 @@ struct OllamaSettingsTab: View {
     private var modelLibrarySection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                sectionHeader(String(localized: "ollama_model_installer_header", bundle: .module))
+                sectionHeader(String(localized: "ollama_model_installer_header", bundle: .appModule))
                 Spacer()
                 Button {
                     Task { await refreshModels() }
@@ -213,7 +213,7 @@ struct OllamaSettingsTab: View {
             }
 
             if let hw = hardwareInfo {
-                Text(String(localized: "ollama_recommended_for_mac", bundle: .module))
+                Text(String(localized: "ollama_recommended_for_mac", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 4)
@@ -257,7 +257,7 @@ struct OllamaSettingsTab: View {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundStyle(.green)
-                        Text(String(localized: "ollama_all_recommended_installed", bundle: .module))
+                        Text(String(localized: "ollama_all_recommended_installed", bundle: .appModule))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -267,14 +267,14 @@ struct OllamaSettingsTab: View {
 
             // Custom model install
             HStack {
-                TextField(String(localized: "ollama_pull_custom_placeholder", bundle: .module), text: $pullModelName)
+                TextField(String(localized: "ollama_pull_custom_placeholder", bundle: .appModule), text: $pullModelName)
                     .mcclawTextField()
                     .frame(width: 200)
                     .disabled(isPulling)
                 Button {
                     pullModel(pullModelName)
                 } label: {
-                    Label(String(localized: "ollama_install_button", bundle: .module), systemImage: "arrow.down.circle")
+                    Label(String(localized: "ollama_install_button", bundle: .appModule), systemImage: "arrow.down.circle")
                 }
                 .disabled(pullModelName.isEmpty || isPulling)
                 .buttonStyle(.borderedProminent)
@@ -289,7 +289,7 @@ struct OllamaSettingsTab: View {
                     .padding(.top, 8)
 
                 if !isPulling && pullError == nil {
-                    Button(String(localized: "ollama_dismiss_log", bundle: .module)) {
+                    Button(String(localized: "ollama_dismiss_log", bundle: .appModule)) {
                         pullLog = []
                     }
                     .font(.caption)
@@ -308,7 +308,7 @@ struct OllamaSettingsTab: View {
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
                     Spacer()
-                    Button(String(localized: "ollama_dismiss_log", bundle: .module)) {
+                    Button(String(localized: "ollama_dismiss_log", bundle: .appModule)) {
                         self.pullError = nil
                         pullLog = []
                     }
@@ -319,15 +319,15 @@ struct OllamaSettingsTab: View {
             }
         }
         .padding(.vertical, 8)
-        .alert(String(localized: "ollama_delete_confirm_title", bundle: .module), isPresented: $showDeleteConfirm) {
-            Button(String(localized: "ollama_cancel", bundle: .module), role: .cancel) {}
-            Button(String(localized: "ollama_delete_confirm", bundle: .module), role: .destructive) {
+        .alert(String(localized: "ollama_delete_confirm_title", bundle: .appModule), isPresented: $showDeleteConfirm) {
+            Button(String(localized: "ollama_cancel", bundle: .appModule), role: .cancel) {}
+            Button(String(localized: "ollama_delete_confirm", bundle: .appModule), role: .destructive) {
                 if let model = modelToDelete {
                     deleteModel(model)
                 }
             }
         } message: {
-            Text(String(localized: "ollama_delete_confirm_message", bundle: .module))
+            Text(String(localized: "ollama_delete_confirm_message", bundle: .appModule))
         }
     }
 
@@ -341,7 +341,7 @@ struct OllamaSettingsTab: View {
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
                 if model.qualityRank == 1 {
-                    Text(String(localized: "ollama_best_badge", bundle: .module))
+                    Text(String(localized: "ollama_best_badge", bundle: .appModule))
                         .font(.caption2.weight(.medium))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
@@ -378,7 +378,7 @@ struct OllamaSettingsTab: View {
                 if isInstalled {
                     // Default badge or Set as Default
                     if appState.defaultModels["ollama"] == model.modelId {
-                        Text(String(localized: "ollama_default_badge", bundle: .module))
+                        Text(String(localized: "ollama_default_badge", bundle: .appModule))
                             .font(.caption2.weight(.medium))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -389,7 +389,7 @@ struct OllamaSettingsTab: View {
                             appState.defaultModels["ollama"] = model.modelId
                             Task { await ConfigStore.shared.saveFromState() }
                         } label: {
-                            Text(String(localized: "ollama_set_default", bundle: .module))
+                            Text(String(localized: "ollama_set_default", bundle: .appModule))
                                 .font(.caption2)
                         }
                         .buttonStyle(.borderless)
@@ -402,7 +402,7 @@ struct OllamaSettingsTab: View {
                         modelToDelete = model.modelId
                         showDeleteConfirm = true
                     } label: {
-                        Label(String(localized: "ollama_uninstall_button", bundle: .module), systemImage: "trash")
+                        Label(String(localized: "ollama_uninstall_button", bundle: .appModule), systemImage: "trash")
                             .font(.caption)
                     }
                     .buttonStyle(.borderless)
@@ -417,7 +417,7 @@ struct OllamaSettingsTab: View {
                         Button {
                             pullModel(model.modelId)
                         } label: {
-                            Label(String(localized: "ollama_install_button", bundle: .module), systemImage: "arrow.down.circle")
+                            Label(String(localized: "ollama_install_button", bundle: .appModule), systemImage: "arrow.down.circle")
                                 .font(.caption)
                         }
                         .buttonStyle(.borderless)
@@ -442,27 +442,27 @@ struct OllamaSettingsTab: View {
 
     private var hardwareSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(String(localized: "ollama_hardware_header", bundle: .module))
+            sectionHeader(String(localized: "ollama_hardware_header", bundle: .appModule))
 
             if let hw = hardwareInfo {
                 HStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(String(localized: "ollama_chip", bundle: .module))
+                            Text(String(localized: "ollama_chip", bundle: .appModule))
                                 .font(.caption.weight(.medium))
                             Text(hw.chipName)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         HStack {
-                            Text(String(localized: "ollama_ram", bundle: .module))
+                            Text(String(localized: "ollama_ram", bundle: .appModule))
                                 .font(.caption.weight(.medium))
                             Text("\(hw.totalRAMGB) GB")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         HStack {
-                            Text(String(localized: "ollama_cores", bundle: .module))
+                            Text(String(localized: "ollama_cores", bundle: .appModule))
                                 .font(.caption.weight(.medium))
                             Text("\(hw.cpuCores)")
                                 .font(.caption)

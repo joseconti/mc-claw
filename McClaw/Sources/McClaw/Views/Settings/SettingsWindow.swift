@@ -138,7 +138,7 @@ struct SettingsWindow: View {
                         .font(.title.weight(.bold))
 
                     if selectedSection == .devices {
-                        Text(String(localized: "in_development_badge", bundle: .module))
+                        Text(String(localized: "in_development_badge", bundle: .appModule))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.orange)
                             .padding(.horizontal, 8)
@@ -229,9 +229,9 @@ enum SettingsSection: String, Hashable, CaseIterable {
         case .skills: String(localized: "Skills")
         case .voice: String(localized: "Voice")
         case .cron: String(localized: "Cron")
-        case .devices: String(localized: "devices_tab_title", bundle: .module)
+        case .devices: String(localized: "devices_tab_title", bundle: .appModule)
         case .logs: String(localized: "Logs")
-        case .backup: String(localized: "Backup", bundle: .module)
+        case .backup: String(localized: "Backup", bundle: .appModule)
         case .advanced: String(localized: "Advanced")
         case .ollama: String(localized: "Ollama")
         case .dashscope: String(localized: "DashScope")
@@ -497,8 +497,8 @@ struct GeneralSettingsTab: View {
                 isOn: $state.iconAnimationsEnabled
             )
             settingsToggleRow(
-                title: String(localized: "Prevent sleep", bundle: .module),
-                description: String(localized: "Keep the Mac awake while McClaw is running.", bundle: .module),
+                title: String(localized: "Prevent sleep", bundle: .appModule),
+                description: String(localized: "Keep the Mac awake while McClaw is running.", bundle: .appModule),
                 isOn: Binding(
                     get: { state.preventSleepEnabled },
                     set: { newValue in
@@ -530,8 +530,8 @@ struct GeneralSettingsTab: View {
                 isOn: $state.screenEnabled
             )
             settingsToggleRow(
-                title: String(localized: "Git section", bundle: .module),
-                description: String(localized: "Show a Git section in the sidebar to browse repositories from GitHub and GitLab.", bundle: .module),
+                title: String(localized: "Git section", bundle: .appModule),
+                description: String(localized: "Show a Git section in the sidebar to browse repositories from GitHub and GitLab.", bundle: .appModule),
                 isOn: $state.gitSectionEnabled
             )
 
@@ -539,22 +539,22 @@ struct GeneralSettingsTab: View {
 
             // MARK: - Project Memory
 
-            sectionHeader(String(localized: "Project Memory", bundle: .module))
+            sectionHeader(String(localized: "Project Memory", bundle: .appModule))
 
-            Text("McClaw can automatically maintain a memory file for each project, capturing the project description, rules, decisions, and context from your conversations. The selected AI will read and update this memory after each conversation, so every new chat starts with full project knowledge.", bundle: .module)
+            Text("McClaw can automatically maintain a memory file for each project, capturing the project description, rules, decisions, and context from your conversations. The selected AI will read and update this memory after each conversation, so every new chat starts with full project knowledge.", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 12)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Memory provider", bundle: .module)
+                Text("Memory provider", bundle: .appModule)
                     .font(.callout.weight(.medium))
 
                 Picker(selection: Binding(
                     get: { state.memoryProviderId ?? "__disabled__" },
                     set: { state.memoryProviderId = $0 == "__disabled__" ? nil : $0 }
                 )) {
-                    Text("Disabled", bundle: .module).tag("__disabled__")
+                    Text("Disabled", bundle: .appModule).tag("__disabled__")
                     ForEach(appState.installedAIProviders) { cli in
                         Text(cli.displayName).tag(cli.id)
                     }
@@ -567,8 +567,8 @@ struct GeneralSettingsTab: View {
             .padding(.bottom, 8)
 
             settingsToggleRow(
-                title: String(localized: "Auto-update memory", bundle: .module),
-                description: String(localized: "Automatically update project memory after each conversation. Uses tokens from the selected provider.", bundle: .module),
+                title: String(localized: "Auto-update memory", bundle: .appModule),
+                description: String(localized: "Automatically update project memory after each conversation. Uses tokens from the selected provider.", bundle: .appModule),
                 isOn: $state.projectMemoryAutoUpdate
             )
 
@@ -1044,7 +1044,7 @@ struct CLIsSettingsTab: View {
                 // Cloud providers: Install / Configure+✕ based on hiddenProviders
                 if appState.hiddenProviders.contains(cli.id) {
                     // Not installed → "Install" activates and navigates to settings tab
-                    Button(String(localized: "cli_install_button", bundle: .module)) {
+                    Button(String(localized: "cli_install_button", bundle: .appModule)) {
                         activateCloudProvider(cli)
                     }
                     .buttonStyle(.borderedProminent)
@@ -1056,7 +1056,7 @@ struct CLIsSettingsTab: View {
                             .foregroundStyle(.green)
                     }
 
-                    Button(String(localized: "cli_configure_button", bundle: .module)) {
+                    Button(String(localized: "cli_configure_button", bundle: .appModule)) {
                         appState.pendingSettingsTab = cli.id
                     }
                     .buttonStyle(.bordered)
@@ -1070,7 +1070,7 @@ struct CLIsSettingsTab: View {
                     }
                     .buttonStyle(.borderless)
                     .controlSize(.small)
-                    .help(String(localized: "cli_deactivate_help", bundle: .module))
+                    .help(String(localized: "cli_deactivate_help", bundle: .appModule))
                 }
             } else if cli.isInstalled {
                 // Regular CLI providers
@@ -1099,7 +1099,7 @@ struct CLIsSettingsTab: View {
                 .help("Uninstall \(cli.displayName)")
                 .disabled(installingCLI != nil || uninstallingCLI != nil)
             } else {
-                Button(String(localized: "cli_install_button", bundle: .module)) {
+                Button(String(localized: "cli_install_button", bundle: .appModule)) {
                     installCLI(cli)
                 }
                 .buttonStyle(.borderedProminent)
@@ -1114,7 +1114,7 @@ struct CLIsSettingsTab: View {
 
             if !cli.isToolCLI && cli.isInstalled {
                 if cli.id == appState.currentCLIIdentifier {
-                    Text(String(localized: "cli_default_badge", bundle: .module))
+                    Text(String(localized: "cli_default_badge", bundle: .appModule))
                         .font(.subheadline)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -1122,7 +1122,7 @@ struct CLIsSettingsTab: View {
                         .clipShape(Capsule())
                         .liquidGlassCapsule(interactive: false)
                 } else if cli.isAuthenticated {
-                    Button(String(localized: "cli_set_default_button", bundle: .module)) {
+                    Button(String(localized: "cli_set_default_button", bundle: .appModule)) {
                         appState.currentCLIIdentifier = cli.id
                         Task { await ConfigStore.shared.saveFromState() }
                     }
@@ -1516,7 +1516,7 @@ struct SecuritySettingsTab: View {
                 GroupBox {
                     VStack(spacing: 8) {
                         HStack {
-                            Text(String(localized: "security_system_permissions", bundle: .module))
+                            Text(String(localized: "security_system_permissions", bundle: .appModule))
                                 .font(.callout.weight(.semibold))
                             Spacer()
                             Button {
@@ -1526,7 +1526,7 @@ struct SecuritySettingsTab: View {
                                     .font(.subheadline)
                             }
                             .buttonStyle(.borderless)
-                            .help(String(localized: "security_refresh_permissions_hint", bundle: .module))
+                            .help(String(localized: "security_refresh_permissions_hint", bundle: .appModule))
                         }
 
                         ForEach(PermissionKind.allCases, id: \.self) { kind in
@@ -1536,7 +1536,7 @@ struct SecuritySettingsTab: View {
                             }
                         }
 
-                        Text(String(localized: "security_permissions_hint", bundle: .module))
+                        Text(String(localized: "security_permissions_hint", bundle: .appModule))
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }

@@ -11,37 +11,37 @@ struct GitRepoActionBar: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 actionButton(
-                    label: String(localized: "git_repo_explain", bundle: .module),
+                    label: String(localized: "git_repo_explain", bundle: .appModule),
                     icon: "book",
                     prompt: GitPromptTemplates.explainRepo(repoName)
                 )
                 actionButton(
-                    label: String(localized: "git_repo_what_broke", bundle: .module),
+                    label: String(localized: "git_repo_what_broke", bundle: .appModule),
                     icon: "exclamationmark.triangle",
                     prompt: GitPromptTemplates.whatBroke(repoName)
                 )
                 actionButton(
-                    label: String(localized: "git_repo_changelog", bundle: .module),
+                    label: String(localized: "git_repo_changelog", bundle: .appModule),
                     icon: "doc.plaintext",
                     prompt: GitPromptTemplates.generateChangelog(repoName)
                 )
                 actionButton(
-                    label: String(localized: "git_repo_health", bundle: .module),
+                    label: String(localized: "git_repo_health", bundle: .appModule),
                     icon: "heart.text.square",
                     prompt: GitPromptTemplates.healthCheck(repoName)
                 )
                 actionButton(
-                    label: String(localized: "git_repo_security", bundle: .module),
+                    label: String(localized: "git_repo_security", bundle: .appModule),
                     icon: "lock.shield",
                     prompt: GitPromptTemplates.securityAudit(repoName)
                 )
                 actionButton(
-                    label: String(localized: "git_repo_todos", bundle: .module),
+                    label: String(localized: "git_repo_todos", bundle: .appModule),
                     icon: "checklist",
                     prompt: GitPromptTemplates.findTodos(repoName)
                 )
                 actionButton(
-                    label: String(localized: "git_repo_what_changed", bundle: .module),
+                    label: String(localized: "git_repo_what_changed", bundle: .appModule),
                     icon: "clock.arrow.circlepath",
                     prompt: GitPromptTemplates.whatChangedThisWeek(repoName)
                 )
@@ -53,7 +53,7 @@ struct GitRepoActionBar: View {
                         HStack(spacing: 4) {
                             Image(systemName: "bell.badge")
                                 .font(.caption2)
-                            Text(String(localized: "git_repo_monitor", bundle: .module))
+                            Text(String(localized: "git_repo_monitor", bundle: .appModule))
                                 .font(.caption)
                         }
                         .padding(.horizontal, 10)

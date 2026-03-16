@@ -207,7 +207,7 @@ final class ChatViewModel {
             assistantMessage.generatedImages.append(generated)
             assistantMessage.content = ""
         } else {
-            assistantMessage.content = String(localized: "Image generation failed. Make sure Gemini CLI is authenticated and Vertex AI API is enabled in your GCP project.", bundle: .module)
+            assistantMessage.content = String(localized: "Image generation failed. Make sure Gemini CLI is authenticated and Vertex AI API is enabled in your GCP project.", bundle: .appModule)
         }
 
         assistantMessage.isStreaming = false
@@ -232,14 +232,14 @@ final class ChatViewModel {
         // Show user message
         let userMessage = ChatMessage(
             role: .user,
-            content: "📦 " + String(localized: "Install:", bundle: .module) + " " + String(prompt.prefix(200)),
+            content: "📦 " + String(localized: "Install:", bundle: .appModule) + " " + String(prompt.prefix(200)),
             sessionId: sessionId,
             providerId: appState.currentCLI?.id
         )
         messages.append(userMessage)
 
         // Show parsing indicator
-        postSystem(String(localized: "Analyzing install prompt...", bundle: .module), sessionId: sessionId)
+        postSystem(String(localized: "Analyzing install prompt...", bundle: .appModule), sessionId: sessionId)
 
         // Parse via AI
         let service = AgentInstallService.shared
@@ -278,9 +278,9 @@ final class ChatViewModel {
             let failed = record.steps.filter { $0.status == .failed || $0.status == .denied }.count
 
             if failed == 0 {
-                postSystem(String(localized: "Installation completed successfully.", bundle: .module) + " (\(completed)/\(total))", sessionId: sessionId)
+                postSystem(String(localized: "Installation completed successfully.", bundle: .appModule) + " (\(completed)/\(total))", sessionId: sessionId)
             } else {
-                postSystem("⚠️ " + String(localized: "Installation finished with issues.", bundle: .module) + " (\(completed)/\(total) " + String(localized: "steps completed", bundle: .module) + ")", sessionId: sessionId)
+                postSystem("⚠️ " + String(localized: "Installation finished with issues.", bundle: .appModule) + " (\(completed)/\(total) " + String(localized: "steps completed", bundle: .appModule) + ")", sessionId: sessionId)
             }
         }
 
@@ -698,7 +698,7 @@ final class ChatViewModel {
             logger.warning("Max chain depth (\(Self.maxChainDepth)) reached, stopping multi-step chain")
             let systemMsg = ChatMessage(
                 role: .system,
-                content: String(localized: "git_chain_depth_exceeded", bundle: .module),
+                content: String(localized: "git_chain_depth_exceeded", bundle: .appModule),
                 sessionId: "main"
             )
             messages.append(systemMsg)
@@ -1210,9 +1210,9 @@ final class ChatViewModel {
                 if installArg == "list" {
                     let registry = AgentInstallService.shared.installRegistry
                     if registry.isEmpty {
-                        postSystem(String(localized: "No packages installed yet.", bundle: .module), sessionId: sessionId)
+                        postSystem(String(localized: "No packages installed yet.", bundle: .appModule), sessionId: sessionId)
                     } else {
-                        var listing = "**" + String(localized: "Installed Packages", bundle: .module) + "**\n"
+                        var listing = "**" + String(localized: "Installed Packages", bundle: .appModule) + "**\n"
                         for record in registry.suffix(10) {
                             let date = record.installedAt.formatted(date: .abbreviated, time: .shortened)
                             let steps = record.steps.filter { $0.status == .completed }.count
@@ -1233,9 +1233,9 @@ final class ChatViewModel {
             if let lastAssistant = messages.last(where: { $0.role == .assistant }) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(lastAssistant.content, forType: .string)
-                postSystem(String(localized: "Last response copied to clipboard.", bundle: .module), sessionId: sessionId)
+                postSystem(String(localized: "Last response copied to clipboard.", bundle: .appModule), sessionId: sessionId)
             } else {
-                postSystem(String(localized: "No assistant response to copy.", bundle: .module), sessionId: sessionId)
+                postSystem(String(localized: "No assistant response to copy.", bundle: .appModule), sessionId: sessionId)
             }
             return true
 
@@ -1254,12 +1254,12 @@ final class ChatViewModel {
                     let data = pipe.fileHandleForReading.readDataToEndOfFile()
                     let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     if output.isEmpty {
-                        postSystem(String(localized: "No uncommitted changes.", bundle: .module), sessionId: sessionId)
+                        postSystem(String(localized: "No uncommitted changes.", bundle: .appModule), sessionId: sessionId)
                     } else {
                         postSystem("```\n\(output)\n```", sessionId: sessionId)
                     }
                 } catch {
-                    postSystem(String(localized: "Failed to run git diff.", bundle: .module), sessionId: sessionId)
+                    postSystem(String(localized: "Failed to run git diff.", bundle: .appModule), sessionId: sessionId)
                 }
             }
             return true
@@ -1267,8 +1267,8 @@ final class ChatViewModel {
         case "/plan":
             appState.planModeActive.toggle()
             let state = appState.planModeActive
-                ? String(localized: "Plan Mode enabled — read-only analysis.", bundle: .module)
-                : String(localized: "Plan Mode disabled.", bundle: .module)
+                ? String(localized: "Plan Mode enabled — read-only analysis.", bundle: .appModule)
+                : String(localized: "Plan Mode disabled.", bundle: .appModule)
             postSystem(state, sessionId: sessionId)
             return true
 
@@ -1287,9 +1287,9 @@ final class ChatViewModel {
             }
             do {
                 try export.write(to: url, atomically: true, encoding: .utf8)
-                postSystem(String(localized: "Chat exported to: ", bundle: .module) + url.lastPathComponent, sessionId: sessionId)
+                postSystem(String(localized: "Chat exported to: ", bundle: .appModule) + url.lastPathComponent, sessionId: sessionId)
             } catch {
-                postSystem(String(localized: "Failed to export chat.", bundle: .module), sessionId: sessionId)
+                postSystem(String(localized: "Failed to export chat.", bundle: .appModule), sessionId: sessionId)
             }
             return true
 

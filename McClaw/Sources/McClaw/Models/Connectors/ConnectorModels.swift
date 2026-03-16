@@ -15,13 +15,13 @@ enum ConnectorCategory: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var title: String {
         switch self {
-        case .google: String(localized: "Google", bundle: .module)
-        case .microsoft: String(localized: "Microsoft", bundle: .module)
-        case .dev: String(localized: "Development", bundle: .module)
-        case .communication: String(localized: "Communication", bundle: .module)
-        case .productivity: String(localized: "Productivity", bundle: .module)
-        case .utilities: String(localized: "Utilities", bundle: .module)
-        case .wordpress: String(localized: "WordPress", bundle: .module)
+        case .google: String(localized: "Google", bundle: .appModule)
+        case .microsoft: String(localized: "Microsoft", bundle: .appModule)
+        case .dev: String(localized: "Development", bundle: .appModule)
+        case .communication: String(localized: "Communication", bundle: .appModule)
+        case .productivity: String(localized: "Productivity", bundle: .appModule)
+        case .utilities: String(localized: "Utilities", bundle: .appModule)
+        case .wordpress: String(localized: "WordPress", bundle: .appModule)
         }
     }
 

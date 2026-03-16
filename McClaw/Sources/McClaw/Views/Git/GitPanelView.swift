@@ -128,28 +128,28 @@ struct GitPanelView: View {
                     Button {
                         viewModel.sendToChat(GitPromptTemplates.commitAssistant())
                     } label: {
-                        Label(String(localized: "git_quick_commit", bundle: .module), systemImage: "checkmark.circle")
+                        Label(String(localized: "git_quick_commit", bundle: .appModule), systemImage: "checkmark.circle")
                     }
                     Button {
                         viewModel.sendToChat(GitPromptTemplates.pullLatest())
                     } label: {
-                        Label(String(localized: "git_quick_pull", bundle: .module), systemImage: "arrow.down")
+                        Label(String(localized: "git_quick_pull", bundle: .appModule), systemImage: "arrow.down")
                     }
                     Button {
                         viewModel.sendToChat(GitPromptTemplates.createBranch())
                     } label: {
-                        Label(String(localized: "git_quick_create_branch", bundle: .module), systemImage: "arrow.triangle.branch")
+                        Label(String(localized: "git_quick_create_branch", bundle: .appModule), systemImage: "arrow.triangle.branch")
                     }
                     Divider()
                     Button {
                         viewModel.sendToChat(GitPromptTemplates.reviewOpenPRs(repo.fullName))
                     } label: {
-                        Label(String(localized: "git_quick_review_prs", bundle: .module), systemImage: "arrow.triangle.pull")
+                        Label(String(localized: "git_quick_review_prs", bundle: .appModule), systemImage: "arrow.triangle.pull")
                     }
                     Button {
                         viewModel.sendToChat(GitPromptTemplates.generateChangelog(repo.fullName))
                     } label: {
-                        Label(String(localized: "git_quick_changelog", bundle: .module), systemImage: "doc.plaintext")
+                        Label(String(localized: "git_quick_changelog", bundle: .appModule), systemImage: "doc.plaintext")
                     }
                 } label: {
                     Image(systemName: "bolt.circle")
@@ -159,7 +159,7 @@ struct GitPanelView: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
-                .help(String(localized: "git_quick_actions_title", bundle: .module))
+                .help(String(localized: "git_quick_actions_title", bundle: .appModule))
             }
 
             // Refresh
@@ -202,8 +202,8 @@ struct GitPanelView: View {
             }
             .buttonStyle(.plain)
             .help(isChatCollapsed
-                  ? String(localized: "Show chat", bundle: .module)
-                  : String(localized: "Hide chat", bundle: .module))
+                  ? String(localized: "Show chat", bundle: .appModule)
+                  : String(localized: "Hide chat", bundle: .appModule))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -332,11 +332,11 @@ struct GitPanelView: View {
                 .foregroundStyle(.tertiary)
 
             if viewModel.gitContext != nil {
-                Text("Ask anything about this repository", bundle: .module)
+                Text("Ask anything about this repository", bundle: .appModule)
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Select a repository below to start", bundle: .module)
+                Text("Select a repository below to start", bundle: .appModule)
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

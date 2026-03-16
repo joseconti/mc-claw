@@ -84,7 +84,7 @@ struct ImageOverlayView: View {
                         HStack(spacing: 6) {
                             Image(systemName: saved ? "checkmark.circle.fill" : "arrow.down.to.line")
                                 .font(.body)
-                            Text(String(localized: "save_image", bundle: .module))
+                            Text(String(localized: "save_image", bundle: .appModule))
                                 .font(.callout.weight(.medium))
                         }
                         .foregroundStyle(saved ? .green : .white)

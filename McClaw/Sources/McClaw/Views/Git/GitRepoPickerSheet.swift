@@ -19,7 +19,7 @@ struct GitRepoPickerSheet: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text(String(localized: "project_select_repo_title", bundle: .module))
+                Text(String(localized: "project_select_repo_title", bundle: .appModule))
                     .font(.headline)
                 Spacer()
                 Button {
@@ -60,7 +60,7 @@ struct GitRepoPickerSheet: View {
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.tertiary)
-                        TextField(String(localized: "project_repo_search_placeholder", bundle: .module), text: $searchText)
+                        TextField(String(localized: "project_repo_search_placeholder", bundle: .appModule), text: $searchText)
                             .textFieldStyle(.plain)
                     }
                     .padding(8)
@@ -96,7 +96,7 @@ struct GitRepoPickerSheet: View {
                             Image(systemName: "magnifyingglass")
                                 .font(.title2)
                                 .foregroundStyle(.tertiary)
-                            Text(String(localized: "project_repo_no_results", bundle: .module))
+                            Text(String(localized: "project_repo_no_results", bundle: .appModule))
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                         }
@@ -118,7 +118,7 @@ struct GitRepoPickerSheet: View {
                         onBrowseLocal()
                     }
                 } label: {
-                    Label(String(localized: "project_browse_local_repo", bundle: .module), systemImage: "folder")
+                    Label(String(localized: "project_browse_local_repo", bundle: .appModule), systemImage: "folder")
                         .font(.callout)
                 }
                 .buttonStyle(.plain)
@@ -126,7 +126,7 @@ struct GitRepoPickerSheet: View {
 
                 Spacer()
 
-                Button(String(localized: "Cancel", bundle: .module)) {
+                Button(String(localized: "Cancel", bundle: .appModule)) {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
@@ -209,7 +209,7 @@ struct GitRepoPickerSheet: View {
                     Image(systemName: "internaldrive")
                         .font(.caption)
                         .foregroundStyle(.green)
-                        .help(String(localized: "Cloned locally", bundle: .module))
+                        .help(String(localized: "Cloned locally", bundle: .appModule))
                 }
             }
             .padding(.horizontal, 14)
@@ -227,10 +227,10 @@ struct GitRepoPickerSheet: View {
             Image(systemName: "link.badge.plus")
                 .font(.largeTitle)
                 .foregroundStyle(.tertiary)
-            Text(String(localized: "project_no_git_platforms", bundle: .module))
+            Text(String(localized: "project_no_git_platforms", bundle: .appModule))
                 .font(.callout)
                 .foregroundStyle(.secondary)
-            Text(String(localized: "project_no_git_platforms_hint", bundle: .module))
+            Text(String(localized: "project_no_git_platforms_hint", bundle: .appModule))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -266,7 +266,7 @@ struct GitRepoPickerSheet: View {
 
         let connectorId = selectedPlatform.connectorId
         guard let instance = connectorStore.connectedInstances.first(where: { $0.definitionId == connectorId }) else {
-            loadError = String(localized: "No connected connector for \(selectedPlatform.displayName)", bundle: .module)
+            loadError = String(localized: "No connected connector for \(selectedPlatform.displayName)", bundle: .appModule)
             isLoading = false
             return
         }

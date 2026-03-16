@@ -221,13 +221,13 @@ enum BackupError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .encryptionFailed:
-            String(localized: "Failed to encrypt backup", bundle: .module)
+            String(localized: "Failed to encrypt backup", bundle: .appModule)
         case .wrongPassword:
-            String(localized: "Wrong password or corrupted backup", bundle: .module)
+            String(localized: "Wrong password or corrupted backup", bundle: .appModule)
         case .unsupportedVersion(let v):
-            String(localized: "Unsupported backup version: \(v)", bundle: .module)
+            String(localized: "Unsupported backup version: \(v)", bundle: .appModule)
         case .importFailed(let reason):
-            String(localized: "Import failed: \(reason)", bundle: .module)
+            String(localized: "Import failed: \(reason)", bundle: .appModule)
         }
     }
 }

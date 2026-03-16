@@ -19,7 +19,7 @@ struct GitMonitorSetupSheet: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Set Up Monitor", bundle: .module)
+                Text("Set Up Monitor", bundle: .appModule)
                     .font(.headline)
                 Spacer()
                 Button {
@@ -51,7 +51,7 @@ struct GitMonitorSetupSheet: View {
             if let template = selectedTemplate {
                 VStack(spacing: 12) {
                     HStack {
-                        Text("Schedule:", bundle: .module)
+                        Text("Schedule:", bundle: .appModule)
                             .font(.callout.weight(.medium))
                         TextField("Cron expression", text: $cronExpression)
                             .textFieldStyle(.roundedBorder)
@@ -76,7 +76,7 @@ struct GitMonitorSetupSheet: View {
                                     ProgressView()
                                         .controlSize(.small)
                                 }
-                                Text("Create Monitor", bundle: .module)
+                                Text("Create Monitor", bundle: .appModule)
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
@@ -136,7 +136,7 @@ struct GitMonitorSetupSheet: View {
         let connectorId = platform.connectorId
         let connectorStore = ConnectorStore.shared
         guard let instance = connectorStore.connectedInstances.first(where: { $0.definitionId == connectorId }) else {
-            statusMessage = String(localized: "git_monitor_error_no_connector", bundle: .module)
+            statusMessage = String(localized: "git_monitor_error_no_connector", bundle: .appModule)
             isCreating = false
             return
         }
@@ -170,12 +170,12 @@ struct GitMonitorSetupSheet: View {
 
         do {
             try await CronJobsStore.shared.upsertJob(id: nil, payload: payload)
-            statusMessage = String(localized: "git_monitor_created", bundle: .module)
+            statusMessage = String(localized: "git_monitor_created", bundle: .appModule)
             // Auto-dismiss after a short delay
             try? await Task.sleep(for: .seconds(1))
             onDismiss()
         } catch {
-            statusMessage = String(localized: "git_monitor_error_create", bundle: .module) + ": \(error.localizedDescription)"
+            statusMessage = String(localized: "git_monitor_error_create", bundle: .appModule) + ": \(error.localizedDescription)"
         }
 
         isCreating = false

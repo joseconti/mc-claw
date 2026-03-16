@@ -20,7 +20,7 @@ struct SlashCommandDefinition: Identifiable {
     }
 
     var localizedDescription: String {
-        String(localized: String.LocalizationValue(descriptionKey), bundle: .module)
+        String(localized: String.LocalizationValue(descriptionKey), bundle: .appModule)
     }
 
     /// True if this command is handled by McClaw directly.

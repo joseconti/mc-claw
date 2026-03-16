@@ -40,7 +40,7 @@ struct InstallProgressView: View {
                                 .foregroundStyle(.red)
                         }
                         .buttonStyle(.plain)
-                        .help(String(localized: "Stop Installation", bundle: .module))
+                        .help(String(localized: "Stop Installation", bundle: .appModule))
                     }
                 }
 
@@ -176,15 +176,15 @@ struct InstallProgressView: View {
         let denied = plan.steps.filter { $0.status == .denied }.count
 
         if failed > 0 {
-            return String(localized: "Failed at step \(failed) of \(total)", bundle: .module)
+            return String(localized: "Failed at step \(failed) of \(total)", bundle: .appModule)
         }
         if denied > 0 {
-            return String(localized: "Denied — \(done) of \(total) completed", bundle: .module)
+            return String(localized: "Denied — \(done) of \(total) completed", bundle: .appModule)
         }
         if done == total {
-            return String(localized: "Installation completed successfully.", bundle: .module)
+            return String(localized: "Installation completed successfully.", bundle: .appModule)
         }
-        return String(localized: "Step \(done + 1) of \(total)", bundle: .module)
+        return String(localized: "Step \(done + 1) of \(total)", bundle: .appModule)
     }
 
     private func toggleExpanded(_ id: UUID) {

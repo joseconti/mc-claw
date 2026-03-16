@@ -41,15 +41,15 @@ final class NodeMode {
     /// Available node capabilities for display.
     var capabilities: [NodeCapability] {
         var caps = [
-            NodeCapability(id: "canvas", description: String(localized: "Canvas panel with A2UI protocol", bundle: .module)),
-            NodeCapability(id: "system.run", description: String(localized: "Execute system commands", bundle: .module)),
-            NodeCapability(id: "location.get", description: String(localized: "Get current location", bundle: .module)),
+            NodeCapability(id: "canvas", description: String(localized: "Canvas panel with A2UI protocol", bundle: .appModule)),
+            NodeCapability(id: "system.run", description: String(localized: "Execute system commands", bundle: .appModule)),
+            NodeCapability(id: "location.get", description: String(localized: "Get current location", bundle: .appModule)),
         ]
         if cameraEnabled {
-            caps.append(NodeCapability(id: "camera", description: String(localized: "Capture photos and video", bundle: .module)))
+            caps.append(NodeCapability(id: "camera", description: String(localized: "Capture photos and video", bundle: .appModule)))
         }
         if screenEnabled {
-            caps.append(NodeCapability(id: "screen.record", description: String(localized: "Record screen", bundle: .module)))
+            caps.append(NodeCapability(id: "screen.record", description: String(localized: "Record screen", bundle: .appModule)))
         }
         return caps
     }

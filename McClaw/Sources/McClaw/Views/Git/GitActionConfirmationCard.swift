@@ -57,7 +57,7 @@ struct GitActionConfirmationCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption)
-                    Text(String(localized: "git_action_destructive_warning", bundle: .module))
+                    Text(String(localized: "git_action_destructive_warning", bundle: .appModule))
                         .font(.caption)
                 }
                 .foregroundStyle(.orange)
@@ -72,13 +72,13 @@ struct GitActionConfirmationCard: View {
             // Actions
             HStack {
                 Spacer()
-                Button(String(localized: "git_action_cancel", bundle: .module)) {
+                Button(String(localized: "git_action_cancel", bundle: .appModule)) {
                     onCancel()
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                Button(String(localized: "git_action_confirm", bundle: .module)) {
+                Button(String(localized: "git_action_confirm", bundle: .appModule)) {
                     onConfirm()
                 }
                 .buttonStyle(.borderedProminent)
@@ -93,7 +93,7 @@ struct GitActionConfirmationCard: View {
         HStack(spacing: 8) {
             ProgressView()
                 .controlSize(.small)
-            Text(String(localized: "git_action_executing", bundle: .module))
+            Text(String(localized: "git_action_executing", bundle: .appModule))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -107,7 +107,7 @@ struct GitActionConfirmationCard: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.caption)
                     .foregroundStyle(.green)
-                Text(String(localized: "git_action_completed", bundle: .module))
+                Text(String(localized: "git_action_completed", bundle: .appModule))
                     .font(.subheadline)
                     .foregroundStyle(.green)
             }
@@ -130,7 +130,7 @@ struct GitActionConfirmationCard: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.caption)
                     .foregroundStyle(.red)
-                Text(String(localized: "git_action_failed", bundle: .module))
+                Text(String(localized: "git_action_failed", bundle: .appModule))
                     .font(.subheadline)
                     .foregroundStyle(.red)
             }
@@ -150,7 +150,7 @@ struct GitActionConfirmationCard: View {
             Image(systemName: "minus.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(String(localized: "git_action_cancelled", bundle: .module))
+            Text(String(localized: "git_action_cancelled", bundle: .appModule))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

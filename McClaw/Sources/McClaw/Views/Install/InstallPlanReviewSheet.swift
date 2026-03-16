@@ -18,7 +18,7 @@ struct InstallPlanReviewSheet: View {
                     .foregroundStyle(Color.accentColor)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(String(localized: "Install Plan Review", bundle: .module))
+                    Text(String(localized: "Install Plan Review", bundle: .appModule))
                         .font(.headline)
                     Text(plan.name)
                         .font(.subheadline)
@@ -51,7 +51,7 @@ struct InstallPlanReviewSheet: View {
                     HStack(spacing: 6) {
                         Image(systemName: "shield.checkered")
                             .font(.caption)
-                        Text(String(localized: "Each command will be checked against your security rules.", bundle: .module))
+                        Text(String(localized: "Each command will be checked against your security rules.", bundle: .appModule))
                             .font(.caption)
                     }
                     .foregroundStyle(.secondary)
@@ -68,7 +68,7 @@ struct InstallPlanReviewSheet: View {
                 Button(role: .cancel) {
                     onCancel()
                 } label: {
-                    Text(String(localized: "Cancel", bundle: .module))
+                    Text(String(localized: "Cancel", bundle: .appModule))
                         .frame(minWidth: 80)
                 }
 
@@ -79,7 +79,7 @@ struct InstallPlanReviewSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "play.fill")
-                        Text(String(localized: "Execute Plan", bundle: .module))
+                        Text(String(localized: "Execute Plan", bundle: .appModule))
                     }
                     .frame(minWidth: 100)
                 }
@@ -99,7 +99,7 @@ struct InstallPlanReviewSheet: View {
             HStack(spacing: 4) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                Text(String(localized: "Warnings", bundle: .module))
+                Text(String(localized: "Warnings", bundle: .appModule))
                     .font(.subheadline.weight(.semibold))
             }
 
@@ -121,7 +121,7 @@ struct InstallPlanReviewSheet: View {
     @ViewBuilder
     private var stepsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "Steps", bundle: .module))
+            Text(String(localized: "Steps", bundle: .appModule))
                 .font(.subheadline.weight(.semibold))
 
             ForEach(Array(plan.steps.enumerated()), id: \.element.id) { index, step in

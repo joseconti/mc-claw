@@ -13,7 +13,7 @@ struct GitRepoListView: View {
                         .foregroundStyle(.tertiary)
                         .font(.callout)
                     TextField(
-                        String(localized: "Search repositories…", bundle: .module),
+                        String(localized: "Search repositories…", bundle: .appModule),
                         text: $viewModel.searchText
                     )
                     .textFieldStyle(.plain)
@@ -65,7 +65,7 @@ struct GitRepoListView: View {
             // Repo count
             if !viewModel.isLoadingRepos && viewModel.loadError == nil && !viewModel.filteredRepos.isEmpty {
                 HStack {
-                    Text(String(localized: "git_repo_count \(viewModel.filteredRepos.count)", bundle: .module))
+                    Text(String(localized: "git_repo_count \(viewModel.filteredRepos.count)", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                     Spacer()
@@ -80,7 +80,7 @@ struct GitRepoListView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .controlSize(.regular)
-                    Text("Loading repositories…", bundle: .module)
+                    Text("Loading repositories…", bundle: .appModule)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -94,7 +94,7 @@ struct GitRepoListView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                    Button(String(localized: "Retry", bundle: .module)) {
+                    Button(String(localized: "Retry", bundle: .appModule)) {
                         Task { await viewModel.loadRepos() }
                     }
                     .buttonStyle(.bordered)
@@ -108,8 +108,8 @@ struct GitRepoListView: View {
                         .font(.title2)
                         .foregroundStyle(.tertiary)
                     Text(viewModel.searchText.isEmpty
-                         ? String(localized: "No repositories found", bundle: .module)
-                         : String(localized: "No matching repositories", bundle: .module))
+                         ? String(localized: "No repositories found", bundle: .appModule)
+                         : String(localized: "No matching repositories", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -139,9 +139,9 @@ struct GitRepoListView: View {
 
     private func sortLabel(_ order: GitSortOrder) -> String {
         switch order {
-        case .lastUpdated: return String(localized: "Last updated", bundle: .module)
-        case .name: return String(localized: "Name", bundle: .module)
-        case .stars: return String(localized: "Stars", bundle: .module)
+        case .lastUpdated: return String(localized: "Last updated", bundle: .appModule)
+        case .name: return String(localized: "Name", bundle: .appModule)
+        case .stars: return String(localized: "Stars", bundle: .appModule)
         }
     }
 }

@@ -24,7 +24,7 @@ struct ArtifactSaveSheet: View {
                 Image(systemName: "doc.text.fill")
                     .foregroundStyle(.orange)
                     .font(.title3)
-                Text(String(localized: "Save Plan to Project", bundle: .module))
+                Text(String(localized: "Save Plan to Project", bundle: .appModule))
                     .font(.headline)
                 Spacer()
                 Button {
@@ -47,7 +47,7 @@ struct ArtifactSaveSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(pending.fileName)
                         .font(.callout.weight(.medium))
-                    Text(String(localized: "Source: \(pending.sourceCLI.capitalized)", bundle: .module))
+                    Text(String(localized: "Source: \(pending.sourceCLI.capitalized)", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -59,9 +59,9 @@ struct ArtifactSaveSheet: View {
 
             // Mode picker
             Picker("", selection: $mode) {
-                Text(String(localized: "Existing Project", bundle: .module))
+                Text(String(localized: "Existing Project", bundle: .appModule))
                     .tag(SaveMode.existing)
-                Text(String(localized: "New Project", bundle: .module))
+                Text(String(localized: "New Project", bundle: .appModule))
                     .tag(SaveMode.newProject)
             }
             .pickerStyle(.segmented)
@@ -81,7 +81,7 @@ struct ArtifactSaveSheet: View {
 
             // Actions
             HStack(spacing: 12) {
-                Button(String(localized: "Don't Save", bundle: .module)) {
+                Button(String(localized: "Don't Save", bundle: .appModule)) {
                     onDismiss()
                 }
                 .keyboardShortcut(.cancelAction)
@@ -89,8 +89,8 @@ struct ArtifactSaveSheet: View {
                 Spacer()
 
                 Button(mode == .existing
-                    ? String(localized: "Save", bundle: .module)
-                    : String(localized: "Create & Save", bundle: .module)
+                    ? String(localized: "Save", bundle: .appModule)
+                    : String(localized: "Create & Save", bundle: .appModule)
                 ) {
                     saveArtifact()
                 }
@@ -111,10 +111,10 @@ struct ArtifactSaveSheet: View {
                 Image(systemName: "folder.badge.plus")
                     .font(.title2)
                     .foregroundStyle(.tertiary)
-                Text(String(localized: "No projects yet", bundle: .module))
+                Text(String(localized: "No projects yet", bundle: .appModule))
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                Text(String(localized: "Switch to \"New Project\" to create one.", bundle: .module))
+                Text(String(localized: "Switch to \"New Project\" to create one.", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -167,9 +167,9 @@ struct ArtifactSaveSheet: View {
     @ViewBuilder
     private var newProjectForm: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "Project Name", bundle: .module))
+            Text(String(localized: "Project Name", bundle: .appModule))
                 .font(.callout.weight(.medium))
-            TextField(String(localized: "My Project", bundle: .module), text: $newProjectName)
+            TextField(String(localized: "My Project", bundle: .appModule), text: $newProjectName)
                 .mcclawTextField()
                 .onSubmit {
                     if canSave { saveArtifact() }

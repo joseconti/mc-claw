@@ -45,7 +45,7 @@ enum LanguageSwitcher {
     /// Available languages detected from the app bundle's .lproj folders.
     /// Each entry has a language code and its native display name.
     static var availableLanguages: [(code: String, nativeName: String)] {
-        let localizations = Bundle.module.localizations
+        let localizations = Bundle.appModule.localizations
             .filter { $0 != "Base" }
             .sorted()
 

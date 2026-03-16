@@ -26,7 +26,7 @@ struct ProjectEditorView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.medium))
-                        Text("Back", bundle: .module)
+                        Text("Back", bundle: .appModule)
                             .font(.body)
                     }
                     .foregroundStyle(.secondary)
@@ -103,9 +103,9 @@ struct ProjectEditorView: View {
                     }
 
                     // Directories
-                    formSection(title: String(localized: "Directories", bundle: .module)) {
+                    formSection(title: String(localized: "Directories", bundle: .appModule)) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Filesystem directories associated with this project. The AI will use them as working paths.", bundle: .module)
+                            Text("Filesystem directories associated with this project. The AI will use them as working paths.", bundle: .appModule)
                                 .font(.subheadline)
                                 .foregroundStyle(.tertiary)
 
@@ -113,7 +113,7 @@ struct ProjectEditorView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "folder.badge.questionmark")
                                         .foregroundStyle(.tertiary)
-                                    Text("No directories added yet", bundle: .module)
+                                    Text("No directories added yet", bundle: .appModule)
                                         .font(.callout)
                                         .foregroundStyle(.tertiary)
                                 }
@@ -151,7 +151,7 @@ struct ProjectEditorView: View {
                             Button {
                                 addDirectory()
                             } label: {
-                                Label(String(localized: "Add Directory", bundle: .module), systemImage: "folder.badge.plus")
+                                Label(String(localized: "Add Directory", bundle: .appModule), systemImage: "folder.badge.plus")
                                     .font(.callout)
                             }
                             .buttonStyle(.bordered)
@@ -324,7 +324,7 @@ struct ProjectEditorView: View {
 
     private func addDirectory() {
         let panel = NSOpenPanel()
-        panel.title = String(localized: "Select a project directory", bundle: .module)
+        panel.title = String(localized: "Select a project directory", bundle: .appModule)
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true

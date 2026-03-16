@@ -26,7 +26,7 @@ struct BitNetSettingsTab: View {
             HStack {
                 Image(systemName: "flask")
                     .foregroundStyle(.orange)
-                Text(String(localized: "bitnet_experimental_badge", bundle: .module))
+                Text(String(localized: "bitnet_experimental_badge", bundle: .appModule))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
             }
@@ -34,7 +34,7 @@ struct BitNetSettingsTab: View {
 
             // Enable toggle
             Toggle(isOn: $state.showExperimentalProviders) {
-                Text(String(localized: "bitnet_show_experimental", bundle: .module))
+                Text(String(localized: "bitnet_show_experimental", bundle: .appModule))
             }
             .onChange(of: appState.showExperimentalProviders) {
                 Task { await ConfigStore.shared.saveFromState() }
@@ -56,7 +56,7 @@ struct BitNetSettingsTab: View {
 
     private var notInstalledView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionHeader(String(localized: "bitnet_prerequisites_header", bundle: .module))
+            sectionHeader(String(localized: "bitnet_prerequisites_header", bundle: .appModule))
 
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(BitNetKit.prerequisites, id: \.name) { prereq in
@@ -82,12 +82,12 @@ struct BitNetSettingsTab: View {
                 Button {
                     startInstallation()
                 } label: {
-                    Label(String(localized: "bitnet_install_button", bundle: .module), systemImage: "arrow.down.circle")
+                    Label(String(localized: "bitnet_install_button", bundle: .appModule), systemImage: "arrow.down.circle")
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 8)
 
-                Text(String(localized: "bitnet_install_time_estimate", bundle: .module))
+                Text(String(localized: "bitnet_install_time_estimate", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 4)
@@ -104,11 +104,11 @@ struct BitNetSettingsTab: View {
         @Bindable var state = appState
         return VStack(alignment: .leading, spacing: 0) {
             // Status
-            sectionHeader(String(localized: "bitnet_status_header", bundle: .module))
+            sectionHeader(String(localized: "bitnet_status_header", bundle: .appModule))
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text(String(localized: "bitnet_status_ready", bundle: .module))
+                Text(String(localized: "bitnet_status_ready", bundle: .appModule))
                 Spacer()
             }
             .padding(.vertical, 4)
@@ -116,7 +116,7 @@ struct BitNetSettingsTab: View {
             sectionDivider()
 
             // Models
-            sectionHeader(String(localized: "bitnet_models_header", bundle: .module))
+            sectionHeader(String(localized: "bitnet_models_header", bundle: .appModule))
 
             VStack(alignment: .leading, spacing: 6) {
                 // Installed models
@@ -128,7 +128,7 @@ struct BitNetSettingsTab: View {
                                 Text(info?.displayName ?? modelId)
                                     .font(.callout.weight(.medium))
                                 if info?.isInstruct == false {
-                                    Text(String(localized: "bitnet_base_no_chat", bundle: .module))
+                                    Text(String(localized: "bitnet_base_no_chat", bundle: .appModule))
                                         .font(.caption2)
                                         .padding(.horizontal, 4)
                                         .padding(.vertical, 1)
@@ -143,18 +143,18 @@ struct BitNetSettingsTab: View {
                         Spacer()
                         if info?.isInstruct == false {
                             // Base models cannot be set as default for chat
-                            Text(String(localized: "bitnet_base_only", bundle: .module))
+                            Text(String(localized: "bitnet_base_only", bundle: .appModule))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         } else if state.bitnetDefaultModel == modelId || (state.bitnetDefaultModel == nil && info?.isDefault == true) {
-                            Text(String(localized: "bitnet_model_default_badge", bundle: .module))
+                            Text(String(localized: "bitnet_model_default_badge", bundle: .appModule))
                                 .font(.caption2)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(.blue.opacity(0.2))
                                 .clipShape(Capsule())
                         } else {
-                            Button(String(localized: "bitnet_set_default", bundle: .module)) {
+                            Button(String(localized: "bitnet_set_default", bundle: .appModule)) {
                                 state.bitnetDefaultModel = modelId
                                 Task { await ConfigStore.shared.saveFromState() }
                             }
@@ -169,7 +169,7 @@ struct BitNetSettingsTab: View {
                                 .font(.caption)
                         }
                         .buttonStyle(.borderless)
-                        .help(String(localized: "bitnet_delete_model_help", bundle: .module))
+                        .help(String(localized: "bitnet_delete_model_help", bundle: .appModule))
                     }
                 }
 
@@ -178,7 +178,7 @@ struct BitNetSettingsTab: View {
                     !installedModels.contains(model.modelId)
                 }
                 if !notInstalled.isEmpty {
-                    Text(String(localized: "bitnet_available_models", bundle: .module))
+                    Text(String(localized: "bitnet_available_models", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.top, 8)
@@ -190,7 +190,7 @@ struct BitNetSettingsTab: View {
                                     Text(model.displayName)
                                         .font(.callout)
                                     if !model.isInstruct {
-                                        Text(String(localized: "bitnet_base_no_chat", bundle: .module))
+                                        Text(String(localized: "bitnet_base_no_chat", bundle: .appModule))
                                             .font(.caption2)
                                             .padding(.horizontal, 4)
                                             .padding(.vertical, 1)
@@ -207,7 +207,7 @@ struct BitNetSettingsTab: View {
                                 ProgressView()
                                     .scaleEffect(0.7)
                             } else {
-                                Button(String(localized: "bitnet_download_button", bundle: .module)) {
+                                Button(String(localized: "bitnet_download_button", bundle: .appModule)) {
                                     downloadModel(model)
                                 }
                                 .font(.caption)
@@ -225,7 +225,7 @@ struct BitNetSettingsTab: View {
                         .padding(.top, 8)
 
                     if !isDownloadingModel && downloadError == nil {
-                        Button(String(localized: "bitnet_dismiss_log", bundle: .module)) {
+                        Button(String(localized: "bitnet_dismiss_log", bundle: .appModule)) {
                             downloadLog = []
                         }
                         .font(.caption)
@@ -244,7 +244,7 @@ struct BitNetSettingsTab: View {
                             .foregroundStyle(.red)
                             .textSelection(.enabled)
                         Spacer()
-                        Button(String(localized: "bitnet_dismiss_log", bundle: .module)) {
+                        Button(String(localized: "bitnet_dismiss_log", bundle: .appModule)) {
                             self.downloadError = nil
                             downloadLog = []
                         }
@@ -259,44 +259,44 @@ struct BitNetSettingsTab: View {
             sectionDivider()
 
             // Inference Settings
-            sectionHeader(String(localized: "bitnet_inference_header", bundle: .module))
+            sectionHeader(String(localized: "bitnet_inference_header", bundle: .appModule))
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(String(localized: "bitnet_threads", bundle: .module))
+                    Text(String(localized: "bitnet_threads", bundle: .appModule))
                         .frame(width: 120, alignment: .leading)
                     TextField("", value: $state.bitnetThreads, format: .number)
                         .mcclawTextField()
                         .frame(width: 80)
-                    Text("(\(ProcessInfo.processInfo.activeProcessorCount) \(String(localized: "bitnet_available_cores", bundle: .module)))")
+                    Text("(\(ProcessInfo.processInfo.activeProcessorCount) \(String(localized: "bitnet_available_cores", bundle: .appModule)))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 HStack {
-                    Text(String(localized: "bitnet_context_size", bundle: .module))
+                    Text(String(localized: "bitnet_context_size", bundle: .appModule))
                         .frame(width: 120, alignment: .leading)
                     TextField("", value: $state.bitnetContextSize, format: .number)
                         .mcclawTextField()
                         .frame(width: 80)
-                    Text(String(localized: "bitnet_tokens_label", bundle: .module))
+                    Text(String(localized: "bitnet_tokens_label", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 HStack {
-                    Text(String(localized: "bitnet_max_tokens", bundle: .module))
+                    Text(String(localized: "bitnet_max_tokens", bundle: .appModule))
                         .frame(width: 120, alignment: .leading)
                     TextField("", value: $state.bitnetMaxTokens, format: .number)
                         .mcclawTextField()
                         .frame(width: 80)
-                    Text(String(localized: "bitnet_tokens_label", bundle: .module))
+                    Text(String(localized: "bitnet_tokens_label", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 HStack {
-                    Text(String(localized: "bitnet_temperature", bundle: .module))
+                    Text(String(localized: "bitnet_temperature", bundle: .appModule))
                         .frame(width: 120, alignment: .leading)
                     TextField("", value: $state.bitnetTemperature, format: .number)
                         .mcclawTextField()
@@ -304,7 +304,7 @@ struct BitNetSettingsTab: View {
                 }
 
                 HStack {
-                    Text(String(localized: "bitnet_server_port", bundle: .module))
+                    Text(String(localized: "bitnet_server_port", bundle: .appModule))
                         .frame(width: 120, alignment: .leading)
                     TextField("", value: $state.bitnetServerPort, format: .number)
                         .mcclawTextField()
@@ -312,18 +312,18 @@ struct BitNetSettingsTab: View {
                 }
 
                 HStack {
-                    Text(String(localized: "bitnet_server_mode", bundle: .module))
+                    Text(String(localized: "bitnet_server_mode", bundle: .appModule))
                         .frame(width: 120, alignment: .leading)
                     Picker("", selection: $state.bitnetAlwaysOn) {
-                        Text(String(localized: "bitnet_server_always_on", bundle: .module))
+                        Text(String(localized: "bitnet_server_always_on", bundle: .appModule))
                             .tag(true)
-                        Text(String(localized: "bitnet_server_on_demand", bundle: .module))
+                        Text(String(localized: "bitnet_server_on_demand", bundle: .appModule))
                             .tag(false)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 260)
                 }
-                Text(String(localized: "bitnet_server_mode_description", bundle: .module))
+                Text(String(localized: "bitnet_server_mode_description", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -341,7 +341,7 @@ struct BitNetSettingsTab: View {
             Button(role: .destructive) {
                 loadManifestForUninstall()
             } label: {
-                Label(String(localized: "bitnet_uninstall_button", bundle: .module), systemImage: "trash")
+                Label(String(localized: "bitnet_uninstall_button", bundle: .appModule), systemImage: "trash")
             }
             .padding(.top, 8)
             .sheet(isPresented: $showUninstallConfirm) {
@@ -360,7 +360,7 @@ struct BitNetSettingsTab: View {
             HStack {
                 ProgressView()
                     .scaleEffect(0.7)
-                Text(String(localized: "bitnet_installing", bundle: .module))
+                Text(String(localized: "bitnet_installing", bundle: .appModule))
                     .font(.callout)
             }
 
@@ -375,24 +375,24 @@ struct BitNetSettingsTab: View {
 
     private var uninstallConfirmSheet: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(String(localized: "bitnet_uninstall_title", bundle: .module))
+            Text(String(localized: "bitnet_uninstall_title", bundle: .appModule))
                 .font(.headline)
 
-            Text(String(localized: "bitnet_uninstall_description", bundle: .module))
+            Text(String(localized: "bitnet_uninstall_description", bundle: .appModule))
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
             // Always removed
             VStack(alignment: .leading, spacing: 4) {
-                Text(String(localized: "bitnet_will_remove", bundle: .module))
+                Text(String(localized: "bitnet_will_remove", bundle: .appModule))
                     .font(.caption.weight(.semibold))
                 Text("\u{2022} BitNet repository (~/.mcclaw/bitnet)")
                     .font(.caption)
                 Text("\u{2022} Conda environment (mcclaw-bitnet)")
                     .font(.caption)
-                Text("\u{2022} \(String(localized: "bitnet_all_models", bundle: .module)) (\(installedModels.count))")
+                Text("\u{2022} \(String(localized: "bitnet_all_models", bundle: .appModule)) (\(installedModels.count))")
                     .font(.caption)
-                Text("\u{2022} \(String(localized: "bitnet_compiled_kernels", bundle: .module))")
+                Text("\u{2022} \(String(localized: "bitnet_compiled_kernels", bundle: .appModule))")
                     .font(.caption)
                 if FileManager.default.fileExists(atPath: BitNetKit.Paths.cmakeBin) {
                     Text("\u{2022} CMake (~/.mcclaw/tools/cmake)")
@@ -407,9 +407,9 @@ struct BitNetSettingsTab: View {
             // Prerequisites installed by McClaw
             if let manifest, !manifest.mcclawInstalledPrerequisites.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "bitnet_optional_remove", bundle: .module))
+                    Text(String(localized: "bitnet_optional_remove", bundle: .appModule))
                         .font(.caption.weight(.semibold))
-                    Text(String(localized: "bitnet_optional_remove_warning", bundle: .module))
+                    Text(String(localized: "bitnet_optional_remove_warning", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.orange)
 
@@ -427,12 +427,12 @@ struct BitNetSettingsTab: View {
 
             HStack {
                 Spacer()
-                Button(String(localized: "bitnet_cancel", bundle: .module)) {
+                Button(String(localized: "bitnet_cancel", bundle: .appModule)) {
                     showUninstallConfirm = false
                 }
                 .keyboardShortcut(.cancelAction)
 
-                Button(String(localized: "bitnet_uninstall_confirm", bundle: .module), role: .destructive) {
+                Button(String(localized: "bitnet_uninstall_confirm", bundle: .appModule), role: .destructive) {
                     performUninstall()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -552,7 +552,7 @@ struct BitNetSettingsTab: View {
                     downloadLog.append("[ERROR] Homebrew is required but not installed.")
                     downloadLog.append("    A Terminal window will open to install it.")
                     downloadLog.append("    After installation, click the download button again.")
-                    downloadError = String(localized: "bitnet_brew_not_found", bundle: .module)
+                    downloadError = String(localized: "bitnet_brew_not_found", bundle: .appModule)
                     isDownloadingModel = false
                     downloadModelId = nil
                 }

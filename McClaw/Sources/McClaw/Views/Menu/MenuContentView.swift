@@ -43,14 +43,14 @@ struct MenuContentView: View {
             MultiLineTextInput(
                 text: $text,
                 placeholder: planMode
-                    ? String(localized: "Describe what you want to analyze...", bundle: .module)
+                    ? String(localized: "Describe what you want to analyze...", bundle: .appModule)
                     : voiceMode.isActive
-                        ? String(localized: "Voice Mode active...", bundle: .module)
+                        ? String(localized: "Voice Mode active...", bundle: .appModule)
                         : imageMode
-                            ? String(localized: "Describe the image you want to create...", bundle: .module)
+                            ? String(localized: "Describe the image you want to create...", bundle: .appModule)
                             : installMode
-                                ? String(localized: "Paste the install prompt here...", bundle: .module)
-                                : String(localized: "What can I help you with?", bundle: .module),
+                                ? String(localized: "Paste the install prompt here...", bundle: .appModule)
+                                : String(localized: "What can I help you with?", bundle: .appModule),
                 font: .systemFont(ofSize: 16),
                 minHeight: 36,
                 maxHeight: 120,
@@ -80,18 +80,18 @@ struct MenuContentView: View {
                 Button {
                     startNewChat()
                 } label: {
-                    Label(String(localized: "New Chat", bundle: .module), systemImage: "bubble.left")
+                    Label(String(localized: "New Chat", bundle: .appModule), systemImage: "bubble.left")
                 }
 
                 Button {
                     startNewPlanChat()
                 } label: {
-                    Label(String(localized: "New Plan Chat", bundle: .module), systemImage: "binoculars")
+                    Label(String(localized: "New Plan Chat", bundle: .appModule), systemImage: "binoculars")
                 }
 
                 Menu {
                     if projectStore.projects.isEmpty {
-                        Text(String(localized: "No Projects", bundle: .module))
+                        Text(String(localized: "No Projects", bundle: .appModule))
                     } else {
                         ForEach(projectStore.projects) { project in
                             Button {
@@ -102,7 +102,7 @@ struct MenuContentView: View {
                         }
                     }
                 } label: {
-                    Label(String(localized: "New Chat in Project", bundle: .module), systemImage: "folder.badge.plus")
+                    Label(String(localized: "New Chat in Project", bundle: .appModule), systemImage: "folder.badge.plus")
                 }
 
                 Divider()
@@ -110,7 +110,7 @@ struct MenuContentView: View {
                 Button {
                     openScheduleCreation()
                 } label: {
-                    Label(String(localized: "New Schedule", bundle: .module), systemImage: "clock.badge.plus")
+                    Label(String(localized: "New Schedule", bundle: .appModule), systemImage: "clock.badge.plus")
                 }
 
                 Divider()
@@ -118,11 +118,11 @@ struct MenuContentView: View {
                 Button {
                     openMainWindow()
                 } label: {
-                    Label(String(localized: "Open Chat Window", bundle: .module), systemImage: "macwindow")
+                    Label(String(localized: "Open Chat Window", bundle: .appModule), systemImage: "macwindow")
                 }
             } label: {
                 HStack(spacing: 4) {
-                    Text(String(localized: "New Chat", bundle: .module))
+                    Text(String(localized: "New Chat", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(.white.opacity(0.6))
                     Image(systemName: "chevron.down")
@@ -147,7 +147,7 @@ struct MenuContentView: View {
                 if hasImageCapableCLI {
                     floatingToggleButton(
                         icon: imageMode ? "photo.fill" : "photo",
-                        label: String(localized: "Image", bundle: .module),
+                        label: String(localized: "Image", bundle: .appModule),
                         isActive: imageMode
                     ) {
                         imageMode.toggle()
@@ -158,7 +158,7 @@ struct MenuContentView: View {
                 // Install toggle
                 floatingToggleButton(
                     icon: installMode ? "square.and.arrow.down.fill" : "square.and.arrow.down",
-                    label: String(localized: "Install", bundle: .module),
+                    label: String(localized: "Install", bundle: .appModule),
                     isActive: installMode
                 ) {
                     installMode.toggle()
@@ -169,7 +169,7 @@ struct MenuContentView: View {
             // Plan Mode toggle
             floatingToggleButton(
                 icon: planMode ? "binoculars.fill" : "binoculars",
-                label: String(localized: "Plan", bundle: .module),
+                label: String(localized: "Plan", bundle: .appModule),
                 isActive: planMode,
                 activeColor: .orange
             ) {
@@ -278,7 +278,7 @@ struct MenuContentView: View {
     // MARK: - Panel Icon
 
     private var mcclawPanelIcon: Image {
-        let bundle = Bundle.module
+        let bundle = Bundle.appModule
         // Direct path access (SPM may not resolve @2x via forResource)
         let url2x = bundle.bundleURL.appendingPathComponent("mcclaw-white@2x.png")
         if FileManager.default.fileExists(atPath: url2x.path),
@@ -304,7 +304,7 @@ struct MenuContentView: View {
                     .font(.subheadline)
                     .foregroundStyle(voiceMode.isActive ? .white : .white.opacity(0.6))
                     .symbolEffect(.pulse, isActive: voiceMode.state == .listening)
-                Text(String(localized: "Voice", bundle: .module))
+                Text(String(localized: "Voice", bundle: .appModule))
                     .font(.callout.weight(voiceMode.isActive ? .semibold : .regular))
                     .foregroundStyle(voiceMode.isActive ? .white : .white.opacity(0.6))
             }
@@ -384,7 +384,7 @@ struct MenuContentView: View {
                     }
                 }
                 Divider()
-                Button(String(localized: "Use Default", bundle: .module)) {
+                Button(String(localized: "Use Default", bundle: .appModule)) {
                     selectedModelId = nil
                 }
             } label: {
@@ -420,7 +420,7 @@ struct MenuContentView: View {
            let model = models.first(where: { $0.modelId == defaultId }) {
             return model.displayName
         }
-        return models.first(where: { _ in true })?.displayName ?? String(localized: "Default", bundle: .module)
+        return models.first(where: { _ in true })?.displayName ?? String(localized: "Default", bundle: .appModule)
     }
 
     private func isActiveModel(_ model: ModelInfo) -> Bool {

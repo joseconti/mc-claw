@@ -53,7 +53,7 @@ struct GitFileContentView: View {
 
             if let content {
                 let lineCount = content.components(separatedBy: "\n").count
-                Text("\(lineCount) lines", bundle: .module)
+                Text("\(lineCount) lines", bundle: .appModule)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
 
@@ -77,7 +77,7 @@ struct GitFileContentView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help(String(localized: "Copy file contents", bundle: .module))
+                .help(String(localized: "Copy file contents", bundle: .appModule))
             }
         }
         .padding(.horizontal, 12)
@@ -168,7 +168,7 @@ struct GitFileContentView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
                             .font(.caption2)
-                        Text(String(localized: "git_action_ask_about_lines \(start) \(end)", bundle: .module))
+                        Text(String(localized: "git_action_ask_about_lines \(start) \(end)", bundle: .appModule))
                             .font(.caption)
                     }
                     .padding(.horizontal, 10)
@@ -237,7 +237,7 @@ struct GitFileContentView: View {
             Spacer()
             ProgressView()
                 .controlSize(.small)
-            Text("Loading file…", bundle: .module)
+            Text("Loading file…", bundle: .appModule)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -254,7 +254,7 @@ struct GitFileContentView: View {
             Image(systemName: "doc.text")
                 .font(.title2)
                 .foregroundStyle(.tertiary)
-            Text("Unable to load file content", bundle: .module)
+            Text("Unable to load file content", bundle: .appModule)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -269,25 +269,25 @@ struct GitFileContentView: View {
         Button {
             onSendToChat?(GitPromptTemplates.explainFile(file.path))
         } label: {
-            Label(String(localized: "git_action_explain_file", bundle: .module), systemImage: "doc.text.magnifyingglass")
+            Label(String(localized: "git_action_explain_file", bundle: .appModule), systemImage: "doc.text.magnifyingglass")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.findUsagesFile(file.path))
         } label: {
-            Label(String(localized: "git_action_find_usages", bundle: .module), systemImage: "magnifyingglass")
+            Label(String(localized: "git_action_find_usages", bundle: .appModule), systemImage: "magnifyingglass")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.suggestImprovementsFile(file.path))
         } label: {
-            Label(String(localized: "git_action_suggest_improvements_file", bundle: .module), systemImage: "lightbulb")
+            Label(String(localized: "git_action_suggest_improvements_file", bundle: .appModule), systemImage: "lightbulb")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.writeTestsFile(file.path))
         } label: {
-            Label(String(localized: "git_action_write_tests", bundle: .module), systemImage: "checkmark.shield")
+            Label(String(localized: "git_action_write_tests", bundle: .appModule), systemImage: "checkmark.shield")
         }
     }
 

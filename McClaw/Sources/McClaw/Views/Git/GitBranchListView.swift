@@ -10,7 +10,7 @@ struct GitBranchListView: View {
 
     var body: some View {
         if branches.isEmpty {
-            Text("No branches loaded", bundle: .module)
+            Text("No branches loaded", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -92,13 +92,13 @@ struct GitBranchListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.compareBranch(branch, defaultBranch: defaultBranch))
         } label: {
-            Label(String(localized: "git_action_compare_branch", bundle: .module), systemImage: "arrow.left.arrow.right")
+            Label(String(localized: "git_action_compare_branch", bundle: .appModule), systemImage: "arrow.left.arrow.right")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.createPRFromBranch(branch, defaultBranch: defaultBranch))
         } label: {
-            Label(String(localized: "git_action_create_pr", bundle: .module), systemImage: "arrow.triangle.pull")
+            Label(String(localized: "git_action_create_pr", bundle: .appModule), systemImage: "arrow.triangle.pull")
         }
 
         Divider()
@@ -106,14 +106,14 @@ struct GitBranchListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.deleteBranch(branch))
         } label: {
-            Label(String(localized: "git_action_delete_branch", bundle: .module), systemImage: "trash")
+            Label(String(localized: "git_action_delete_branch", bundle: .appModule), systemImage: "trash")
         }
 
         Button {
             let current = selectedBranch?.name ?? defaultBranch
             onSendToChat?(GitPromptTemplates.mergeBranch(branch, currentBranch: current))
         } label: {
-            Label(String(localized: "git_action_merge_branch", bundle: .module), systemImage: "arrow.triangle.merge")
+            Label(String(localized: "git_action_merge_branch", bundle: .appModule), systemImage: "arrow.triangle.merge")
         }
     }
 }

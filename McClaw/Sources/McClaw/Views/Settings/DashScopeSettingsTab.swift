@@ -19,7 +19,7 @@ struct DashScopeSettingsTab: View {
         @Bindable var state = appState
         VStack(alignment: .leading, spacing: 0) {
             // Description
-            Text(String(localized: "dashscope_description", bundle: .module))
+            Text(String(localized: "dashscope_description", bundle: .appModule))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 8)
@@ -48,18 +48,18 @@ struct DashScopeSettingsTab: View {
 
     private var apiKeySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(String(localized: "dashscope_api_key_header", bundle: .module))
+            sectionHeader(String(localized: "dashscope_api_key_header", bundle: .appModule))
 
             HStack {
                 if isKeyVisible {
                     TextField(
-                        String(localized: "dashscope_api_key_placeholder", bundle: .module),
+                        String(localized: "dashscope_api_key_placeholder", bundle: .appModule),
                         text: $apiKeyInput
                     )
                     .mcclawTextField()
                 } else {
                     SecureField(
-                        String(localized: "dashscope_api_key_placeholder", bundle: .module),
+                        String(localized: "dashscope_api_key_placeholder", bundle: .appModule),
                         text: $apiKeyInput
                     )
                     .mcclawTextField()
@@ -72,18 +72,18 @@ struct DashScopeSettingsTab: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
-                .help(String(localized: "dashscope_toggle_visibility", bundle: .module))
+                .help(String(localized: "dashscope_toggle_visibility", bundle: .appModule))
             }
 
             HStack(spacing: 8) {
-                Button(String(localized: "dashscope_save_key", bundle: .module)) {
+                Button(String(localized: "dashscope_save_key", bundle: .appModule)) {
                     saveAPIKey()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if hasExistingKey {
-                    Button(String(localized: "dashscope_remove_key", bundle: .module), role: .destructive) {
+                    Button(String(localized: "dashscope_remove_key", bundle: .appModule), role: .destructive) {
                         removeAPIKey()
                     }
                     .buttonStyle(.bordered)
@@ -95,13 +95,13 @@ struct DashScopeSettingsTab: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
                         .font(.caption)
-                    Text(String(localized: "dashscope_key_stored", bundle: .module))
+                    Text(String(localized: "dashscope_key_stored", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Text(String(localized: "dashscope_key_hint", bundle: .module))
+            Text(String(localized: "dashscope_key_hint", bundle: .appModule))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -116,7 +116,7 @@ struct DashScopeSettingsTab: View {
     private var regionSection: some View {
         @Bindable var state = appState
         return VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(String(localized: "dashscope_region_header", bundle: .module))
+            sectionHeader(String(localized: "dashscope_region_header", bundle: .appModule))
 
             Picker("", selection: $state.dashscopeRegion) {
                 ForEach(DashScopeKit.Region.allCases, id: \.rawValue) { region in
@@ -126,7 +126,7 @@ struct DashScopeSettingsTab: View {
             .pickerStyle(.segmented)
             .frame(width: 320)
 
-            Text(String(localized: "dashscope_region_hint", bundle: .module))
+            Text(String(localized: "dashscope_region_hint", bundle: .appModule))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -138,7 +138,7 @@ struct DashScopeSettingsTab: View {
 
     private var modelsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            sectionHeader(String(localized: "dashscope_models_header", bundle: .module))
+            sectionHeader(String(localized: "dashscope_models_header", bundle: .appModule))
 
             ForEach(DashScopeKit.modelCatalog) { model in
                 HStack {
@@ -162,14 +162,14 @@ struct DashScopeSettingsTab: View {
                     Spacer()
 
                     if appState.defaultModels["dashscope"] == model.modelId {
-                        Text(String(localized: "dashscope_default_badge", bundle: .module))
+                        Text(String(localized: "dashscope_default_badge", bundle: .appModule))
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(.blue.opacity(0.2))
                             .clipShape(Capsule())
                     } else {
-                        Button(String(localized: "dashscope_set_default", bundle: .module)) {
+                        Button(String(localized: "dashscope_set_default", bundle: .appModule)) {
                             appState.defaultModels["dashscope"] = model.modelId
                             Task { await ConfigStore.shared.saveFromState() }
                         }
@@ -186,7 +186,7 @@ struct DashScopeSettingsTab: View {
 
     private var connectionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader(String(localized: "dashscope_connection_header", bundle: .module))
+            sectionHeader(String(localized: "dashscope_connection_header", bundle: .appModule))
 
             HStack {
                 Button {
@@ -197,7 +197,7 @@ struct DashScopeSettingsTab: View {
                             .scaleEffect(0.7)
                     } else {
                         Label(
-                            String(localized: "dashscope_test_connection", bundle: .module),
+                            String(localized: "dashscope_test_connection", bundle: .appModule),
                             systemImage: "network"
                         )
                     }
@@ -211,7 +211,7 @@ struct DashScopeSettingsTab: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text(String(localized: "dashscope_connected", bundle: .module))
+                            Text(String(localized: "dashscope_connected", bundle: .appModule))
                                 .font(.callout)
                         }
                     case .failure(let msg):
@@ -228,7 +228,7 @@ struct DashScopeSettingsTab: View {
             }
 
             if !hasExistingKey {
-                Text(String(localized: "dashscope_not_configured", bundle: .module))
+                Text(String(localized: "dashscope_not_configured", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

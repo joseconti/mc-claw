@@ -273,7 +273,7 @@ struct ChatWindow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.medium))
-                        Text(String(localized: "help_title", bundle: .module))
+                        Text(String(localized: "help_title", bundle: .appModule))
                             .font(.title2.weight(.bold))
                     }
                     .foregroundStyle(.primary)

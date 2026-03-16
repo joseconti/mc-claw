@@ -47,7 +47,7 @@ private struct DisclaimerContentView: View {
                     .font(.system(size: 36))
                     .foregroundStyle(.secondary)
 
-                Text(String(localized: "disclaimer_title", bundle: .module))
+                Text(String(localized: "disclaimer_title", bundle: .appModule))
                     .font(.title2.weight(.semibold))
 
                 Text("© 2024-2026 José Conti")

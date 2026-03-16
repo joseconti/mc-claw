@@ -106,7 +106,7 @@ struct InteractivePromptCard: View {
                         .disabled(currentIndex == 0)
 
                         // Page indicator
-                        Text(String(localized: "\(currentIndex + 1) of \(totalCount)", bundle: .module))
+                        Text(String(localized: "\(currentIndex + 1) of \(totalCount)", bundle: .appModule))
                             .font(.callout)
                             .foregroundStyle(.secondary)
 
@@ -132,7 +132,7 @@ struct InteractivePromptCard: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help(String(localized: "Skip all", bundle: .module))
+                .help(String(localized: "Skip all", bundle: .appModule))
             }
 
             // Description
@@ -180,7 +180,7 @@ struct InteractivePromptCard: View {
             // Footer: selection count + Skip + confirm arrow
             HStack(spacing: 12) {
                 if !selectedKeys.isEmpty {
-                    Text(String(localized: "\(selectedKeys.count) selected", bundle: .module))
+                    Text(String(localized: "\(selectedKeys.count) selected", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(Theme.accent)
                 }
@@ -191,7 +191,7 @@ struct InteractivePromptCard: View {
                 Button {
                     promptService.skipCurrent()
                 } label: {
-                    Text(String(localized: "Skip", bundle: .module))
+                    Text(String(localized: "Skip", bundle: .appModule))
                         .font(.subheadline.weight(.medium))
                 }
                 .buttonStyle(.bordered)
@@ -228,7 +228,7 @@ struct InteractivePromptCard: View {
                 )
                 promptService.resolveCurrentPrompt(response)
             } label: {
-                Text(String(localized: "Cancel", bundle: .module))
+                Text(String(localized: "Cancel", bundle: .appModule))
                     .font(.subheadline.weight(.medium))
                     .frame(minWidth: 80)
             }
@@ -241,7 +241,7 @@ struct InteractivePromptCard: View {
                 )
                 promptService.resolveCurrentPrompt(response)
             } label: {
-                Text(String(localized: "Accept", bundle: .module))
+                Text(String(localized: "Accept", bundle: .appModule))
                     .font(.subheadline.weight(.medium))
                     .frame(minWidth: 80)
             }
@@ -257,7 +257,7 @@ struct InteractivePromptCard: View {
     private var freeTextContent: some View {
         HStack(spacing: 8) {
             TextField(
-                String(localized: "Type your answer...", bundle: .module),
+                String(localized: "Type your answer...", bundle: .appModule),
                 text: $freeText
             )
             .textFieldStyle(.roundedBorder)
@@ -368,7 +368,7 @@ struct InteractivePromptCard: View {
                 .foregroundStyle(.secondary)
 
             TextField(
-                String(localized: "Something else...", bundle: .module),
+                String(localized: "Something else...", bundle: .appModule),
                 text: $freeText
             )
             .textFieldStyle(.plain)
@@ -387,7 +387,7 @@ struct InteractivePromptCard: View {
             Button {
                 promptService.skipCurrent()
             } label: {
-                Text(String(localized: "Skip", bundle: .module))
+                Text(String(localized: "Skip", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -401,7 +401,7 @@ struct InteractivePromptCard: View {
 
     @ViewBuilder
     private var keyboardHints: some View {
-        Text(String(localized: "↑↓ navigate · Enter select · Esc skip", bundle: .module))
+        Text(String(localized: "↑↓ navigate · Enter select · Esc skip", bundle: .appModule))
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .frame(maxWidth: .infinity, alignment: .center)
@@ -533,7 +533,7 @@ struct InteractivePromptCard: View {
 
     private func answerSummary(_ response: InteractivePromptKit.PromptResponse) -> String {
         if response.skipped {
-            return String(localized: "Skipped", bundle: .module)
+            return String(localized: "Skipped", bundle: .appModule)
         }
         if let text = response.freeText, !text.isEmpty {
             return text

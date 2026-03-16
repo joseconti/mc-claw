@@ -47,7 +47,7 @@ private struct LicenseContentView: View {
                     .font(.system(size: 36))
                     .foregroundStyle(.secondary)
 
-                Text(String(localized: "license_title", bundle: .module))
+                Text(String(localized: "license_title", bundle: .appModule))
                     .font(.title2.weight(.semibold))
 
                 Text("GNU General Public License v3.0")

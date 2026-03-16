@@ -108,7 +108,7 @@ struct ChatSidebar: View {
                 }
                 SidebarNavItem(
                     icon: "photo.on.rectangle.angled",
-                    label: String(localized: "multimedia", bundle: .module),
+                    label: String(localized: "multimedia", bundle: .appModule),
                     isActive: currentSection == .multimedia,
                     badge: imageIndexStore.allImages.count
                 ) {
@@ -116,7 +116,7 @@ struct ChatSidebar: View {
                 }
                 SidebarNavItem(
                     icon: "square.and.arrow.down.on.square",
-                    label: String(localized: "Installations", bundle: .module),
+                    label: String(localized: "Installations", bundle: .appModule),
                     isActive: currentSection == .installations,
                     badge: installService.installRegistry.count
                 ) {
@@ -125,7 +125,7 @@ struct ChatSidebar: View {
                 if appState.gitSectionEnabled {
                     SidebarNavItem(
                         icon: "chevron.left.forwardslash.chevron.right",
-                        label: String(localized: "Git", bundle: .module),
+                        label: String(localized: "Git", bundle: .appModule),
                         isActive: currentSection == .git
                     ) {
                         currentSection = .git

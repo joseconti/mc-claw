@@ -45,7 +45,7 @@ struct MultimediaContentView: View {
     @ViewBuilder
     private var header: some View {
         HStack(spacing: 12) {
-            Text(String(localized: "multimedia", bundle: .module))
+            Text(String(localized: "multimedia", bundle: .appModule))
                 .font(.title2.weight(.bold))
 
             if !imageIndexStore.allImages.isEmpty {
@@ -68,7 +68,7 @@ struct MultimediaContentView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help(String(localized: "refresh", bundle: .module))
+            .help(String(localized: "refresh", bundle: .appModule))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -83,10 +83,10 @@ struct MultimediaContentView: View {
             Image(systemName: "photo.on.rectangle.angled")
                 .font(.system(size: 48, weight: .light))
                 .foregroundStyle(.tertiary)
-            Text(String(localized: "no_images_yet", bundle: .module))
+            Text(String(localized: "no_images_yet", bundle: .appModule))
                 .font(.title3.weight(.medium))
                 .foregroundStyle(.secondary)
-            Text(String(localized: "images_will_appear_here", bundle: .module))
+            Text(String(localized: "images_will_appear_here", bundle: .appModule))
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -138,7 +138,7 @@ struct MultimediaContentView: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
-                    Text(String(localized: "Gallery", bundle: .module))
+                    Text(String(localized: "Gallery", bundle: .appModule))
                 }
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -161,12 +161,12 @@ struct MultimediaContentView: View {
                 // Metadata
                 VStack(alignment: .leading, spacing: 12) {
                     metadataRow(
-                        label: String(localized: "session_label", bundle: .module),
+                        label: String(localized: "session_label", bundle: .appModule),
                         value: image.sessionTitle
                     )
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(String(localized: "prompt_label", bundle: .module))
+                        Text(String(localized: "prompt_label", bundle: .appModule))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Text(image.prompt)
@@ -176,12 +176,12 @@ struct MultimediaContentView: View {
                     }
 
                     metadataRow(
-                        label: String(localized: "provider_label", bundle: .module),
+                        label: String(localized: "provider_label", bundle: .appModule),
                         value: image.providerUsed
                     )
 
                     metadataRow(
-                        label: String(localized: "created_label", bundle: .module),
+                        label: String(localized: "created_label", bundle: .appModule),
                         value: image.timestamp.formatted(date: .abbreviated, time: .shortened)
                     )
                 }
@@ -193,7 +193,7 @@ struct MultimediaContentView: View {
                     Button {
                         saveImage(filePath: image.filePath)
                     } label: {
-                        Label(String(localized: "save_to_disk", bundle: .module), systemImage: "arrow.down.to.line")
+                        Label(String(localized: "save_to_disk", bundle: .appModule), systemImage: "arrow.down.to.line")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -209,7 +209,7 @@ struct MultimediaContentView: View {
                         )
                         onShowOverlay(generatedImage)
                     } label: {
-                        Label(String(localized: "open_full_screen", bundle: .module), systemImage: "arrow.up.left.and.arrow.down.right")
+                        Label(String(localized: "open_full_screen", bundle: .appModule), systemImage: "arrow.up.left.and.arrow.down.right")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -218,7 +218,7 @@ struct MultimediaContentView: View {
                     Button {
                         onNavigateToChat(image.sessionId)
                     } label: {
-                        Label(String(localized: "open_in_chat", bundle: .module), systemImage: "bubble.left.and.bubble.right")
+                        Label(String(localized: "open_in_chat", bundle: .appModule), systemImage: "bubble.left.and.bubble.right")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)

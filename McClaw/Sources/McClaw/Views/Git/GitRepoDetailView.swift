@@ -48,10 +48,10 @@ struct GitRepoDetailView: View {
 
         var title: String {
             switch self {
-            case .code: return String(localized: "Code", bundle: .module)
-            case .issues: return String(localized: "Issues", bundle: .module)
-            case .pullRequests: return String(localized: "Pull Requests", bundle: .module)
-            case .commits: return String(localized: "Commits", bundle: .module)
+            case .code: return String(localized: "Code", bundle: .appModule)
+            case .issues: return String(localized: "Issues", bundle: .appModule)
+            case .pullRequests: return String(localized: "Pull Requests", bundle: .appModule)
+            case .commits: return String(localized: "Commits", bundle: .appModule)
             }
         }
 
@@ -288,7 +288,7 @@ struct GitRepoDetailView: View {
             Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 32))
                 .foregroundStyle(.tertiary)
-            Text("Select a file to view its contents", bundle: .module)
+            Text("Select a file to view its contents", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -341,7 +341,7 @@ struct GitRepoDetailView: View {
                     Button {
                         onVisit(project.id)
                     } label: {
-                        Text(String(localized: "git_project_visit", bundle: .module))
+                        Text(String(localized: "git_project_visit", bundle: .appModule))
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 8)
@@ -359,7 +359,7 @@ struct GitRepoDetailView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "plus.circle")
                             .font(.caption2)
-                        Text(String(localized: "git_project_add", bundle: .module))
+                        Text(String(localized: "git_project_add", bundle: .appModule))
                             .font(.caption.weight(.medium))
                     }
                     .foregroundStyle(Color.accentColor)
@@ -379,7 +379,7 @@ struct GitRepoDetailView: View {
     @ViewBuilder
     private var projectPickerPopover: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(String(localized: "git_project_select", bundle: .module))
+            Text(String(localized: "git_project_select", bundle: .appModule))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)
@@ -387,7 +387,7 @@ struct GitRepoDetailView: View {
                 .padding(.bottom, 6)
 
             if availableProjects.isEmpty {
-                Text(String(localized: "git_project_none", bundle: .module))
+                Text(String(localized: "git_project_none", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, 12)

@@ -64,7 +64,7 @@ struct ProjectMemorySheet: View {
                 .foregroundStyle(Color.accentColor)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Project Memory", bundle: .module)
+                Text("Project Memory", bundle: .appModule)
                     .font(.headline)
 
                 let size = memoryStore.formattedMemorySize(for: projectId)
@@ -80,14 +80,14 @@ struct ProjectMemorySheet: View {
             // Toolbar buttons
             HStack(spacing: 8) {
                 if isEditing {
-                    Button(String(localized: "Cancel", bundle: .module)) {
+                    Button(String(localized: "Cancel", bundle: .appModule)) {
                         isEditing = false
                         editText = ""
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
 
-                    Button(String(localized: "Save", bundle: .module)) {
+                    Button(String(localized: "Save", bundle: .appModule)) {
                         memoryStore.saveMemory(editText, for: projectId)
                         memoryContent = editText
                         isEditing = false
@@ -99,7 +99,7 @@ struct ProjectMemorySheet: View {
                         editText = memoryContent
                         isEditing = true
                     } label: {
-                        Label(String(localized: "Edit", bundle: .module), systemImage: "pencil")
+                        Label(String(localized: "Edit", bundle: .appModule), systemImage: "pencil")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -111,27 +111,27 @@ struct ProjectMemorySheet: View {
                             ProgressView()
                                 .controlSize(.small)
                         } else {
-                            Label(String(localized: "Refresh", bundle: .module), systemImage: "arrow.clockwise")
+                            Label(String(localized: "Refresh", bundle: .appModule), systemImage: "arrow.clockwise")
                         }
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(isUpdating || appState.memoryProviderId == nil)
                     .help(appState.memoryProviderId == nil
-                        ? String(localized: "Set a memory provider in Settings → General to enable AI updates", bundle: .module)
-                        : String(localized: "Update memory using AI", bundle: .module))
+                        ? String(localized: "Set a memory provider in Settings → General to enable AI updates", bundle: .appModule)
+                        : String(localized: "Update memory using AI", bundle: .appModule))
 
                     Menu {
                         Button {
                             showExporter = true
                         } label: {
-                            Label(String(localized: "Export", bundle: .module), systemImage: "square.and.arrow.up")
+                            Label(String(localized: "Export", bundle: .appModule), systemImage: "square.and.arrow.up")
                         }
 
                         Button {
                             showImporter = true
                         } label: {
-                            Label(String(localized: "Import", bundle: .module), systemImage: "square.and.arrow.down")
+                            Label(String(localized: "Import", bundle: .appModule), systemImage: "square.and.arrow.down")
                         }
 
                         Divider()
@@ -140,7 +140,7 @@ struct ProjectMemorySheet: View {
                             memoryStore.deleteMemory(for: projectId)
                             memoryContent = ""
                         } label: {
-                            Label(String(localized: "Delete Memory", bundle: .module), systemImage: "trash")
+                            Label(String(localized: "Delete Memory", bundle: .appModule), systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -171,11 +171,11 @@ struct ProjectMemorySheet: View {
                 .font(.system(size: 48))
                 .foregroundStyle(.tertiary)
 
-            Text("No memory yet", bundle: .module)
+            Text("No memory yet", bundle: .appModule)
                 .font(.title3)
                 .foregroundStyle(.secondary)
 
-            Text("Project memory will be created automatically after your first conversation, or you can create it manually.", bundle: .module)
+            Text("Project memory will be created automatically after your first conversation, or you can create it manually.", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -185,7 +185,7 @@ struct ProjectMemorySheet: View {
                 Button {
                     createInitialMemory()
                 } label: {
-                    Label(String(localized: "Create Memory", bundle: .module), systemImage: "plus.circle")
+                    Label(String(localized: "Create Memory", bundle: .appModule), systemImage: "plus.circle")
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
@@ -193,7 +193,7 @@ struct ProjectMemorySheet: View {
                 Button {
                     showImporter = true
                 } label: {
-                    Label(String(localized: "Import", bundle: .module), systemImage: "square.and.arrow.down")
+                    Label(String(localized: "Import", bundle: .appModule), systemImage: "square.and.arrow.down")
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.regular)

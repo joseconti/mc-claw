@@ -180,7 +180,7 @@ struct MCPSettingsTab: View {
                     editorMode = .add
                 } label: {
                     Label(
-                        String(localized: "preset.menu.manual", bundle: .module),
+                        String(localized: "preset.menu.manual", bundle: .appModule),
                         systemImage: "plus"
                     )
                 }
@@ -189,7 +189,7 @@ struct MCPSettingsTab: View {
                     showPresetBrowser = true
                 } label: {
                     Label(
-                        String(localized: "preset.menu.browse", bundle: .module),
+                        String(localized: "preset.menu.browse", bundle: .appModule),
                         systemImage: "square.grid.2x2"
                     )
                 }

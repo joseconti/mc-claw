@@ -7,7 +7,7 @@ struct GitPRListView: View {
 
     var body: some View {
         if pullRequests.isEmpty {
-            Text("No pull requests", bundle: .module)
+            Text("No pull requests", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -72,19 +72,19 @@ struct GitPRListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.reviewPR(pr))
         } label: {
-            Label(String(localized: "git_action_review_pr", bundle: .module), systemImage: "eye")
+            Label(String(localized: "git_action_review_pr", bundle: .appModule), systemImage: "eye")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.summarizePR(pr))
         } label: {
-            Label(String(localized: "git_action_summarize_pr", bundle: .module), systemImage: "doc.text")
+            Label(String(localized: "git_action_summarize_pr", bundle: .appModule), systemImage: "doc.text")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.suggestImprovementsPR(pr))
         } label: {
-            Label(String(localized: "git_action_suggest_improvements", bundle: .module), systemImage: "lightbulb")
+            Label(String(localized: "git_action_suggest_improvements", bundle: .appModule), systemImage: "lightbulb")
         }
 
         Divider()
@@ -92,13 +92,13 @@ struct GitPRListView: View {
         Button {
             onSendToChat?(GitPromptTemplates.postReviewPR(pr))
         } label: {
-            Label(String(localized: "git_action_post_review", bundle: .module), systemImage: "bubble.left.and.text.bubble.right")
+            Label(String(localized: "git_action_post_review", bundle: .appModule), systemImage: "bubble.left.and.text.bubble.right")
         }
 
         Button {
             onSendToChat?(GitPromptTemplates.mergePR(pr))
         } label: {
-            Label(String(localized: "git_action_merge_pr", bundle: .module), systemImage: "arrow.triangle.merge")
+            Label(String(localized: "git_action_merge_pr", bundle: .appModule), systemImage: "arrow.triangle.merge")
         }
     }
 

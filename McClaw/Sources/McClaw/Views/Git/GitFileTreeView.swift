@@ -14,7 +14,7 @@ struct GitFileTreeView: View {
             VStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Loading…", bundle: .module)
+                Text("Loading…", bundle: .appModule)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -140,25 +140,25 @@ private struct FileTreeNodeRow: View {
                 Button {
                     sendToChat(GitPromptTemplates.explainFile(node.entry.path))
                 } label: {
-                    Label(String(localized: "git_action_explain_file", bundle: .module), systemImage: "doc.text.magnifyingglass")
+                    Label(String(localized: "git_action_explain_file", bundle: .appModule), systemImage: "doc.text.magnifyingglass")
                 }
 
                 Button {
                     sendToChat(GitPromptTemplates.findUsagesFile(node.entry.path))
                 } label: {
-                    Label(String(localized: "git_action_find_usages", bundle: .module), systemImage: "magnifyingglass")
+                    Label(String(localized: "git_action_find_usages", bundle: .appModule), systemImage: "magnifyingglass")
                 }
 
                 Button {
                     sendToChat(GitPromptTemplates.suggestImprovementsFile(node.entry.path))
                 } label: {
-                    Label(String(localized: "git_action_suggest_improvements_file", bundle: .module), systemImage: "lightbulb")
+                    Label(String(localized: "git_action_suggest_improvements_file", bundle: .appModule), systemImage: "lightbulb")
                 }
 
                 Button {
                     sendToChat(GitPromptTemplates.writeTestsFile(node.entry.path))
                 } label: {
-                    Label(String(localized: "git_action_write_tests", bundle: .module), systemImage: "checkmark.shield")
+                    Label(String(localized: "git_action_write_tests", bundle: .appModule), systemImage: "checkmark.shield")
                 }
             }
         }

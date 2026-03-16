@@ -237,7 +237,7 @@ struct ProjectsContentView: View {
                 Button {
                     showMemorySheet = true
                 } label: {
-                    Label(String(localized: "Memory", bundle: .module), systemImage: "brain")
+                    Label(String(localized: "Memory", bundle: .appModule), systemImage: "brain")
                         .font(.callout)
                 }
                 .buttonStyle(.bordered)
@@ -250,7 +250,7 @@ struct ProjectsContentView: View {
                 Button {
                     editingProjectId = projectId
                 } label: {
-                    Label(String(localized: "Edit", bundle: .module), systemImage: "pencil")
+                    Label(String(localized: "Edit", bundle: .appModule), systemImage: "pencil")
                         .font(.callout)
                 }
                 .buttonStyle(.bordered)
@@ -265,7 +265,7 @@ struct ProjectsContentView: View {
                     Image(systemName: "brain.head.profile")
                         .font(.subheadline)
                         .foregroundStyle(Color.accentColor)
-                    Text(String(localized: "Project rules active (\(rules.count) chars)", bundle: .module))
+                    Text(String(localized: "Project rules active (\(rules.count) chars)", bundle: .appModule))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -280,7 +280,7 @@ struct ProjectsContentView: View {
                     Image(systemName: "brain")
                         .font(.subheadline)
                         .foregroundStyle(Color.accentColor)
-                    Text(String(localized: "Project memory active (\(memoryStore.formattedMemorySize(for: projectId)))", bundle: .module))
+                    Text(String(localized: "Project memory active (\(memoryStore.formattedMemorySize(for: projectId)))", bundle: .appModule))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -407,7 +407,7 @@ struct ProjectsContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Section header
             HStack {
-                Text(String(localized: "project_git_repos", bundle: .module))
+                Text(String(localized: "project_git_repos", bundle: .appModule))
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.secondary)
 
@@ -442,10 +442,10 @@ struct ProjectsContentView: View {
                     Image(systemName: "arrow.triangle.branch")
                         .font(.title2)
                         .foregroundStyle(.tertiary)
-                    Text(String(localized: "project_no_git_repos", bundle: .module))
+                    Text(String(localized: "project_no_git_repos", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    Text(String(localized: "project_git_repos_description", bundle: .module))
+                    Text(String(localized: "project_git_repos_description", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
@@ -453,7 +453,7 @@ struct ProjectsContentView: View {
                     Button {
                         addGitRepoToProject(projectId: projectId)
                     } label: {
-                        Label(String(localized: "project_add_git_repo", bundle: .module), systemImage: "folder.badge.plus")
+                        Label(String(localized: "project_add_git_repo", bundle: .appModule), systemImage: "folder.badge.plus")
                             .font(.caption)
                     }
                     .buttonStyle(.bordered)
@@ -500,7 +500,7 @@ struct ProjectsContentView: View {
                                 Button {
                                     NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: dir)
                                 } label: {
-                                    Label(String(localized: "Show in Finder", bundle: .module), systemImage: "folder")
+                                    Label(String(localized: "Show in Finder", bundle: .appModule), systemImage: "folder")
                                 }
                                 Divider()
                             }
@@ -508,7 +508,7 @@ struct ProjectsContentView: View {
                             Button(role: .destructive) {
                                 removeGitRepoFromProject(dir: dir, projectId: projectId)
                             } label: {
-                                Label(String(localized: "project_remove_git_repo", bundle: .module), systemImage: "minus.circle")
+                                Label(String(localized: "project_remove_git_repo", bundle: .appModule), systemImage: "minus.circle")
                             }
                         }
                     }
@@ -547,8 +547,8 @@ struct ProjectsContentView: View {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.message = String(localized: "project_select_git_repo_message", bundle: .module)
-        panel.prompt = String(localized: "project_select_git_repo_prompt", bundle: .module)
+        panel.message = String(localized: "project_select_git_repo_message", bundle: .appModule)
+        panel.prompt = String(localized: "project_select_git_repo_prompt", bundle: .appModule)
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let path = url.path
@@ -615,7 +615,7 @@ struct ProjectsContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             // Section header
             HStack {
-                Text(String(localized: "Artifacts", bundle: .module))
+                Text(String(localized: "Artifacts", bundle: .appModule))
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.secondary)
 
@@ -650,10 +650,10 @@ struct ProjectsContentView: View {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.title2)
                         .foregroundStyle(.tertiary)
-                    Text(String(localized: "No artifacts yet", bundle: .module))
+                    Text(String(localized: "No artifacts yet", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    Text(String(localized: "Plans and documents created by AI will appear here. You can also upload files manually.", bundle: .module))
+                    Text(String(localized: "Plans and documents created by AI will appear here. You can also upload files manually.", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
@@ -661,7 +661,7 @@ struct ProjectsContentView: View {
                     Button {
                         importArtifactToProject(projectId: projectId)
                     } label: {
-                        Label(String(localized: "Upload Artifact", bundle: .module), systemImage: "arrow.up.doc")
+                        Label(String(localized: "Upload Artifact", bundle: .appModule), systemImage: "arrow.up.doc")
                             .font(.caption)
                     }
                     .buttonStyle(.bordered)
@@ -719,7 +719,7 @@ struct ProjectsContentView: View {
                                 let url = artifactStore.artifactFileURL(artifact, projectId: projectId)
                                 NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                             } label: {
-                                Label(String(localized: "Show in Finder", bundle: .module), systemImage: "folder")
+                                Label(String(localized: "Show in Finder", bundle: .appModule), systemImage: "folder")
                             }
 
                             Button {
@@ -728,7 +728,7 @@ struct ProjectsContentView: View {
                                     NSPasteboard.general.setString(content, forType: .string)
                                 }
                             } label: {
-                                Label(String(localized: "Copy Content", bundle: .module), systemImage: "doc.on.doc")
+                                Label(String(localized: "Copy Content", bundle: .appModule), systemImage: "doc.on.doc")
                             }
 
                             Divider()
@@ -736,7 +736,7 @@ struct ProjectsContentView: View {
                             Button(role: .destructive) {
                                 artifactStore.removeArtifact(id: artifact.id, fromProject: projectId)
                             } label: {
-                                Label(String(localized: "Remove from Project", bundle: .module), systemImage: "trash")
+                                Label(String(localized: "Remove from Project", bundle: .appModule), systemImage: "trash")
                             }
                         }
                     }
@@ -752,7 +752,7 @@ struct ProjectsContentView: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowedContentTypes = [.plainText, .json, .yaml, .xml, .html, .sourceCode]
-        panel.message = String(localized: "Select files to add as project artifacts", bundle: .module)
+        panel.message = String(localized: "Select files to add as project artifacts", bundle: .appModule)
 
         guard panel.runModal() == .OK else { return }
 

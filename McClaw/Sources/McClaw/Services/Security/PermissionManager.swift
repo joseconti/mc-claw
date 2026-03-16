@@ -190,11 +190,11 @@ enum PermissionKind: String, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .microphone: String(localized: "Microphone", bundle: .module)
-        case .camera: String(localized: "Camera", bundle: .module)
-        case .accessibility: String(localized: "Accessibility", bundle: .module)
-        case .screenRecording: String(localized: "Screen Recording", bundle: .module)
-        case .notifications: String(localized: "Notifications", bundle: .module)
+        case .microphone: String(localized: "Microphone", bundle: .appModule)
+        case .camera: String(localized: "Camera", bundle: .appModule)
+        case .accessibility: String(localized: "Accessibility", bundle: .appModule)
+        case .screenRecording: String(localized: "Screen Recording", bundle: .appModule)
+        case .notifications: String(localized: "Notifications", bundle: .appModule)
         }
     }
 

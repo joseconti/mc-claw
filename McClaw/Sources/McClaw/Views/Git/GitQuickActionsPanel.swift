@@ -8,7 +8,7 @@ struct GitQuickActionsPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Quick Actions", bundle: .module)
+            Text("Quick Actions", bundle: .appModule)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)
@@ -19,27 +19,27 @@ struct GitQuickActionsPanel: View {
             VStack(alignment: .leading, spacing: 0) {
                 quickActionRow(
                     icon: "checkmark.circle",
-                    label: String(localized: "git_quick_commit", bundle: .module),
+                    label: String(localized: "git_quick_commit", bundle: .appModule),
                     prompt: GitPromptTemplates.commitAssistant()
                 )
                 quickActionRow(
                     icon: "arrow.down",
-                    label: String(localized: "git_quick_pull", bundle: .module),
+                    label: String(localized: "git_quick_pull", bundle: .appModule),
                     prompt: GitPromptTemplates.pullLatest()
                 )
                 quickActionRow(
                     icon: "arrow.triangle.branch",
-                    label: String(localized: "git_quick_create_branch", bundle: .module),
+                    label: String(localized: "git_quick_create_branch", bundle: .appModule),
                     prompt: GitPromptTemplates.createBranch()
                 )
                 quickActionRow(
                     icon: "arrow.triangle.pull",
-                    label: String(localized: "git_quick_review_prs", bundle: .module),
+                    label: String(localized: "git_quick_review_prs", bundle: .appModule),
                     prompt: GitPromptTemplates.reviewOpenPRs(repoName)
                 )
                 quickActionRow(
                     icon: "doc.plaintext",
-                    label: String(localized: "git_quick_changelog", bundle: .module),
+                    label: String(localized: "git_quick_changelog", bundle: .appModule),
                     prompt: GitPromptTemplates.generateChangelog(repoName)
                 )
             }

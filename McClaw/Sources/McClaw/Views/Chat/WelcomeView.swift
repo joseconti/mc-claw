@@ -21,7 +21,7 @@ struct WelcomeView: View {
             // Logo + Greeting (horizontal, like Claude)
             HStack(spacing: 16) {
                 Group {
-                    if let url = Bundle.module.url(forResource: "mcclaw-logo", withExtension: "png"),
+                    if let url = Bundle.appModule.url(forResource: "mcclaw-logo", withExtension: "png"),
                        let nsImage = NSImage(contentsOf: url) {
                         Image(nsImage: nsImage)
                             .resizable()
@@ -69,9 +69,9 @@ struct WelcomeView: View {
         let name = appState.userName?.components(separatedBy: " ").first
         let timeGreeting: String
         switch hour {
-        case 5..<12: timeGreeting = String(localized: "Good morning", bundle: .module)
-        case 12..<18: timeGreeting = String(localized: "Good afternoon", bundle: .module)
-        default: timeGreeting = String(localized: "Good evening", bundle: .module)
+        case 5..<12: timeGreeting = String(localized: "Good morning", bundle: .appModule)
+        case 12..<18: timeGreeting = String(localized: "Good afternoon", bundle: .appModule)
+        default: timeGreeting = String(localized: "Good evening", bundle: .appModule)
         }
         if let name = name, !name.isEmpty {
             return "\(timeGreeting), \(name)"
@@ -164,100 +164,100 @@ private struct QuickActionItem: Identifiable {
     static let baseActions: [QuickActionItem] = [
         QuickActionItem(
             id: "write",
-            label: String(localized: "Write", bundle: .module),
+            label: String(localized: "Write", bundle: .appModule),
             icon: "pencil.line",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Improve my writing style", bundle: .module),
+                    title: String(localized: "Improve my writing style", bundle: .appModule),
                     prompt: "I'd like to improve my writing style. If you need more context from me, ask me 1 or 2 key questions right away."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Write something creative based on mood", bundle: .module),
+                    title: String(localized: "Write something creative based on mood", bundle: .appModule),
                     prompt: "Could you create something that reads differently based on the reader's mood? If you need more information from me, ask me 1 or 2 questions."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Create interview questions", bundle: .module),
+                    title: String(localized: "Create interview questions", bundle: .appModule),
                     prompt: "Help me create interview questions. If you need more details about the role or context, please ask."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Write product descriptions", bundle: .module),
+                    title: String(localized: "Write product descriptions", bundle: .appModule),
                     prompt: "Help me write product descriptions. If you need more information about the product, ask me a couple of questions first."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Develop educational content", bundle: .module),
+                    title: String(localized: "Develop educational content", bundle: .appModule),
                     prompt: "Help me develop educational content. If you need more context about the topic or audience, please ask."
                 ),
             ]
         ),
         QuickActionItem(
             id: "learn",
-            label: String(localized: "Learn", bundle: .module),
+            label: String(localized: "Learn", bundle: .appModule),
             icon: "book",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Explain a complex concept simply", bundle: .module),
+                    title: String(localized: "Explain a complex concept simply", bundle: .appModule),
                     prompt: "I want to understand a complex concept. If you need to know which topic or my current level, ask me first."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize a topic in depth", bundle: .module),
+                    title: String(localized: "Summarize a topic in depth", bundle: .appModule),
                     prompt: "Help me get a deep understanding of a topic. If you need to know which topic, please ask."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Compare two technologies or approaches", bundle: .module),
+                    title: String(localized: "Compare two technologies or approaches", bundle: .appModule),
                     prompt: "I'd like to compare two technologies or approaches. If you need to know which ones, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Create a study plan", bundle: .module),
+                    title: String(localized: "Create a study plan", bundle: .appModule),
                     prompt: "Help me create a study plan. If you need to know the subject and my goals, please ask."
                 ),
             ]
         ),
         QuickActionItem(
             id: "code",
-            label: String(localized: "Code", bundle: .module),
+            label: String(localized: "Code", bundle: .appModule),
             icon: "chevron.left.forwardslash.chevron.right",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Debug an issue in my code", bundle: .module),
+                    title: String(localized: "Debug an issue in my code", bundle: .appModule),
                     prompt: "I need help debugging an issue. If you need to see the code or error message, let me know."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Write a function or algorithm", bundle: .module),
+                    title: String(localized: "Write a function or algorithm", bundle: .appModule),
                     prompt: "I need help writing a function or algorithm. If you need more details about the requirements, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Review and improve code", bundle: .module),
+                    title: String(localized: "Review and improve code", bundle: .appModule),
                     prompt: "I'd like you to review and improve some code. If you need me to share it, just ask."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Explain how something works", bundle: .module),
+                    title: String(localized: "Explain how something works", bundle: .appModule),
                     prompt: "Help me understand how a piece of code or technology works. If you need to know which one, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Set up a project or tool", bundle: .module),
+                    title: String(localized: "Set up a project or tool", bundle: .appModule),
                     prompt: "Help me set up a project or development tool. If you need to know the stack or requirements, please ask."
                 ),
             ]
         ),
         QuickActionItem(
             id: "brainstorm",
-            label: String(localized: "Brainstorm", bundle: .module),
+            label: String(localized: "Brainstorm", bundle: .appModule),
             icon: "lightbulb",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Generate creative ideas", bundle: .module),
+                    title: String(localized: "Generate creative ideas", bundle: .appModule),
                     prompt: "Help me brainstorm creative ideas. If you need to know the topic or constraints, ask me first."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Solve a problem from multiple angles", bundle: .module),
+                    title: String(localized: "Solve a problem from multiple angles", bundle: .appModule),
                     prompt: "I want to explore a problem from multiple perspectives. If you need to know what the problem is, please ask."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Plan a project or strategy", bundle: .module),
+                    title: String(localized: "Plan a project or strategy", bundle: .appModule),
                     prompt: "Help me plan a project or strategy. If you need more context about the goals, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Come up with names or titles", bundle: .module),
+                    title: String(localized: "Come up with names or titles", bundle: .appModule),
                     prompt: "Help me come up with names or titles. If you need to know what it's for, please ask."
                 ),
             ]
@@ -282,194 +282,194 @@ private struct QuickActionItem: Identifiable {
     static let connectorActions: [String: QuickActionItem] = [
         "google.gmail": QuickActionItem(
             id: "google.gmail",
-            label: String(localized: "From Gmail", bundle: .module),
+            label: String(localized: "From Gmail", bundle: .appModule),
             icon: "envelope",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Which subscribed emails do I usually leave unread?", bundle: .module),
+                    title: String(localized: "Which subscribed emails do I usually leave unread?", bundle: .appModule),
                     prompt: "Using @fetch gmail, tell me which subscribed emails I usually leave unread. Use any connector that is useful and start once you have enough information."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Review my emails and tell me if I'm missing something important", bundle: .module),
+                    title: String(localized: "Review my emails and tell me if I'm missing something important", bundle: .appModule),
                     prompt: "Using @fetch gmail, review my recent emails and tell me if I'm missing something important. If you need more context, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Extract key points from my latest work emails", bundle: .module),
+                    title: String(localized: "Extract key points from my latest work emails", bundle: .appModule),
                     prompt: "Using @fetch gmail, extract the key points from my latest work emails. If you need to know which timeframe, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize my unread emails", bundle: .module),
+                    title: String(localized: "Summarize my unread emails", bundle: .appModule),
                     prompt: "Using @fetch gmail, summarize my unread emails. Group them by priority and tell me which ones need a response."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Draft replies to my pending emails", bundle: .module),
+                    title: String(localized: "Draft replies to my pending emails", bundle: .appModule),
                     prompt: "Using @fetch gmail, check my emails that need a reply and draft responses. If you need more context about my tone or preferences, ask me."
                 ),
             ]
         ),
         "google.calendar": QuickActionItem(
             id: "google.calendar",
-            label: String(localized: "From Calendar", bundle: .module),
+            label: String(localized: "From Calendar", bundle: .appModule),
             icon: "calendar",
             options: [
                 QuickActionOption(
-                    title: String(localized: "What's on my schedule today?", bundle: .module),
+                    title: String(localized: "What's on my schedule today?", bundle: .appModule),
                     prompt: "Using @fetch google.calendar, show me what's on my schedule today. Highlight anything urgent or that needs preparation."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Find free time this week for a meeting", bundle: .module),
+                    title: String(localized: "Find free time this week for a meeting", bundle: .appModule),
                     prompt: "Using @fetch google.calendar, find available slots this week where I could schedule a meeting. If you need to know the duration, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize my week ahead", bundle: .module),
+                    title: String(localized: "Summarize my week ahead", bundle: .appModule),
                     prompt: "Using @fetch google.calendar, give me an overview of my upcoming week. Flag any conflicts or back-to-back meetings."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Help me prepare for my next meeting", bundle: .module),
+                    title: String(localized: "Help me prepare for my next meeting", bundle: .appModule),
                     prompt: "Using @fetch google.calendar, check my next meeting and help me prepare. If you need more context, ask me."
                 ),
             ]
         ),
         "google.drive": QuickActionItem(
             id: "google.drive",
-            label: String(localized: "From Drive", bundle: .module),
+            label: String(localized: "From Drive", bundle: .appModule),
             icon: "externaldrive",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Show my recently modified files", bundle: .module),
+                    title: String(localized: "Show my recently modified files", bundle: .appModule),
                     prompt: "Using @fetch google.drive, show me my recently modified files. Highlight anything shared with me that I haven't opened yet."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Find files related to a project", bundle: .module),
+                    title: String(localized: "Find files related to a project", bundle: .appModule),
                     prompt: "Using @fetch google.drive, find files related to a specific project. If you need to know which project, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize a document from my Drive", bundle: .module),
+                    title: String(localized: "Summarize a document from my Drive", bundle: .appModule),
                     prompt: "Using @fetch google.drive, read and summarize a document. If you need to know which one, ask me."
                 ),
             ]
         ),
         "microsoft.outlook": QuickActionItem(
             id: "microsoft.outlook",
-            label: String(localized: "From Outlook", bundle: .module),
+            label: String(localized: "From Outlook", bundle: .appModule),
             icon: "envelope",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Summarize my unread Outlook emails", bundle: .module),
+                    title: String(localized: "Summarize my unread Outlook emails", bundle: .appModule),
                     prompt: "Using @fetch microsoft.outlook, summarize my unread emails. Group them by priority and tell me which ones need a response."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Review emails and flag what's important", bundle: .module),
+                    title: String(localized: "Review emails and flag what's important", bundle: .appModule),
                     prompt: "Using @fetch microsoft.outlook, review my recent emails and tell me if I'm missing something important."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Draft replies to pending Outlook emails", bundle: .module),
+                    title: String(localized: "Draft replies to pending Outlook emails", bundle: .appModule),
                     prompt: "Using @fetch microsoft.outlook, check emails that need a reply and help me draft responses. If you need more context, ask me."
                 ),
             ]
         ),
         "microsoft.calendar": QuickActionItem(
             id: "microsoft.calendar",
-            label: String(localized: "From Outlook Calendar", bundle: .module),
+            label: String(localized: "From Outlook Calendar", bundle: .appModule),
             icon: "calendar",
             options: [
                 QuickActionOption(
-                    title: String(localized: "What's on my Outlook schedule today?", bundle: .module),
+                    title: String(localized: "What's on my Outlook schedule today?", bundle: .appModule),
                     prompt: "Using @fetch microsoft.calendar, show me what's on my schedule today. Highlight anything urgent."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Find free time for a meeting", bundle: .module),
+                    title: String(localized: "Find free time for a meeting", bundle: .appModule),
                     prompt: "Using @fetch microsoft.calendar, find available slots this week for a meeting. If you need the duration, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize my Outlook week ahead", bundle: .module),
+                    title: String(localized: "Summarize my Outlook week ahead", bundle: .appModule),
                     prompt: "Using @fetch microsoft.calendar, give me an overview of my upcoming week. Flag any conflicts."
                 ),
             ]
         ),
         "microsoft.onedrive": QuickActionItem(
             id: "microsoft.onedrive",
-            label: String(localized: "From OneDrive", bundle: .module),
+            label: String(localized: "From OneDrive", bundle: .appModule),
             icon: "externaldrive",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Show my recently modified OneDrive files", bundle: .module),
+                    title: String(localized: "Show my recently modified OneDrive files", bundle: .appModule),
                     prompt: "Using @fetch microsoft.onedrive, show me my recently modified files."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Find OneDrive files related to a project", bundle: .module),
+                    title: String(localized: "Find OneDrive files related to a project", bundle: .appModule),
                     prompt: "Using @fetch microsoft.onedrive, find files related to a project. If you need to know which one, ask me."
                 ),
             ]
         ),
         "dev.github": QuickActionItem(
             id: "dev.github",
-            label: String(localized: "From GitHub", bundle: .module),
+            label: String(localized: "From GitHub", bundle: .appModule),
             icon: "chevron.left.forwardslash.chevron.right",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Show my open pull requests", bundle: .module),
+                    title: String(localized: "Show my open pull requests", bundle: .appModule),
                     prompt: "Using @fetch dev.github, show me my open pull requests. Highlight any that need review or have conflicts."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Review my assigned issues", bundle: .module),
+                    title: String(localized: "Review my assigned issues", bundle: .appModule),
                     prompt: "Using @fetch dev.github, list my assigned issues. If you need to know which repo, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize recent activity in a repository", bundle: .module),
+                    title: String(localized: "Summarize recent activity in a repository", bundle: .appModule),
                     prompt: "Using @fetch dev.github, summarize recent commits and PRs in a repository. If you need to know which one, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Check CI status of my latest PRs", bundle: .module),
+                    title: String(localized: "Check CI status of my latest PRs", bundle: .appModule),
                     prompt: "Using @fetch dev.github, check the CI/CD status of my latest pull requests and tell me if anything failed."
                 ),
             ]
         ),
         "dev.notion": QuickActionItem(
             id: "dev.notion",
-            label: String(localized: "From Notion", bundle: .module),
+            label: String(localized: "From Notion", bundle: .appModule),
             icon: "doc.text",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Search my Notion pages", bundle: .module),
+                    title: String(localized: "Search my Notion pages", bundle: .appModule),
                     prompt: "Using @fetch dev.notion, search my Notion workspace. If you need to know what to search for, ask me."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize a Notion page", bundle: .module),
+                    title: String(localized: "Summarize a Notion page", bundle: .appModule),
                     prompt: "Using @fetch dev.notion, read and summarize a page from my workspace. If you need to know which one, ask me."
                 ),
             ]
         ),
         "dev.linear": QuickActionItem(
             id: "dev.linear",
-            label: String(localized: "From Linear", bundle: .module),
+            label: String(localized: "From Linear", bundle: .appModule),
             icon: "list.bullet.rectangle",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Show my assigned Linear issues", bundle: .module),
+                    title: String(localized: "Show my assigned Linear issues", bundle: .appModule),
                     prompt: "Using @fetch dev.linear, show me my assigned issues. Group them by priority."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Summarize current sprint progress", bundle: .module),
+                    title: String(localized: "Summarize current sprint progress", bundle: .appModule),
                     prompt: "Using @fetch dev.linear, summarize the progress of the current sprint. Highlight blockers."
                 ),
             ]
         ),
         "wp.mcm": QuickActionItem(
             id: "wp.mcm",
-            label: String(localized: "From WordPress", bundle: .module),
+            label: String(localized: "From WordPress", bundle: .appModule),
             icon: "globe",
             options: [
                 QuickActionOption(
-                    title: String(localized: "Check my site's recent posts", bundle: .module),
+                    title: String(localized: "Check my site's recent posts", bundle: .appModule),
                     prompt: "Using @fetch wp.mcm, show me the latest posts on my WordPress site."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Review pending comments", bundle: .module),
+                    title: String(localized: "Review pending comments", bundle: .appModule),
                     prompt: "Using @fetch wp.mcm, show me pending comments that need moderation."
                 ),
                 QuickActionOption(
-                    title: String(localized: "Check site health and errors", bundle: .module),
+                    title: String(localized: "Check site health and errors", bundle: .appModule),
                     prompt: "Using @fetch wp.mcm, check my WordPress site health and report any errors or warnings."
                 ),
             ]

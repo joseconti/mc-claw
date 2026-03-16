@@ -38,22 +38,22 @@ struct UserMenuPopup: View {
         )
         .shadow(color: .black.opacity(0.4), radius: 12, y: -4)
         .alert(
-            String(localized: "user_menu_language_restart_title", bundle: .module),
+            String(localized: "user_menu_language_restart_title", bundle: .appModule),
             isPresented: $showRestartAlert
         ) {
-            Button(String(localized: "user_menu_language_restart_button", bundle: .module)) {
+            Button(String(localized: "user_menu_language_restart_button", bundle: .appModule)) {
                 if let code = pendingLanguageCode {
                     LanguageSwitcher.setLanguage(code)
                     LanguageSwitcher.restartApp()
                 }
             }
-            Button(String(localized: "user_menu_language_later_button", bundle: .module), role: .cancel) {
+            Button(String(localized: "user_menu_language_later_button", bundle: .appModule), role: .cancel) {
                 if let code = pendingLanguageCode {
                     LanguageSwitcher.setLanguage(code)
                 }
             }
         } message: {
-            Text(String(localized: "user_menu_language_restart_message", bundle: .module))
+            Text(String(localized: "user_menu_language_restart_message", bundle: .appModule))
         }
     }
 
@@ -83,7 +83,7 @@ struct UserMenuPopup: View {
             menuRow(
                 id: "settings",
                 icon: "gearshape",
-                label: String(localized: "user_menu_settings", bundle: .module)
+                label: String(localized: "user_menu_settings", bundle: .appModule)
             ) {
                 onDismiss()
                 onSettings()
@@ -93,7 +93,7 @@ struct UserMenuPopup: View {
             menuRow(
                 id: "language",
                 icon: "globe",
-                label: String(localized: "user_menu_language", bundle: .module),
+                label: String(localized: "user_menu_language", bundle: .appModule),
                 trailing: {
                     Image(systemName: showLanguages ? "chevron.up" : "chevron.right")
                         .font(.system(size: 10))
@@ -114,7 +114,7 @@ struct UserMenuPopup: View {
             menuRow(
                 id: "help",
                 icon: "questionmark.circle",
-                label: String(localized: "user_menu_help", bundle: .module)
+                label: String(localized: "user_menu_help", bundle: .appModule)
             ) {
                 onDismiss()
                 onHelp()
@@ -124,7 +124,7 @@ struct UserMenuPopup: View {
             menuRow(
                 id: "license",
                 icon: "doc.text",
-                label: String(localized: "user_menu_license", bundle: .module)
+                label: String(localized: "user_menu_license", bundle: .appModule)
             ) {
                 onDismiss()
                 LicenseWindowController.shared.show()
@@ -134,7 +134,7 @@ struct UserMenuPopup: View {
             menuRow(
                 id: "disclaimer",
                 icon: "exclamationmark.triangle",
-                label: String(localized: "user_menu_disclaimer", bundle: .module)
+                label: String(localized: "user_menu_disclaimer", bundle: .appModule)
             ) {
                 onDismiss()
                 DisclaimerWindowController.shared.show()
@@ -151,7 +151,7 @@ struct UserMenuPopup: View {
             // System Default
             languageRow(
                 code: nil,
-                name: String(localized: "user_menu_language_system", bundle: .module),
+                name: String(localized: "user_menu_language_system", bundle: .appModule),
                 isSelected: LanguageSwitcher.currentOverride == nil
             )
 
@@ -210,7 +210,7 @@ struct UserMenuPopup: View {
     private var promotionalSection: some View {
         VStack(spacing: 0) {
             // Section header
-            Text(String(localized: "user_menu_get_more", bundle: .module))
+            Text(String(localized: "user_menu_get_more", bundle: .appModule))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
@@ -223,8 +223,8 @@ struct UserMenuPopup: View {
             promoRow(
                 id: "mobile",
                 icon: "iphone",
-                label: String(localized: "user_menu_mobile_app", bundle: .module),
-                badge: String(localized: "user_menu_coming_soon", bundle: .module)
+                label: String(localized: "user_menu_mobile_app", bundle: .appModule),
+                badge: String(localized: "user_menu_coming_soon", bundle: .appModule)
             ) {
                 // No action yet — coming soon
             }
@@ -233,7 +233,7 @@ struct UserMenuPopup: View {
             promoRow(
                 id: "mcp_cm",
                 icon: "link.circle",
-                label: String(localized: "user_menu_mcp_content_manager", bundle: .module)
+                label: String(localized: "user_menu_mcp_content_manager", bundle: .appModule)
             ) {
                 onDismiss()
                 NSWorkspace.shared.open(URL(string: "https://plugins.joseconti.com/product/mcp-content-manager-for-wordpress/")!)
@@ -243,7 +243,7 @@ struct UserMenuPopup: View {
             promoRow(
                 id: "translate",
                 icon: "link.circle",
-                label: String(localized: "user_menu_smart_translate", bundle: .module)
+                label: String(localized: "user_menu_smart_translate", bundle: .appModule)
             ) {
                 onDismiss()
                 NSWorkspace.shared.open(URL(string: "https://plugins.joseconti.com/en/product/smart-ai-translate-for-wp-translate-wordpress-and-woocommerce-with-artificial-intelligence/")!)
@@ -253,7 +253,7 @@ struct UserMenuPopup: View {
             promoRow(
                 id: "more",
                 icon: "link.circle",
-                label: String(localized: "user_menu_more_products", bundle: .module)
+                label: String(localized: "user_menu_more_products", bundle: .appModule)
             ) {
                 onDismiss()
                 NSWorkspace.shared.open(URL(string: "https://plugins.joseconti.com/en")!)

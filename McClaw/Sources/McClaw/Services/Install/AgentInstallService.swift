@@ -45,7 +45,7 @@ final class AgentInstallService {
 
         guard let provider = AppState.shared.currentCLI,
               provider.isInstalled else {
-            phase = .failed(String(localized: "No AI provider available. Please configure a CLI in Settings.", bundle: .module))
+            phase = .failed(String(localized: "No AI provider available. Please configure a CLI in Settings.", bundle: .appModule))
             return
         }
 
@@ -75,7 +75,7 @@ final class AgentInstallService {
         }
 
         guard !fullResponse.isEmpty else {
-            phase = .failed(String(localized: "No response from AI provider.", bundle: .module))
+            phase = .failed(String(localized: "No response from AI provider.", bundle: .appModule))
             return
         }
 
@@ -84,7 +84,7 @@ final class AgentInstallService {
             let parsed = try InstallKit.parseInstallPlanJSON(fullResponse)
 
             guard !parsed.steps.isEmpty else {
-                phase = .failed(String(localized: "The install plan has no steps.", bundle: .module))
+                phase = .failed(String(localized: "The install plan has no steps.", bundle: .appModule))
                 return
             }
 
@@ -113,7 +113,7 @@ final class AgentInstallService {
             phase = .reviewingPlan(plan)
         } catch {
             logger.error("Failed to parse install plan: \(error)")
-            phase = .failed(String(localized: "No install plan could be parsed from the prompt.", bundle: .module))
+            phase = .failed(String(localized: "No install plan could be parsed from the prompt.", bundle: .appModule))
         }
     }
 
@@ -174,7 +174,7 @@ final class AgentInstallService {
                 switch decision {
                 case .deny:
                     updatedSteps[i].status = .denied
-                    updatedSteps[i].output = String(localized: "Command denied by user.", bundle: .module)
+                    updatedSteps[i].output = String(localized: "Command denied by user.", bundle: .appModule)
                     for j in (i + 1)..<updatedSteps.count {
                         updatedSteps[j].status = .skipped
                     }

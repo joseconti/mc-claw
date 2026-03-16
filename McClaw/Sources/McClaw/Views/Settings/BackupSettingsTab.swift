@@ -32,17 +32,17 @@ struct BackupSettingsTab: View {
         }
         .padding(20)
         .alert(
-            String(localized: "Restore Backup", bundle: .module),
+            String(localized: "Restore Backup", bundle: .appModule),
             isPresented: $showConfirmImport
         ) {
-            Button(String(localized: "Cancel", bundle: .module), role: .cancel) {
+            Button(String(localized: "Cancel", bundle: .appModule), role: .cancel) {
                 pendingImportURL = nil
             }
-            Button(String(localized: "Restore", bundle: .module), role: .destructive) {
+            Button(String(localized: "Restore", bundle: .appModule), role: .destructive) {
                 performImport()
             }
         } message: {
-            Text("This will replace all current settings, credentials, sessions, projects, schedules, paired devices, and learning data. This action cannot be undone.", bundle: .module)
+            Text("This will replace all current settings, credentials, sessions, projects, schedules, paired devices, and learning data. This action cannot be undone.", bundle: .appModule)
         }
     }
 
@@ -50,10 +50,10 @@ struct BackupSettingsTab: View {
 
     private var exportSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(String(localized: "Export Backup", bundle: .module), systemImage: "square.and.arrow.up")
+            Label(String(localized: "Export Backup", bundle: .appModule), systemImage: "square.and.arrow.up")
                 .font(.headline)
 
-            Text("Export everything: settings, connectors, credentials, sessions, projects, skills, schedules, paired devices, learning data, and all app data to a single encrypted file.", bundle: .module)
+            Text("Export everything: settings, connectors, credentials, sessions, projects, skills, schedules, paired devices, learning data, and all app data to a single encrypted file.", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
@@ -62,22 +62,22 @@ struct BackupSettingsTab: View {
                 Button {
                     authenticateForExport()
                 } label: {
-                    Label(String(localized: "Authenticate to Export", bundle: .module), systemImage: "touchid")
+                    Label(String(localized: "Authenticate to Export", bundle: .appModule), systemImage: "touchid")
                 }
                 .buttonStyle(.borderedProminent)
             } else {
                 // Step 2: After authentication, show encryption password fields
                 VStack(alignment: .leading, spacing: 8) {
-                    SecureField(String(localized: "Encryption password", bundle: .module), text: $exportPassword)
+                    SecureField(String(localized: "Encryption password", bundle: .appModule), text: $exportPassword)
                         .mcclawTextField()
 
-                    SecureField(String(localized: "Confirm password", bundle: .module), text: $exportConfirmPassword)
+                    SecureField(String(localized: "Confirm password", bundle: .appModule), text: $exportConfirmPassword)
                         .mcclawTextField()
                 }
                 .frame(maxWidth: 360)
 
                 if !exportPasswordsMatch && !exportConfirmPassword.isEmpty {
-                    Text("Passwords do not match", bundle: .module)
+                    Text("Passwords do not match", bundle: .appModule)
                         .foregroundStyle(.red)
                         .font(.caption)
                 }
@@ -90,16 +90,16 @@ struct BackupSettingsTab: View {
                             ProgressView()
                                 .controlSize(.small)
                                 .frame(width: 14, height: 14)
-                            Text("Exporting…", bundle: .module)
+                            Text("Exporting…", bundle: .appModule)
                         } else {
-                            Text("Export…", bundle: .module)
+                            Text("Export…", bundle: .appModule)
                         }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canExport || isExporting)
 
                     if exportSuccess {
-                        Label(String(localized: "Backup exported successfully", bundle: .module), systemImage: "checkmark.circle.fill")
+                        Label(String(localized: "Backup exported successfully", bundle: .appModule), systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                             .font(.callout)
                     }
@@ -118,14 +118,14 @@ struct BackupSettingsTab: View {
 
     private var importSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(String(localized: "Restore from Backup", bundle: .module), systemImage: "square.and.arrow.down")
+            Label(String(localized: "Restore from Backup", bundle: .appModule), systemImage: "square.and.arrow.down")
                 .font(.headline)
 
-            Text("Restore everything from a previously exported .mcb backup file.", bundle: .module)
+            Text("Restore everything from a previously exported .mcb backup file.", bundle: .appModule)
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
-            SecureField(String(localized: "Encryption password", bundle: .module), text: $importPassword)
+            SecureField(String(localized: "Encryption password", bundle: .appModule), text: $importPassword)
                 .mcclawTextField()
                 .frame(maxWidth: 360)
 
@@ -137,9 +137,9 @@ struct BackupSettingsTab: View {
                         ProgressView()
                             .controlSize(.small)
                             .frame(width: 14, height: 14)
-                        Text("Restoring…", bundle: .module)
+                        Text("Restoring…", bundle: .appModule)
                     } else {
-                        Text("Import…", bundle: .module)
+                        Text("Import…", bundle: .appModule)
                     }
                 }
                 .buttonStyle(.bordered)
@@ -147,7 +147,7 @@ struct BackupSettingsTab: View {
 
                 if let result = importResult {
                     Label(
-                        String(localized: "Restored: \(result.filesRestored) files, \(result.credentialsRestored) credentials", bundle: .module),
+                        String(localized: "Restored: \(result.filesRestored) files, \(result.credentialsRestored) credentials", bundle: .appModule),
                         systemImage: "checkmark.circle.fill"
                     )
                     .foregroundStyle(.green)
@@ -163,7 +163,7 @@ struct BackupSettingsTab: View {
 
             if let warnings = importResult?.warnings, !warnings.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Warnings:", bundle: .module)
+                    Text("Warnings:", bundle: .appModule)
                         .font(.caption)
                         .foregroundStyle(.orange)
                     ForEach(warnings, id: \.self) { warning in
@@ -197,7 +197,7 @@ struct BackupSettingsTab: View {
             return
         }
 
-        let reason = String(localized: "Authenticate to export your McClaw configuration", bundle: .module)
+        let reason = String(localized: "Authenticate to export your McClaw configuration", bundle: .appModule)
         context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authError in
             DispatchQueue.main.async {
                 if success {
@@ -214,7 +214,7 @@ struct BackupSettingsTab: View {
         errorMessage = nil
 
         let panel = NSSavePanel()
-        panel.title = String(localized: "Export McClaw Backup", bundle: .module)
+        panel.title = String(localized: "Export McClaw Backup", bundle: .appModule)
         panel.nameFieldStringValue = "mcclaw-backup.mcb"
         panel.allowedContentTypes = [.init(filenameExtension: "mcb") ?? .data]
         panel.canCreateDirectories = true
@@ -245,7 +245,7 @@ struct BackupSettingsTab: View {
         importResult = nil
 
         let panel = NSOpenPanel()
-        panel.title = String(localized: "Select McClaw Backup", bundle: .module)
+        panel.title = String(localized: "Select McClaw Backup", bundle: .appModule)
         panel.allowedContentTypes = [.init(filenameExtension: "mcb") ?? .data]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false

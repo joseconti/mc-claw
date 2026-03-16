@@ -241,14 +241,14 @@ struct ChatInputBar: View {
                 MultiLineTextInput(
                     text: $text,
                     placeholder: appState.planModeActive
-                        ? String(localized: "Describe what you want to analyze...", bundle: .module)
+                        ? String(localized: "Describe what you want to analyze...", bundle: .appModule)
                         : voiceMode.isActive
-                            ? String(localized: "Voice Mode active...", bundle: .module)
+                            ? String(localized: "Voice Mode active...", bundle: .appModule)
                             : imageMode
-                                ? String(localized: "Describe the image you want to create...", bundle: .module)
+                                ? String(localized: "Describe the image you want to create...", bundle: .appModule)
                                 : installMode
-                                    ? String(localized: "Paste the install prompt here...", bundle: .module)
-                                    : String(localized: "Type / for commands", bundle: .module),
+                                    ? String(localized: "Paste the install prompt here...", bundle: .appModule)
+                                    : String(localized: "Type / for commands", bundle: .appModule),
                     font: .systemFont(ofSize: compact ? 14 : 16),
                     minHeight: compact ? 36 : 80,
                     maxHeight: compact ? 120 : 200,
@@ -274,7 +274,7 @@ struct ChatInputBar: View {
                         Image(systemName: "binoculars.fill")
                             .font(.caption)
                             .foregroundStyle(.orange)
-                        Text(String(localized: "Plan Mode — Read-only analysis, no changes will be made", bundle: .module))
+                        Text(String(localized: "Plan Mode — Read-only analysis, no changes will be made", bundle: .appModule))
                             .font(.caption)
                             .foregroundStyle(.orange)
                         Spacer()
@@ -413,7 +413,7 @@ struct ChatInputBar: View {
                 .liquidGlassCircle()
         }
         .buttonStyle(.plain)
-        .help(String(localized: "Attach files", bundle: .module))
+        .help(String(localized: "Attach files", bundle: .appModule))
     }
 
     @ViewBuilder
@@ -426,7 +426,7 @@ struct ChatInputBar: View {
                     .font(.subheadline)
                     .foregroundStyle(voiceMode.isActive ? .white : .secondary)
                     .symbolEffect(.pulse, isActive: voiceMode.state == .listening)
-                Text(String(localized: "Voice", bundle: .module))
+                Text(String(localized: "Voice", bundle: .appModule))
                     .font(.callout.weight(voiceMode.isActive ? .semibold : .regular))
                     .foregroundStyle(voiceMode.isActive ? .white : .secondary)
             }
@@ -460,7 +460,7 @@ struct ChatInputBar: View {
                     Image(systemName: imageMode ? "photo.fill" : "photo")
                         .font(.subheadline)
                         .foregroundStyle(imageMode ? .white : .secondary)
-                    Text(String(localized: "Image", bundle: .module))
+                    Text(String(localized: "Image", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(imageMode ? .white : .secondary)
                 }
@@ -479,7 +479,7 @@ struct ChatInputBar: View {
                 .liquidGlassCapsule(interactive: false)
             }
             .buttonStyle(.plain)
-            .help(String(localized: "Generate Image", bundle: .module))
+            .help(String(localized: "Generate Image", bundle: .appModule))
         }
     }
 
@@ -493,7 +493,7 @@ struct ChatInputBar: View {
                 Image(systemName: installMode ? "square.and.arrow.down.fill" : "square.and.arrow.down")
                     .font(.subheadline)
                     .foregroundStyle(installMode ? .white : .secondary)
-                Text(String(localized: "Install", bundle: .module))
+                Text(String(localized: "Install", bundle: .appModule))
                     .font(.callout.weight(installMode ? .semibold : .regular))
                     .foregroundStyle(installMode ? .white : .secondary)
             }
@@ -512,7 +512,7 @@ struct ChatInputBar: View {
             .liquidGlassCapsule(interactive: false)
         }
         .buttonStyle(.plain)
-        .help(String(localized: "Agent Install", bundle: .module))
+        .help(String(localized: "Agent Install", bundle: .appModule))
     }
 
     @ViewBuilder
@@ -528,7 +528,7 @@ struct ChatInputBar: View {
                 Image(systemName: appState.planModeActive ? "binoculars.fill" : "binoculars")
                     .font(.subheadline)
                     .foregroundStyle(appState.planModeActive ? .white : .secondary)
-                Text(String(localized: "Plan", bundle: .module))
+                Text(String(localized: "Plan", bundle: .appModule))
                     .font(.callout.weight(appState.planModeActive ? .semibold : .regular))
                     .foregroundStyle(appState.planModeActive ? .white : .secondary)
             }
@@ -547,7 +547,7 @@ struct ChatInputBar: View {
             .liquidGlassCapsule(interactive: false)
         }
         .buttonStyle(.plain)
-        .help(String(localized: "Plan Mode — Read-only analysis", bundle: .module))
+        .help(String(localized: "Plan Mode — Read-only analysis", bundle: .appModule))
     }
 
     @ViewBuilder
@@ -589,7 +589,7 @@ struct ChatInputBar: View {
                     }
                 }
                 Divider()
-                Button(String(localized: "Use Default", bundle: .module)) {
+                Button(String(localized: "Use Default", bundle: .appModule)) {
                     selectedModelId = nil
                     appState.chatModelOverride = nil
                 }
@@ -611,7 +611,7 @@ struct ChatInputBar: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .help(String(localized: "Select Model", bundle: .module))
+            .help(String(localized: "Select Model", bundle: .appModule))
         }
     }
 
@@ -626,7 +626,7 @@ struct ChatInputBar: View {
            let model = models.first(where: { $0.modelId == defaultId }) {
             return model.displayName
         }
-        return models.first(where: { _ in true })?.displayName ?? String(localized: "Default", bundle: .module)
+        return models.first(where: { _ in true })?.displayName ?? String(localized: "Default", bundle: .appModule)
     }
 
     private func isActiveModel(_ model: ModelInfo) -> Bool {

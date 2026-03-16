@@ -220,7 +220,7 @@ final class GitPanelViewModel {
 
         let connectorId = selectedPlatform.connectorId
         guard let instance = connectorStore.connectedInstances.first(where: { $0.definitionId == connectorId }) else {
-            loadError = String(localized: "No connected connector for \(selectedPlatform.displayName)", bundle: .module)
+            loadError = String(localized: "No connected connector for \(selectedPlatform.displayName)", bundle: .appModule)
             return
         }
 
@@ -455,14 +455,14 @@ final class GitPanelViewModel {
                    let text = String(data: decoded, encoding: .utf8) {
                     fileContent = text
                 } else {
-                    fileContent = String(localized: "Unable to decode file content", bundle: .module)
+                    fileContent = String(localized: "Unable to decode file content", bundle: .appModule)
                 }
             } else {
-                fileContent = String(localized: "Unable to load file content", bundle: .module)
+                fileContent = String(localized: "Unable to load file content", bundle: .appModule)
             }
         } catch {
             logger.warning("Failed to load file content: \(error)")
-            fileContent = String(localized: "Error loading file", bundle: .module)
+            fileContent = String(localized: "Error loading file", bundle: .appModule)
         }
 
         isLoadingFile = false

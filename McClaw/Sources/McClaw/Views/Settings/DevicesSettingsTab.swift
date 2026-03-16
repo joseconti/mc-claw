@@ -45,16 +45,16 @@ struct DevicesSettingsTab: View {
             }
         }
         .alert(
-            String(localized: "revoke_device", bundle: .module),
+            String(localized: "revoke_device", bundle: .appModule),
             isPresented: $showRevokeConfirm,
             presenting: deviceToRevoke
         ) { device in
-            Button(String(localized: "revoke_device", bundle: .module), role: .destructive) {
+            Button(String(localized: "revoke_device", bundle: .appModule), role: .destructive) {
                 revoke(deviceId: device.deviceId)
             }
-            Button(String(localized: "cancel", bundle: .module), role: .cancel) {}
+            Button(String(localized: "cancel", bundle: .appModule), role: .cancel) {}
         } message: { device in
-            Text(String(localized: "revoke_device_confirm \(device.name)", bundle: .module))
+            Text(String(localized: "revoke_device_confirm \(device.name)", bundle: .appModule))
         }
     }
 
@@ -68,15 +68,15 @@ struct DevicesSettingsTab: View {
 
             if serverRunning {
                 let ip = DevicePairingService.localIPAddress() ?? "127.0.0.1"
-                Text(String(localized: "devices_server_running \(ip)", bundle: .module))
+                Text(String(localized: "devices_server_running \(ip)", bundle: .appModule))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else {
-                Text(String(localized: "devices_server_stopped", bundle: .module))
+                Text(String(localized: "devices_server_stopped", bundle: .appModule))
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
-                Button(String(localized: "devices_server_start", bundle: .module)) {
+                Button(String(localized: "devices_server_start", bundle: .appModule)) {
                     Task { await startServer() }
                 }
                 .buttonStyle(.bordered)
@@ -86,7 +86,7 @@ struct DevicesSettingsTab: View {
 
             if !pairingService.devices.isEmpty {
                 let count = connectedDeviceIds.count
-                Text(String(localized: "devices_connected_count \(count) \(pairingService.devices.count)", bundle: .module))
+                Text(String(localized: "devices_connected_count \(count) \(pairingService.devices.count)", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -100,19 +100,19 @@ struct DevicesSettingsTab: View {
     private var remoteAccessSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(
-                String(localized: "devices_remote_access", bundle: .module),
+                String(localized: "devices_remote_access", bundle: .appModule),
                 systemImage: "globe"
             )
             .font(.headline)
 
-            Text(String(localized: "devices_remote_access_desc", bundle: .module))
+            Text(String(localized: "devices_remote_access_desc", bundle: .appModule))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Picker(String(localized: "devices_relay_mode", bundle: .module), selection: $relayMode) {
-                Text(String(localized: "devices_relay_disabled", bundle: .module)).tag(RelayConfig.RelayMode.disabled)
-                Text(String(localized: "devices_relay_self_hosted", bundle: .module)).tag(RelayConfig.RelayMode.selfHosted)
-                Text(String(localized: "devices_relay_cloud", bundle: .module)).tag(RelayConfig.RelayMode.mcclawCloud)
+            Picker(String(localized: "devices_relay_mode", bundle: .appModule), selection: $relayMode) {
+                Text(String(localized: "devices_relay_disabled", bundle: .appModule)).tag(RelayConfig.RelayMode.disabled)
+                Text(String(localized: "devices_relay_self_hosted", bundle: .appModule)).tag(RelayConfig.RelayMode.selfHosted)
+                Text(String(localized: "devices_relay_cloud", bundle: .appModule)).tag(RelayConfig.RelayMode.mcclawCloud)
             }
             .pickerStyle(.segmented)
             .onChange(of: relayMode) {
@@ -121,13 +121,13 @@ struct DevicesSettingsTab: View {
 
             if relayMode == .selfHosted {
                 TextField(
-                    String(localized: "devices_relay_url_placeholder", bundle: .module),
+                    String(localized: "devices_relay_url_placeholder", bundle: .appModule),
                     text: $relayURL
                 )
                 .textFieldStyle(.roundedBorder)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "devices_relay_self_hosted_info", bundle: .module))
+                    Text(String(localized: "devices_relay_self_hosted_info", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -143,12 +143,12 @@ struct DevicesSettingsTab: View {
                 HStack(spacing: 8) {
                     Image(systemName: "cloud.fill")
                         .foregroundStyle(.blue)
-                    Text(String(localized: "devices_relay_cloud_url", bundle: .module))
+                    Text(String(localized: "devices_relay_cloud_url", bundle: .appModule))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
-                Text(String(localized: "devices_relay_cloud_cost", bundle: .module))
+                Text(String(localized: "devices_relay_cloud_cost", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -159,18 +159,18 @@ struct DevicesSettingsTab: View {
                         .fill(relayConnected ? Color.green : Color.orange)
                         .frame(width: 8, height: 8)
                     Text(relayConnected
-                         ? String(localized: "devices_relay_connected", bundle: .module)
-                         : String(localized: "devices_relay_disconnected", bundle: .module))
+                         ? String(localized: "devices_relay_connected", bundle: .appModule)
+                         : String(localized: "devices_relay_disconnected", bundle: .appModule))
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
                     if !relayConnected {
-                        Button(String(localized: "devices_relay_connect", bundle: .module)) {
+                        Button(String(localized: "devices_relay_connect", bundle: .appModule)) {
                             Task { await connectRelay() }
                         }
                         .buttonStyle(.bordered)
                     } else {
-                        Button(String(localized: "devices_relay_disconnect", bundle: .module)) {
+                        Button(String(localized: "devices_relay_disconnect", bundle: .appModule)) {
                             Task { await disconnectRelay() }
                         }
                         .buttonStyle(.bordered)
@@ -187,7 +187,7 @@ struct DevicesSettingsTab: View {
     private var pairingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(
-                String(localized: "pair_device_header", bundle: .module),
+                String(localized: "pair_device_header", bundle: .appModule),
                 systemImage: "qrcode"
             )
             .font(.headline)
@@ -200,11 +200,11 @@ struct DevicesSettingsTab: View {
                     Spacer()
                 }
 
-                Text(String(localized: "pair_device_scan_hint", bundle: .module))
+                Text(String(localized: "pair_device_scan_hint", bundle: .appModule))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Button(String(localized: "pair_device_dismiss_qr", bundle: .module)) {
+                Button(String(localized: "pair_device_dismiss_qr", bundle: .appModule)) {
                     self.qrPayload = nil
                 }
                 .buttonStyle(.bordered)
@@ -213,7 +213,7 @@ struct DevicesSettingsTab: View {
                     generateQR()
                 } label: {
                     Label(
-                        String(localized: "pair_new_device", bundle: .module),
+                        String(localized: "pair_new_device", bundle: .appModule),
                         systemImage: "iphone.badge.plus"
                     )
                 }
@@ -236,7 +236,7 @@ struct DevicesSettingsTab: View {
     private var pendingRequestSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(
-                String(localized: "pending_request_header", bundle: .module),
+                String(localized: "pending_request_header", bundle: .appModule),
                 systemImage: "bell.badge"
             )
             .font(.headline)
@@ -260,13 +260,13 @@ struct DevicesSettingsTab: View {
 
                     Spacer()
 
-                    Button(String(localized: "approve", bundle: .module)) {
+                    Button(String(localized: "approve", bundle: .appModule)) {
                         approve(code: request.code)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.green)
 
-                    Button(String(localized: "reject", bundle: .module)) {
+                    Button(String(localized: "reject", bundle: .appModule)) {
                         reject(code: request.code)
                     }
                     .buttonStyle(.bordered)
@@ -283,13 +283,13 @@ struct DevicesSettingsTab: View {
     private var pairedDevicesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(
-                String(localized: "paired_devices_header", bundle: .module),
+                String(localized: "paired_devices_header", bundle: .appModule),
                 systemImage: "ipad.and.iphone"
             )
             .font(.headline)
 
             if pairingService.devices.isEmpty {
-                Text(String(localized: "no_devices_paired", bundle: .module))
+                Text(String(localized: "no_devices_paired", bundle: .appModule))
                     .foregroundStyle(.secondary)
                     .padding()
             } else {
@@ -354,7 +354,7 @@ struct DevicesSettingsTab: View {
     private func deviceDetailSection(_ device: PairedDevice) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Label(
-                String(localized: "device_permissions_header \(device.name)", bundle: .module),
+                String(localized: "device_permissions_header \(device.name)", bundle: .appModule),
                 systemImage: "lock.shield"
             )
             .font(.headline)

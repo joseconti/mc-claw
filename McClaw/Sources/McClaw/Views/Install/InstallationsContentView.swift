@@ -18,7 +18,7 @@ struct InstallationsContentView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "Installations", bundle: .module))
+                    Text(String(localized: "Installations", bundle: .appModule))
                         .font(.title.weight(.bold))
                     Text(subtitle)
                         .font(.subheadline)
@@ -31,7 +31,7 @@ struct InstallationsContentView: View {
                     Button(role: .destructive) {
                         showClearAllConfirmation = true
                     } label: {
-                        Label(String(localized: "Clear History", bundle: .module), systemImage: "trash.slash")
+                        Label(String(localized: "Clear History", bundle: .appModule), systemImage: "trash.slash")
                             .font(.body.weight(.medium))
                     }
                     .buttonStyle(.bordered)
@@ -65,24 +65,24 @@ struct InstallationsContentView: View {
             }
         }
         .confirmationDialog(
-            String(localized: "Clear Installation History", bundle: .module),
+            String(localized: "Clear Installation History", bundle: .appModule),
             isPresented: $showClearAllConfirmation,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "Clear All", bundle: .module), role: .destructive) {
+            Button(String(localized: "Clear All", bundle: .appModule), role: .destructive) {
                 installService.clearRegistry()
                 selectedRecordId = nil
             }
-            Button(String(localized: "Cancel", bundle: .module), role: .cancel) {}
+            Button(String(localized: "Cancel", bundle: .appModule), role: .cancel) {}
         } message: {
-            Text(String(localized: "This will remove all installation records. The installed software will not be removed.", bundle: .module))
+            Text(String(localized: "This will remove all installation records. The installed software will not be removed.", bundle: .appModule))
         }
         .confirmationDialog(
-            String(localized: "Uninstall Package", bundle: .module),
+            String(localized: "Uninstall Package", bundle: .appModule),
             isPresented: $showUninstallConfirmation,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "Uninstall", bundle: .module), role: .destructive) {
+            Button(String(localized: "Uninstall", bundle: .appModule), role: .destructive) {
                 if let id = pendingUninstallId {
                     Task { await installService.uninstallRecord(id: id) }
                     if selectedRecordId == id {
@@ -90,7 +90,7 @@ struct InstallationsContentView: View {
                     }
                 }
             }
-            Button(String(localized: "Remove Record Only", bundle: .module)) {
+            Button(String(localized: "Remove Record Only", bundle: .appModule)) {
                 if let id = pendingUninstallId {
                     installService.removeRecord(id: id)
                     if selectedRecordId == id {
@@ -98,9 +98,9 @@ struct InstallationsContentView: View {
                     }
                 }
             }
-            Button(String(localized: "Cancel", bundle: .module), role: .cancel) {}
+            Button(String(localized: "Cancel", bundle: .appModule), role: .cancel) {}
         } message: {
-            Text(String(localized: "Choose whether to run uninstall commands or just remove the record.", bundle: .module))
+            Text(String(localized: "Choose whether to run uninstall commands or just remove the record.", bundle: .appModule))
         }
     }
 
@@ -109,9 +109,9 @@ struct InstallationsContentView: View {
     private var subtitle: String {
         let count = installService.installRegistry.count
         if count == 0 {
-            return String(localized: "Software installed by the AI agent through install prompts.", bundle: .module)
+            return String(localized: "Software installed by the AI agent through install prompts.", bundle: .appModule)
         }
-        return "\(count) " + String(localized: "package(s) installed by agent", bundle: .module)
+        return "\(count) " + String(localized: "package(s) installed by agent", bundle: .appModule)
     }
 
     // MARK: - Records List
@@ -181,7 +181,7 @@ struct InstallationsContentView: View {
                 pendingUninstallId = record.id
                 showUninstallConfirmation = true
             } label: {
-                Label(String(localized: "Uninstall", bundle: .module), systemImage: "trash")
+                Label(String(localized: "Uninstall", bundle: .appModule), systemImage: "trash")
             }
         }
     }
@@ -212,16 +212,16 @@ struct InstallationsContentView: View {
                 // Metadata
                 HStack(spacing: 24) {
                     metadataItem(
-                        label: String(localized: "Installed", bundle: .module),
+                        label: String(localized: "Installed", bundle: .appModule),
                         value: record.installedAt.formatted(date: .abbreviated, time: .shortened)
                     )
                     metadataItem(
-                        label: String(localized: "Provider", bundle: .module),
+                        label: String(localized: "Provider", bundle: .appModule),
                         value: record.providerId.capitalized
                     )
                     metadataItem(
-                        label: String(localized: "Steps", bundle: .module),
-                        value: "\(record.steps.filter { $0.status == .completed }.count)/\(record.steps.count) " + String(localized: "completed", bundle: .module)
+                        label: String(localized: "Steps", bundle: .appModule),
+                        value: "\(record.steps.filter { $0.status == .completed }.count)/\(record.steps.count) " + String(localized: "completed", bundle: .appModule)
                     )
                 }
 
@@ -229,7 +229,7 @@ struct InstallationsContentView: View {
 
                 // Steps
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(String(localized: "Installation Steps", bundle: .module))
+                    Text(String(localized: "Installation Steps", bundle: .appModule))
                         .font(.headline)
 
                     ForEach(record.steps) { step in
@@ -245,7 +245,7 @@ struct InstallationsContentView: View {
                         pendingUninstallId = record.id
                         showUninstallConfirmation = true
                     } label: {
-                        Label(String(localized: "Uninstall", bundle: .module), systemImage: "trash")
+                        Label(String(localized: "Uninstall", bundle: .appModule), systemImage: "trash")
                     }
                     .buttonStyle(.bordered)
                     .tint(.red)
@@ -275,7 +275,7 @@ struct InstallationsContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 4))
 
             if let output = step.output, !output.isEmpty {
-                DisclosureGroup(String(localized: "Output", bundle: .module)) {
+                DisclosureGroup(String(localized: "Output", bundle: .appModule)) {
                     ScrollView {
                         Text(output)
                             .font(.system(.caption2, design: .monospaced))
@@ -338,17 +338,17 @@ struct InstallationsContentView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(.tertiary)
 
-                Text(String(localized: "No Installations Yet", bundle: .module))
+                Text(String(localized: "No Installations Yet", bundle: .appModule))
                     .font(.title3.weight(.medium))
                     .foregroundStyle(.secondary)
             }
 
             // Explanation section
             VStack(alignment: .leading, spacing: 16) {
-                Text(String(localized: "What are Agent Installations?", bundle: .module))
+                Text(String(localized: "What are Agent Installations?", bundle: .appModule))
                     .font(.headline)
 
-                Text(String(localized: "Some websites and tools provide install prompts — blocks of text you can paste into an AI agent to automatically install and configure software on your Mac.", bundle: .module))
+                Text(String(localized: "Some websites and tools provide install prompts — blocks of text you can paste into an AI agent to automatically install and configure software on your Mac.", bundle: .appModule))
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
@@ -357,26 +357,26 @@ struct InstallationsContentView: View {
                     howToStepRow(
                         number: "1",
                         icon: "square.and.arrow.down",
-                        text: String(localized: "Tap the Install button in the chat input bar.", bundle: .module)
+                        text: String(localized: "Tap the Install button in the chat input bar.", bundle: .appModule)
                     )
                     howToStepRow(
                         number: "2",
                         icon: "doc.on.clipboard",
-                        text: String(localized: "Paste the install prompt provided by the website.", bundle: .module)
+                        text: String(localized: "Paste the install prompt provided by the website.", bundle: .appModule)
                     )
                     howToStepRow(
                         number: "3",
                         icon: "checklist",
-                        text: String(localized: "McClaw analyzes the prompt and shows you a plan with every command before executing.", bundle: .module)
+                        text: String(localized: "McClaw analyzes the prompt and shows you a plan with every command before executing.", bundle: .appModule)
                     )
                     howToStepRow(
                         number: "4",
                         icon: "shield.checkered",
-                        text: String(localized: "Each command is checked against your security rules. You approve what runs on your machine.", bundle: .module)
+                        text: String(localized: "Each command is checked against your security rules. You approve what runs on your machine.", bundle: .appModule)
                     )
                 }
 
-                Text(String(localized: "All installations are tracked here so you can review and uninstall them at any time.", bundle: .module))
+                Text(String(localized: "All installations are tracked here so you can review and uninstall them at any time.", bundle: .appModule))
                     .font(.callout)
                     .foregroundStyle(.tertiary)
             }
@@ -413,7 +413,7 @@ struct InstallationsContentView: View {
             Image(systemName: "sidebar.left")
                 .font(.system(size: 32))
                 .foregroundStyle(.tertiary)
-            Text(String(localized: "Select an installation to view details", bundle: .module))
+            Text(String(localized: "Select an installation to view details", bundle: .appModule))
                 .font(.callout)
                 .foregroundStyle(.tertiary)
             Spacer()
