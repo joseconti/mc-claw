@@ -25,7 +25,7 @@
   <img src="https://img.shields.io/badge/platform-macOS%2015+-blue?logo=apple" alt="macOS 15+">
   <img src="https://img.shields.io/badge/swift-6.0-orange?logo=swift" alt="Swift 6.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue" alt="License: GPL v3"></a>
-  <img src="https://img.shields.io/badge/version-0.10--beta-blue" alt="v0.10-beta">
+  <img src="https://img.shields.io/badge/version-0.11--beta-blue" alt="v0.11-beta">
   <img src="https://img.shields.io/badge/tests-859%20passing-brightgreen" alt="Tests">
 </p>
 
@@ -33,7 +33,7 @@
 
 ## What is McClaw?
 
-McClaw is a **native macOS application** built with Swift and SwiftUI that unifies multiple AI assistants — Claude, ChatGPT, Gemini, and Ollama — through their official CLI tools. Instead of managing API keys or juggling between different apps, McClaw talks directly to the CLIs you already have installed.
+McClaw is a **native macOS application** built with Swift and SwiftUI that unifies multiple AI assistants through their official CLI tools. Instead of managing API keys or juggling between different apps, McClaw talks directly to the CLIs you already have installed.
 
 One app. All your AIs. Zero API keys.
 
@@ -41,15 +41,21 @@ One app. All your AIs. Zero API keys.
 
 ### AI Providers
 - **Claude** (Anthropic) — Full streaming support, session management, MCP tools, background sessions
-- **ChatGPT** (OpenAI) — Chat completions via CLI
-- **Gemini** (Google) — Multi-modal conversations
+- **ChatGPT** (OpenAI) — Chat completions via CLI, image generation
+- **Codex** (OpenAI) — Agentic coding assistant with plan mode
+- **Gemini** (Google) — Multi-modal conversations, 1M context, image generation
 - **Ollama** — Local models, fully offline
+- **GitHub Copilot** — Code-focused AI via `gh copilot`
+- **Amazon Q Developer** — AWS-integrated AI assistant
+- **DashScope / Qwen** (Alibaba Cloud) — API-based provider with model selection
+- **BitNet** — Experimental 1-bit LLM, ultra-efficient local inference
 
 ### Core
 - **CLI Bridge Architecture** — Uses official CLI tools, no API keys, respects provider ToS
 - **Unified Chat Interface** — Switch providers mid-conversation, markdown rendering, code highlighting
 - **Menu Bar App** — Always accessible, lightweight, stays out of your way
 - **Smart CLI Detection** — Auto-discovers installed CLIs, assisted installation for missing ones
+- **Git Integration** — Repository management, branches, commits, PRs, issues, file diffs, and AI-powered git workflows
 - **859 tests** — Comprehensive test suite across 3 SPM targets
 
 ### Productivity
@@ -109,21 +115,20 @@ Connect McClaw directly to messaging platforms — no external server needed:
 - **macOS 15** (Sequoia) or later
 - At least one AI CLI installed:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — `npm install -g @anthropic-ai/claude-code`
-  - [ChatGPT CLI](https://platform.openai.com) — Check OpenAI docs for installation
+  - [ChatGPT CLI](https://github.com/openai/chatgpt-cli) — `brew install chatgpt`
+  - [Codex CLI](https://github.com/openai/codex) — `npm install -g @openai/codex`
   - [Gemini CLI](https://github.com/google-gemini/gemini-cli) — `npm install -g @google/gemini-cli`
   - [Ollama](https://ollama.com) — `brew install ollama`
+  - [GitHub Copilot](https://github.com/features/copilot) — `brew install gh` + `gh extension install github/gh-copilot`
+  - [Amazon Q Developer](https://aws.amazon.com/q/developer/) — `brew install amazon-q`
+  - DashScope / Qwen — API key from Alibaba Cloud (configured in McClaw settings)
+  - BitNet — Installed automatically via McClaw's guided setup
 
 ## Installation
 
 ### Download
 
 Get the latest release from **[mcclaw.app](https://mcclaw.app)** or from [GitHub Releases](https://github.com/joseconti/mc-claw/releases).
-
-### Homebrew (coming soon)
-
-```bash
-brew install --cask mcclaw
-```
 
 ## Building from Source
 
@@ -243,10 +248,8 @@ Full architecture documentation is available in the [`docs/McClaw/`](docs/McClaw
 
 ## Roadmap
 
-- [ ] Homebrew Cask distribution
 - [ ] iOS companion app
 - [ ] Android companion app
-- [ ] Git integration with AI-powered commit, PR, and branch management
 - [ ] Plugin marketplace
 - [ ] Tier 1 language translations (28 languages)
 - [ ] Themes and appearance customization
