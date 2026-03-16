@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://mcclaw.app">🌐 mcclaw.app</a>
+</p>
+
+<p align="center">
   <a href="https://mcclaw.app">Website</a> •
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
@@ -22,7 +26,7 @@
   <img src="https://img.shields.io/badge/swift-6.0-orange?logo=swift" alt="Swift 6.0">
   <img src="https://img.shields.io/github/license/joseconti/mc-claw" alt="License">
   <img src="https://img.shields.io/badge/version-0.8--beta-blue" alt="v0.8-beta">
-  <img src="https://img.shields.io/badge/tests-365%20passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-859%20passing-brightgreen" alt="Tests">
 </p>
 
 ---
@@ -36,45 +40,69 @@ One app. All your AIs. Zero API keys.
 ## Features
 
 ### AI Providers
-- **Claude** (Anthropic) — Full streaming support, session management, MCP tools
+- **Claude** (Anthropic) — Full streaming support, session management, MCP tools, background sessions
 - **ChatGPT** (OpenAI) — Chat completions via CLI
 - **Gemini** (Google) — Multi-modal conversations
 - **Ollama** — Local models, fully offline
 
 ### Core
-- **CLI Bridge Architecture** — Uses official CLI tools, respects provider ToS
+- **CLI Bridge Architecture** — Uses official CLI tools, no API keys, respects provider ToS
 - **Unified Chat Interface** — Switch providers mid-conversation, markdown rendering, code highlighting
 - **Menu Bar App** — Always accessible, lightweight, stays out of your way
 - **Smart CLI Detection** — Auto-discovers installed CLIs, assisted installation for missing ones
-- **365 tests** — Comprehensive test suite across 5 SPM targets
+- **859 tests** — Comprehensive test suite across 3 SPM targets
 
 ### Productivity
-- **Canvas Mode** — Live HTML/JS preview panel with hot-reload and bidirectional JS bridge
+- **Canvas Mode** — Live HTML/JS preview panel with hot-reload, bidirectional JS bridge, and file watcher
 - **Voice Mode** — Speech-to-text, text-to-speech, push-to-talk, wake word activation
-- **Slash Commands** — 9 built-in commands for quick actions
+- **Skills System** — Bundled skills for common tasks (PDF, DOCX, PPTX, metrics, competitive analysis, MCP builder)
+- **Slash Commands** — Built-in commands for quick actions
 - **File Attachments** — Drag & drop or pick files to include in conversations
 - **Session Management** — Persistent chat history with export
 
 ### Automation & Integration
-- **Scheduled Tasks** — Cron jobs and one-off scheduled prompts
-- **30+ Connectors** — Google Workspace, GitHub, Slack, Discord, Telegram, Jira, Notion, Trello, and more
-- **MCP Support** — Model Context Protocol server management
-- **Channels & Plugins** — Extensible via Gateway WebSocket protocol
-- **WordPress MCP Bridge** — 13 sub-connectors for WordPress site management
+- **Scheduled Tasks** — Cron jobs and one-off scheduled prompts (Claude via PTY `/loop`, others via LocalScheduler)
+- **30+ Connectors** — Google Workspace, GitHub, Slack, Discord, Telegram, Jira, Notion, Trello, Microsoft 365, and more
+- **MCP Support** — Model Context Protocol server management (Claude CLI + Gemini settings.json)
+- **WordPress MCP Bridge** — 13 sub-connectors with ~278 abilities for WordPress site management
 - **Prompt Enrichment** — `@fetch` directive to inject live data from connectors into prompts
+- **OAuth + PKCE** — Secure token flows with Keychain storage
+
+### Native Channels
+Connect McClaw directly to messaging platforms — no external server needed:
+- **Telegram** — Bot API integration
+- **Slack** — Workspace bot
+- **Discord** — Bot presence
+- **Matrix** — Decentralized chat
+- **Mattermost** — Team messaging
+- **Mastodon** — Fediverse integration
+- **Zulip** — Topic-based chat
+- **Rocket.Chat** — Self-hosted messaging
+- **Twitch** — Live stream chat
+
+### Device Pairing & Remote Access
+- **Local Pairing** — QR code pairing with mobile devices via Network.framework WebSocket
+- **Relay Server** — Remote access through relay.joseconti.com (JWT auth, WebSocket relay)
+- **Self-hosted Mode** — Run your own relay with zero auth requirements
+
+### Node Mode
+- **Screen Recording** — ScreenCaptureKit integration for screen context
+- **Camera Capture** — AVCapture for visual input
+- **Location Services** — CLLocationManager for location-aware prompts
+- **Command Dispatch** — Structured command routing for advanced automation
 
 ### Security
 - **Execution Approvals** — Glob-based allow/deny rules for CLI commands
 - **Environment Sanitization** — Strips sensitive env vars before passing to CLIs
 - **TCC Compliance** — Proper macOS permission handling (microphone, screen recording, camera, location)
 - **Keychain Storage** — OAuth tokens and credentials stored in macOS Keychain
+- **IPC Protocol** — Unix socket communication with HMAC authentication
 
 ### Advanced
-- **Remote Mode** — SSH tunnel support for connecting to remote instances
-- **IPC Protocol** — Unix socket communication with HMAC authentication
 - **Auto-Updates** — Sparkle framework integration
 - **Deep Links** — `mcclaw://` URL scheme support
-- **Multi-language** — Localization infrastructure ready (i18n)
+- **Multi-language** — Full localization infrastructure (i18n)
+- **Adaptive Learning** — Learns from usage patterns to improve suggestions
 
 ## Requirements
 
@@ -82,14 +110,14 @@ One app. All your AIs. Zero API keys.
 - At least one AI CLI installed:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — `npm install -g @anthropic-ai/claude-code`
   - [ChatGPT CLI](https://platform.openai.com) — Check OpenAI docs for installation
-  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) — `npm install -g @anthropic-ai/gemini-cli` (check repo for latest)
+  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) — `npm install -g @google/gemini-cli`
   - [Ollama](https://ollama.com) — `brew install ollama`
 
 ## Installation
 
 ### Download
 
-Get the latest release from [mcclaw.app](https://mcclaw.app) or from [GitHub Releases](https://github.com/joseconti/mc-claw/releases).
+Get the latest release from **[mcclaw.app](https://mcclaw.app)** or from [GitHub Releases](https://github.com/joseconti/mc-claw/releases).
 
 ### Homebrew (coming soon)
 
@@ -124,7 +152,7 @@ open build/McClaw.app
 # Quick compile check
 cd McClaw && swift build
 
-# Run tests
+# Run tests (859 tests)
 cd McClaw && swift test
 
 # Build only the binary (no bundle)
@@ -133,18 +161,17 @@ cd McClaw && swift run
 
 ## Architecture
 
-McClaw is built as a **Swift Package Manager** project with 5 modular targets:
+McClaw is built as a **Swift Package Manager** project with 3 modular targets:
 
 | Target | Description |
 |--------|-------------|
 | **McClaw** | Main executable — SwiftUI app, views, services, state management |
-| **McClawKit** | Core library — CLI parsing, security logic, connectors, voice processing |
-| **McClawProtocol** | WebSocket protocol models — Request/Response/Event types |
+| **McClawKit** | Core library — CLI parsing, security logic, connectors, voice, canvas, device, channel kits |
 | **McClawIPC** | Inter-process communication — Unix socket with HMAC auth |
-| **McClawDiscovery** | Gateway discovery — Bonjour/mDNS service detection |
 
 ### Key Design Decisions
 
+- **100% standalone** — No external gateway or server dependencies
 - **Actor-based concurrency** — All services use Swift actors for thread safety
 - **@Observable pattern** — State management via `@Observable` + `@MainActor`
 - **AsyncStream** — Streaming responses from CLIs
@@ -168,15 +195,13 @@ mc-claw/
 │   │   ├── McClaw/            # Main app target
 │   │   │   ├── App/           # Entry point, AppDelegate
 │   │   │   ├── State/         # AppState, ViewModels
-│   │   │   ├── Views/         # SwiftUI views (Chat, Settings, Voice, Canvas...)
-│   │   │   ├── Services/      # CLIBridge, Gateway, Cron, MCP, Voice, Canvas...
-│   │   │   ├── Models/        # Data models (CLI, Chat, Gateway, Connectors...)
+│   │   │   ├── Views/         # SwiftUI views (Chat, Settings, Voice, Canvas, Security...)
+│   │   │   ├── Services/      # CLIBridge, Cron, MCP, Voice, Canvas, Connectors, NativeChannels, Mobile...
+│   │   │   ├── Models/        # Data models (CLI, Chat, Connectors, MCP, Skills, Device, Cron...)
 │   │   │   └── Infrastructure/ # Config, Logging, Keychain
-│   │   ├── McClawKit/         # Core pure-logic library
-│   │   ├── McClawProtocol/    # WebSocket protocol types
-│   │   ├── McClawIPC/         # Unix socket IPC
-│   │   └── McClawDiscovery/   # Gateway discovery
-│   └── Tests/                 # 365 tests
+│   │   ├── McClawKit/         # Core pure-logic library (CLI, Security, Voice, Canvas, Connectors, Device, Channel kits)
+│   │   └── McClawIPC/         # Unix socket IPC with HMAC auth
+│   └── Tests/                 # 859 tests
 ├── BundledSkills/             # Built-in skill definitions
 ├── docs/                      # Architecture documentation
 ├── scripts/                   # Build and utility scripts
@@ -206,18 +231,22 @@ Full architecture documentation is available in the [`docs/McClaw/`](docs/McClaw
 - [Architecture Overview](docs/McClaw/01-ARQUITECTURA-GENERAL.md)
 - [CLI Bridge](docs/McClaw/02-CLI-BRIDGE.md)
 - [Chat UI](docs/McClaw/03-UI-CHAT.md)
-- [Gateway Protocol](docs/McClaw/04-GATEWAY-PROTOCOL.md)
-- [Channels & Plugins](docs/McClaw/05-CHANNELS-PLUGINS.md)
 - [Data Models](docs/McClaw/06-MODELOS-DATOS.md)
 - [Features Map](docs/McClaw/07-FEATURES-COMPLETAS.md)
 - [Connectors](docs/McClaw/09-CONNECTORS-SPRINTS.md)
+- [Scheduling](docs/McClaw/10-SCHEDULES.md)
+- [Native Channels](docs/McClaw/11-CHANNELS-NATIVOS.md)
 - [Localization](docs/McClaw/13-LOCALIZACION.md)
+- [Mobile Apps](docs/McClaw/14-APP-MOVIL.md)
+- [Git Integration](docs/McClaw/16-GIT-INTEGRATION.md)
+- [Accessibility](docs/McClaw/17-ACCESSIBILITY.md)
 
 ## Roadmap
 
 - [ ] Homebrew Cask distribution
-- [ ] Native Telegram, Slack, and Discord channels (without Gateway)
-- [ ] iOS / Android companion app
+- [ ] iOS companion app
+- [ ] Android companion app
+- [ ] Git integration with AI-powered commit, PR, and branch management
 - [ ] Plugin marketplace
 - [ ] Tier 1 language translations (28 languages)
 - [ ] Themes and appearance customization
@@ -228,7 +257,7 @@ McClaw is released under the [GNU General Public License v3.0](LICENSE).
 
 ## Author
 
-**José Conti** — [plugins.joseconti.com](https://plugins.joseconti.com)
+**José Conti** — [mcclaw.app](https://mcclaw.app)
 
 - GitHub: [@joseconti](https://github.com/joseconti)
 - X: [@josecontic](https://x.com/josecontic)
