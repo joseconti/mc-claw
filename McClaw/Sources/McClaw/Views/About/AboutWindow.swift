@@ -76,7 +76,7 @@ private struct AboutContentView: View {
             // Buttons — Claude style: outlined pills with hover fill
             VStack(spacing: 12) {
                 AboutPillButton(title: "Website") {
-                    NSWorkspace.shared.open(URL(string: "https://mcclaw.joseconti.com")!)
+                    NSWorkspace.shared.open(URL(string: "https://mcclaw.app")!)
                 }
                 AboutPillButton(title: "Developer Website") {
                     NSWorkspace.shared.open(URL(string: "https://plugins.joseconti.com/en")!)

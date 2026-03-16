@@ -106,24 +106,39 @@ fi
 # 5b. Fix rpath so the binary finds Sparkle.framework in Frameworks/
 install_name_tool -add_rpath @executable_path/../Frameworks "$MACOS/McClaw" 2>/dev/null || true
 
-# 5c. Re-sign binary (install_name_tool invalidates the ad-hoc signature)
-codesign --force --sign - "$MACOS/McClaw"
-echo "==> Binary re-signed after rpath fix"
-
-# 6. Code sign (optional)
+# 6. Code sign
+# For notarization, Apple requires hardened runtime and signing inside-out
+# (frameworks first, then binary, then .app bundle).
+# Never use --deep as it doesn't handle nested frameworks correctly.
+IDENTITY="${CODESIGN_IDENTITY:-Developer ID Application}"
 if [ "$SIGN" = "sign" ]; then
-    IDENTITY="${CODESIGN_IDENTITY:-Developer ID Application}"
-    echo "==> Code signing with: $IDENTITY"
-    codesign --deep --force --options runtime \
-        --sign "$IDENTITY" \
-        "$FRAMEWORKS/Sparkle.framework" 2>/dev/null || true
-    codesign --deep --force --options runtime \
-        --sign "$IDENTITY" \
-        "$APP_DIR"
-    echo "==> Code signed."
+    echo "==> Code signing with: $IDENTITY (hardened runtime for notarization)"
+
+    # 6a. Sign Sparkle.framework internals first
+    if [ -d "$FRAMEWORKS/Sparkle.framework" ]; then
+        # Sign XPC services and helpers inside Sparkle
+        find "$FRAMEWORKS/Sparkle.framework" -type f -perm +111 -not -name ".*" | while read -r bin; do
+            codesign --force --options runtime --sign "$IDENTITY" "$bin" 2>/dev/null || true
+        done
+        # Sign the framework bundle itself
+        codesign --force --options runtime --sign "$IDENTITY" "$FRAMEWORKS/Sparkle.framework"
+        echo "==> Sparkle.framework signed"
+    fi
+
+    # 6b. Sign the main binary
+    codesign --force --options runtime --sign "$IDENTITY" "$MACOS/McClaw"
+    echo "==> McClaw binary signed"
+
+    # 6c. Sign the entire .app bundle
+    codesign --force --options runtime --sign "$IDENTITY" "$APP_DIR"
+    echo "==> McClaw.app signed"
+else
+    # Ad-hoc sign for local development (no notarization)
+    codesign --force --sign - "$MACOS/McClaw"
+    echo "==> Binary signed ad-hoc (development only)"
 fi
 
 echo "==> McClaw.app built at: $APP_DIR"
 echo ""
-echo "To create a distributable zip:"
-echo "  cd $BUILD_DIR && zip -r McClaw-\$(plutil -extract CFBundleShortVersionString raw $CONTENTS/Info.plist).zip McClaw.app"
+echo "To create a distributable zip (MUST use ditto, not zip — zip corrupts code signatures):"
+echo "  cd $BUILD_DIR && ditto -c -k --keepParent McClaw.app McClaw-\$(plutil -extract CFBundleShortVersionString raw $CONTENTS/Info.plist).zip"
