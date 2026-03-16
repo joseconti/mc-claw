@@ -25,7 +25,7 @@
   <img src="https://img.shields.io/badge/platform-macOS%2015+-blue?logo=apple" alt="macOS 15+">
   <img src="https://img.shields.io/badge/swift-6.0-orange?logo=swift" alt="Swift 6.0">
   <img src="https://img.shields.io/github/license/joseconti/mc-claw" alt="License">
-  <img src="https://img.shields.io/badge/version-0.8--beta-blue" alt="v0.8-beta">
+  <img src="https://img.shields.io/badge/version-0.10--beta-blue" alt="v0.8-beta">
   <img src="https://img.shields.io/badge/tests-859%20passing-brightgreen" alt="Tests">
 </p>
 

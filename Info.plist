@@ -16,7 +16,7 @@
 
     <!-- Versioning -->
     <key>CFBundleShortVersionString</key>
-    <string>0.8.0</string>
+    <string>0.10.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
 
@@ -24,7 +24,7 @@
     <key>SUFeedURL</key>
     <string>https://api.joseconti.com/v1/mcclaw/appcast.xml</string>
     <key>SUPublicEDKey</key>
-    <string>REPLACE_WITH_EDDSA_PUBLIC_KEY</string>
+    <string>gQ332KjT6Ik40s6G2L6ZUEO0smS4lqh0u9hpXKtzfA8=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
 
