@@ -366,7 +366,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unche
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let state = AppState.shared
-        if state.keepInMenuBar && !forceQuit {
+        // Allow termination when Sparkle is installing an update or user chose Force Quit
+        let sparkleUpdating = UpdaterService.shared.isInstalling
+        if state.keepInMenuBar && !forceQuit && !sparkleUpdating {
             for window in NSApp.windows where window.isVisible {
                 window.orderOut(nil)
             }

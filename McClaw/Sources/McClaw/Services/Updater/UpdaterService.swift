@@ -15,6 +15,9 @@ final class UpdaterService: NSObject {
     /// Whether an update check is in progress
     private(set) var isChecking = false
 
+    /// Whether Sparkle is about to install an update (allows app termination)
+    fileprivate(set) var isInstalling = false
+
     /// Whether an update is available
     private(set) var updateAvailable = false
 
@@ -97,6 +100,20 @@ final class UpdaterService: NSObject {
 /// with a large centered logo instead of the default small icon.
 private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
     private let logger = Logger(label: "ai.mcclaw.updater.delegate")
+
+    func updater(_ updater: SPUUpdater, willInstallUpdateOnQuit item: SUAppcastItem, immediateInstallationBlock installationBlock: @escaping () -> Void) {
+        // Allow Sparkle to terminate the app even when keepInMenuBar is active
+        Task { @MainActor in
+            UpdaterService.shared.isInstalling = true
+        }
+    }
+
+    func updater(_ updater: SPUUpdater, willInstallUpdate item: SUAppcastItem) {
+        // Immediate install — allow termination for relaunch
+        Task { @MainActor in
+            UpdaterService.shared.isInstalling = true
+        }
+    }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
         logger.warning("Sparkle error: \(error.localizedDescription)")
