@@ -321,6 +321,50 @@ struct CLIParserTests {
         #expect(joined.contains("PLAN MODE"))
     }
 
+    // MARK: - Gemini parseLine
+
+    @Test("Gemini parse init JSON returns passthrough empty")
+    func parseGeminiInit() {
+        let json = #"{"type":"init","timestamp":"2026-03-16T20:35:10.834Z","session_id":"abc","model":"gemini-3"}"#
+        let event = CLIParser.parseLine(json, provider: "gemini")
+        #expect(event == .passthrough(""))
+    }
+
+    @Test("Gemini parse message JSON returns text")
+    func parseGeminiMessage() {
+        let json = #"{"type":"message","role":"assistant","content":"Hello!","delta":true}"#
+        let event = CLIParser.parseLine(json, provider: "gemini")
+        #expect(event == .text("Hello!"))
+    }
+
+    @Test("Gemini parse result JSON returns done")
+    func parseGeminiResult() {
+        let json = #"{"type":"result"}"#
+        let event = CLIParser.parseLine(json, provider: "gemini")
+        #expect(event == .done)
+    }
+
+    @Test("Gemini parse mixed line with MCP warning and init JSON suppresses both")
+    func parseGeminiMixedMCPInit() {
+        let line = #"MCP issues detected. Run /mcp list for status.{"type":"init","timestamp":"2026-03-16T20:35:10.834Z","session_id":"abc","model":"gemini-3"}"#
+        let event = CLIParser.parseLine(line, provider: "gemini")
+        #expect(event == .passthrough(""))
+    }
+
+    @Test("Gemini parse mixed line with text prefix and message JSON returns text")
+    func parseGeminiMixedTextMessage() {
+        let line = #"some warning{"type":"message","role":"assistant","content":"Hi","delta":true}"#
+        let event = CLIParser.parseLine(line, provider: "gemini")
+        #expect(event == .text("Hi"))
+    }
+
+    @Test("Gemini parse error JSON returns error text")
+    func parseGeminiError() {
+        let json = #"{"type":"error","output":"Something went wrong"}"#
+        let event = CLIParser.parseLine(json, provider: "gemini")
+        #expect(event == .text("[Error] Something went wrong"))
+    }
+
     // MARK: - Stdin JSON encoding
 
     @Test("encodeStdinMessage produces valid JSON with newline")

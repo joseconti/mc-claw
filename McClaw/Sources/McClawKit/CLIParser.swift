@@ -116,32 +116,61 @@ public enum CLIParser {
         }
 
         // Gemini stream-json: {"type":"message","role":"assistant","content":"...","delta":true}
-        if provider == "gemini", let data = line.data(using: .utf8) {
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let type = json["type"] as? String {
-                switch type {
-                case "message":
-                    if let role = json["role"] as? String, role == "assistant",
-                       let content = json["content"] as? String, !content.isEmpty {
-                        return .text(content)
+        // Gemini CLI may prefix JSON lines with non-JSON text (e.g. MCP warnings)
+        // on the same line without a newline separator. Try full-line parse first,
+        // then extract embedded JSON if that fails.
+        if provider == "gemini" {
+            if let result = parseGeminiJSON(line) {
+                return result
+            }
+            // Try extracting JSON from a mixed line (e.g. "MCP warning...{\"type\":\"init\",...}")
+            if let braceIdx = line.firstIndex(of: "{") {
+                let jsonPart = String(line[braceIdx...])
+                let textPart = String(line[..<braceIdx]).trimmingCharacters(in: .whitespacesAndNewlines)
+                if let result = parseGeminiJSON(jsonPart) {
+                    // If the text prefix is non-empty and the JSON was a silent event, suppress both
+                    if case .passthrough("") = result {
+                        return .passthrough("")
                     }
+                    return result
+                }
+                // JSON parse failed — show only the text prefix (suppress malformed JSON)
+                if !textPart.isEmpty {
                     return .passthrough("")
-                case "result":
-                    return .done
-                case "init", "tool_use", "tool_result":
-                    return .passthrough("")
-                case "error":
-                    if let output = json["output"] as? String {
-                        return .text("[Error] \(output)")
-                    }
-                    return .passthrough("")
-                default:
-                    break
                 }
             }
         }
 
         return .passthrough(line)
+    }
+
+    /// Parse a single line as Gemini stream-json.
+    /// Returns nil if the line is not valid Gemini JSON.
+    private static func parseGeminiJSON(_ line: String) -> StreamEvent? {
+        guard let data = line.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let type = json["type"] as? String else {
+            return nil
+        }
+        switch type {
+        case "message":
+            if let role = json["role"] as? String, role == "assistant",
+               let content = json["content"] as? String, !content.isEmpty {
+                return .text(content)
+            }
+            return .passthrough("")
+        case "result":
+            return .done
+        case "init", "tool_use", "tool_result":
+            return .passthrough("")
+        case "error":
+            if let output = json["output"] as? String {
+                return .text("[Error] \(output)")
+            }
+            return .passthrough("")
+        default:
+            return nil
+        }
     }
 
     /// Build CLI arguments for a given provider.

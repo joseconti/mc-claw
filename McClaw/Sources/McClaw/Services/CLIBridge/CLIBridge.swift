@@ -15,6 +15,46 @@ actor CLIBridge {
     /// Maximum seconds of silence (no stdout output) before killing a hung CLI process.
     private static let streamTimeoutSeconds: TimeInterval = 180 // 3 minutes
 
+    /// Cached login shell environment variables.
+    /// GUI apps (.app bundles) don't inherit shell env vars (GEMINI_API_KEY, etc.).
+    /// We resolve them once via `zsh -lc env` and merge into process environments.
+    private static nonisolated(unsafe) var _cachedShellEnv: [String: String]?
+    private static let shellEnvLock = NSLock()
+
+    /// Resolve the user's login shell environment, cached for the app lifetime.
+    nonisolated static func resolveShellEnvironment() -> [String: String] {
+        shellEnvLock.lock()
+        defer { shellEnvLock.unlock() }
+        if let cached = _cachedShellEnv { return cached }
+
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = ["-lc", "env"]
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        process.standardInput = FileHandle.nullDevice
+
+        var env: [String: String] = [:]
+        do {
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            if let output = String(data: data, encoding: .utf8) {
+                for line in output.components(separatedBy: "\n") {
+                    guard let eqIdx = line.firstIndex(of: "=") else { continue }
+                    let key = String(line[..<eqIdx])
+                    let value = String(line[line.index(after: eqIdx)...])
+                    env[key] = value
+                }
+            }
+        } catch {
+            // Fallback: empty dict, ProcessInfo.processInfo.environment will be used
+        }
+        _cachedShellEnv = env
+        return env
+    }
+
     /// Send a message to an AI provider via its CLI and stream the response.
     /// Includes execution approval check before running the process.
     func send(
@@ -107,11 +147,14 @@ actor CLIBridge {
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
 
-                // Sanitize environment before passing to CLI process
+                // Merge login shell env with process env so CLI tools find API keys
+                // (GUI .app bundles don't inherit shell-defined vars like GEMINI_API_KEY)
+                let shellEnv = CLIBridge.resolveShellEnvironment()
+                let mergedEnv = ProcessInfo.processInfo.environment.merging(shellEnv) { _, shell in shell }
                 let isShellWrapper = ["bash", "sh", "zsh"].contains(
                     URL(fileURLWithPath: binaryPath).lastPathComponent
                 )
-                var env = HostEnvSanitizer.sanitize(isShellWrapper: isShellWrapper)
+                var env = HostEnvSanitizer.sanitize(env: mergedEnv, isShellWrapper: isShellWrapper)
 
                 // Ensure the binary's directory is in PATH (GUI apps lack nvm/shell PATH)
                 let binaryDir = URL(fileURLWithPath: binaryPath).deletingLastPathComponent().path

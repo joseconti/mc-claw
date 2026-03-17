@@ -104,7 +104,19 @@ else
     echo "         Auto-updates will not work without it."
 fi
 
-# 5b. Fix rpath so the binary finds Sparkle.framework in Frameworks/
+# 5b. Strip extended attributes from all bundle contents
+# SPM build artifacts carry com.apple.quarantine and other xattrs.
+# ditto embeds these as ._ (AppleDouble) files in the zip. When extracted
+# with Archive Utility or unzip (instead of ditto -x -k), these ._ files
+# appear as loose files inside Sparkle.framework, causing Gatekeeper to
+# reject the app with "unsealed contents present in the root directory
+# of an embedded framework".
+xattr -cr "$APP_DIR"
+# Also strip ._ files that may already exist from cp -R
+dot_clean "$APP_DIR" 2>/dev/null || true
+echo "==> Extended attributes and resource forks stripped"
+
+# 5c. Fix rpath so the binary finds Sparkle.framework in Frameworks/
 install_name_tool -add_rpath @executable_path/../Frameworks "$MACOS/McClaw" 2>/dev/null || true
 
 # 6. Code sign
@@ -141,5 +153,5 @@ fi
 
 echo "==> McClaw.app built at: $APP_DIR"
 echo ""
-echo "To create a distributable zip (MUST use ditto, not zip — zip corrupts code signatures):"
-echo "  cd $BUILD_DIR && ditto -c -k --keepParent McClaw.app McClaw-\$(plutil -extract CFBundleShortVersionString raw $CONTENTS/Info.plist).zip"
+echo "To create a distributable zip (MUST use ditto --norsrc --noextattr to avoid ._ files that break Gatekeeper):"
+echo "  cd $BUILD_DIR && ditto -c -k --norsrc --noextattr --keepParent McClaw.app McClaw-\$(plutil -extract CFBundleShortVersionString raw $CONTENTS/Info.plist).zip"

@@ -117,12 +117,17 @@ private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
         let nsError = error as NSError
-        // Sparkle fires didAbortWithError for "no update found" (domain SPUNoUpdateFoundError, code 0).
-        // This is not a real error — Sparkle already shows its own "You're up to date!" dialog.
-        // Only show our custom error alert for actual failures.
+        // Sparkle fires didAbortWithError for "no update found" (domain SPUNoUpdateFoundError, code 0)
+        // and also for other non-fatal conditions. Log the full error details for debugging.
+        logger.info("Sparkle didAbortWithError — domain: \(nsError.domain), code: \(nsError.code), description: \(error.localizedDescription)")
+
+        // Filter out non-errors: "no update found", "up to date", user cancellation
         if nsError.domain == "SPUNoUpdateFoundError"
-            || error.localizedDescription.contains("up to date") {
-            logger.info("No update available — up to date")
+            || nsError.domain == "SUSparkleErrorDomain"
+            || error.localizedDescription.contains("up to date")
+            || error.localizedDescription.contains("no update")
+            || nsError.code == 1001 /* user cancelled */ {
+            logger.info("No update available or user cancelled — not an error")
             return
         }
 
