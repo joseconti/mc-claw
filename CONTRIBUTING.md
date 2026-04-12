@@ -41,6 +41,10 @@ Do **not** use `swift build` alone for app distribution — it only compiles the
 1. Check [existing issues](https://github.com/joseconti/mc-claw/issues) to avoid duplicates
 2. Open a new issue using the **Bug Report** template
 3. Include: macOS version, McClaw version, steps to reproduce, expected vs actual behavior
+4. If the problem involves provider failover loops, attach diagnostics:
+   ```bash
+   ./scripts/failover-loop-radar.sh ~/Library/Logs/McClaw/mcclaw.log
+   ```
 
 ### Suggesting Features
 
