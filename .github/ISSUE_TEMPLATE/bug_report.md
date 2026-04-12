@@ -28,6 +28,15 @@ Please attach the McClaw log file to help us diagnose the issue:
 3. The log file is saved at `~/.mcclaw/logs/mcclaw.log`
 4. Attach the log file to this issue (or paste the relevant lines)
 
+**Failover loop radar (optional, super helpful for provider ping-pong)**
+If your logs show repeated `Failover: providerA → providerB` lines, run:
+
+```bash
+./scripts/failover-loop-radar.sh ~/.mcclaw/logs/mcclaw.log
+```
+
+Paste the output here so maintainers can see transition counts and loop intensity quickly.
+
 **Environment:**
 - macOS version: [e.g. 15.2]
 - McClaw version: [e.g. 0.8.0]
