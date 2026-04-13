@@ -34,6 +34,12 @@ final class ChatViewModel {
     private var chainDepth: Int = 0
     /// Maximum allowed chain depth before stopping multi-step operations.
     private static let maxChainDepth = 10
+    /// Providers already attempted in the current user turn (initial provider + failovers).
+    private var providersAttemptedThisTurn: Set<String> = []
+    /// Number of automatic failovers attempted in the current user turn.
+    private var failoverAttemptsThisTurn: Int = 0
+    /// Hard cap to prevent codex ↔ gemini ping-pong loops.
+    private static let maxFailoversPerTurn = 3
 
     /// Send a pre-filled prompt to the chat (e.g., from contextual actions).
     /// If `autoSend` is true, the prompt is sent immediately. Otherwise it would need
@@ -46,6 +52,8 @@ final class ChatViewModel {
     func send(_ text: String, attachments: [Attachment] = []) async {
         // Reset chain depth on new user message
         chainDepth = 0
+        providersAttemptedThisTurn = []
+        failoverAttemptsThisTurn = 0
 
         // Intercept slash commands
         if text.hasPrefix("/") {
@@ -65,6 +73,7 @@ final class ChatViewModel {
         }
 
         let sessionId = overrideSessionId ?? appState.currentSessionId ?? "main"
+        providersAttemptedThisTurn.insert(provider.id)
 
         // Determine if we need to inject conversation context.
         // Context is needed when:
@@ -543,7 +552,16 @@ final class ChatViewModel {
 
             // Model failover: if error and no content, try another provider
             if hasError && assistantMessage.content.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("[Error") {
-                if let fallback = self.findFallbackProvider(excluding: provider.id) {
+                if self.failoverAttemptsThisTurn >= Self.maxFailoversPerTurn {
+                    assistantMessage.content += "\nFailover circuit-breaker engaged after \(Self.maxFailoversPerTurn) attempts. Stopping auto-switch to prevent loop storms."
+                    self.updateLastMessage(assistantMessage)
+                    self.logger.warning("Failover halted: circuit-breaker reached (\(Self.maxFailoversPerTurn) attempts)")
+                } else if let fallback = self.findFallbackProvider(
+                    excluding: provider.id,
+                    avoiding: self.providersAttemptedThisTurn
+                ) {
+                    self.failoverAttemptsThisTurn += 1
+                    self.providersAttemptedThisTurn.insert(fallback.id)
                     assistantMessage.content += "\nFailing over to \(fallback.displayName)…"
                     self.updateLastMessage(assistantMessage)
                     appState.currentCLIIdentifier = fallback.id
@@ -570,6 +588,11 @@ final class ChatViewModel {
                         fetchRound: 1
                     )
                     return
+                } else {
+                    let attempted = self.providersAttemptedThisTurn.sorted().joined(separator: ", ")
+                    assistantMessage.content += "\nFailover halted: no unused authenticated provider available (already attempted: \(attempted))."
+                    self.updateLastMessage(assistantMessage)
+                    self.logger.warning("Failover halted: no unused provider available")
                 }
             }
 
@@ -1014,9 +1037,12 @@ final class ChatViewModel {
     // MARK: - Model Failover
 
     /// Find an alternative CLI provider when the current one fails.
-    private func findFallbackProvider(excluding providerId: String) -> CLIProviderInfo? {
+    private func findFallbackProvider(excluding providerId: String, avoiding attemptedProviders: Set<String>) -> CLIProviderInfo? {
         AppState.shared.availableCLIs.first {
-            $0.id != providerId && $0.isInstalled && $0.isAuthenticated
+            $0.id != providerId &&
+            $0.isInstalled &&
+            $0.isAuthenticated &&
+            !attemptedProviders.contains($0.id)
         }
     }
 
